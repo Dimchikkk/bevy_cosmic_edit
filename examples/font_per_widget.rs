@@ -285,7 +285,7 @@ fn change_active_editor(
     >,
 ) {
     for (interaction, cosmic_edit, entity) in interaction_query.iter_mut() {
-        if let Interaction::Clicked = interaction {
+        if let Interaction::Pressed = interaction {
             commands.insert_resource(ActiveEditor {
                 entity: Some(entity),
             });
