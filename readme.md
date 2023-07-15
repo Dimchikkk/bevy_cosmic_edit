@@ -20,7 +20,7 @@ cargo r --example basic_sprite
 
 | bevy | bevy_cosmic_edit |
 | ---- | ---------------- |
-| 0.11 | 0.8              |
+| 0.11 | 0.8, 0.9         |
 
 ## License
 
