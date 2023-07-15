@@ -226,14 +226,6 @@ pub fn get_node_cursor_pos(
 /// # Returns
 ///
 /// A `String` containing the cosmic text content.
-///
-/// # Examples
-///
-/// ```
-/// let editor = Editor::new();
-/// let cosmic_text = get_cosmic_text(&editor);
-/// println!("Cosmic text: {}", cosmic_text);
-/// ```
 pub fn get_cosmic_text(buffer: &Buffer) -> String {
     let mut text = String::new();
     let line_count = buffer.lines.len();
