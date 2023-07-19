@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     create_cosmic_font_system, get_cosmic_text, spawn_cosmic_edit, ActiveEditor, CosmicEdit,
@@ -27,7 +25,7 @@ fn setup(
         .id();
     let primary_window = windows.single();
     let cosmic_font_config = CosmicFontConfig {
-        fonts_dir_path: Some(Path::new("assets/fonts").into()),
+        fonts_dir_path: None,
         font_bytes: None,
         load_system_fonts: true,
     };
@@ -250,7 +248,7 @@ fn setup(
     let cosmic_edit_1 = spawn_cosmic_edit(&mut commands, &mut cosmic_fonts, cosmic_edit_meta_1);
 
     let mut attrs_2 = cosmic_text::Attrs::new();
-    attrs_2 = attrs_2.family(cosmic_text::Family::Name("Victor Mono"));
+    attrs_2 = attrs_2.family(cosmic_text::Family::Name("Times New Roman"));
     let cosmic_edit_meta_2 = CosmicEditMeta {
         text: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
         attrs: AttrsOwned::new(attrs_2),

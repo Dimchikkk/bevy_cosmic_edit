@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     create_cosmic_font_system, spawn_cosmic_edit, ActiveEditor, CosmicEditMeta, CosmicEditPlugin,
@@ -26,9 +24,10 @@ fn setup(
         })
         .id();
 
+    let font_bytes: &[u8] = include_bytes!("../assets/fonts/VictorMono-Regular.ttf");
     let cosmic_font_config = CosmicFontConfig {
-        fonts_dir_path: Some(Path::new("assets/fonts").into()),
-        font_bytes: None,
+        fonts_dir_path: None,
+        font_bytes: Some(vec![font_bytes]),
         load_system_fonts: true,
     };
     let font_system = create_cosmic_font_system(cosmic_font_config);
