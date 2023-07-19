@@ -359,20 +359,108 @@ pub fn cosmic_edit_bevy_events(
         if active_editor.entity == Some(entity) {
             if let Some(font_system) = font_system_assets.get_mut(&cosmic_edit.font_system) {
                 let now_ms = get_timestamp();
+
+                #[cfg(target_os = "macos")]
                 let command = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
+
+                #[cfg(not(target_os = "macos"))]
+                let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
                 let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+
+                #[cfg(target_os = "macos")]
                 let option = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
+
+                // if shift key is pressed
+                let already_has_selection = cosmic_edit.editor.select_opt().is_some();
+                if shift && !already_has_selection {
+                    let cursor = cosmic_edit.editor.cursor();
+                    cosmic_edit.editor.set_select_opt(Some(cursor));
+                }
+
+                #[cfg(target_os = "macos")]
+                let should_jump = command && option;
+                #[cfg(not(target_os = "macos"))]
+                let should_jump = command;
+
+                if should_jump && keys.just_pressed(KeyCode::Left) {
+                    cosmic_edit
+                        .editor
+                        .action(&mut font_system.0, Action::PreviousWord);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+                if should_jump && keys.just_pressed(KeyCode::Right) {
+                    cosmic_edit
+                        .editor
+                        .action(&mut font_system.0, Action::NextWord);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+                if should_jump && keys.just_pressed(KeyCode::Home) {
+                    cosmic_edit
+                        .editor
+                        .action(&mut font_system.0, Action::BufferStart);
+                    // there's a bug with cosmic text where it doesn't update the visual cursor for this action
+                    // TODO: fix upstream
+                    cosmic_edit.editor.buffer_mut().set_redraw(true);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+                if should_jump && keys.just_pressed(KeyCode::End) {
+                    cosmic_edit
+                        .editor
+                        .action(&mut font_system.0, Action::BufferEnd);
+                    // there's a bug with cosmic text where it doesn't update the visual cursor for this action
+                    // TODO: fix upstream
+                    cosmic_edit.editor.buffer_mut().set_redraw(true);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+
                 if keys.just_pressed(KeyCode::Left) {
                     cosmic_edit.editor.action(&mut font_system.0, Action::Left);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
                 }
                 if keys.just_pressed(KeyCode::Right) {
                     cosmic_edit.editor.action(&mut font_system.0, Action::Right);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
                 }
                 if keys.just_pressed(KeyCode::Up) {
                     cosmic_edit.editor.action(&mut font_system.0, Action::Up);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
                 }
                 if keys.just_pressed(KeyCode::Down) {
                     cosmic_edit.editor.action(&mut font_system.0, Action::Down);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
                 }
                 if !cosmic_edit.readonly && keys.just_pressed(KeyCode::Back) {
                     #[cfg(target_arch = "wasm32")]
@@ -408,23 +496,50 @@ pub fn cosmic_edit_bevy_events(
                     // RETURN
                     return;
                 }
-                if command && option && keys.just_pressed(KeyCode::Left) {
-                    cosmic_edit
-                        .editor
-                        .action(&mut font_system.0, Action::PreviousWord);
+                if keys.just_pressed(KeyCode::Home) {
+                    cosmic_edit.editor.action(&mut font_system.0, Action::Home);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
                     // RETURN
                     return;
                 }
-                if command && option && keys.just_pressed(KeyCode::Right) {
+                if keys.just_pressed(KeyCode::End) {
+                    cosmic_edit.editor.action(&mut font_system.0, Action::End);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+                if keys.just_pressed(KeyCode::PageUp) {
                     cosmic_edit
                         .editor
-                        .action(&mut font_system.0, Action::NextWord);
+                        .action(&mut font_system.0, Action::PageUp);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
+                    // RETURN
+                    return;
+                }
+                if keys.just_pressed(KeyCode::PageDown) {
+                    cosmic_edit
+                        .editor
+                        .action(&mut font_system.0, Action::PageDown);
+                    if !shift {
+                        cosmic_edit.editor.set_select_opt(None);
+                    }
                     // RETURN
                     return;
                 }
 
                 // redo
-                if !cosmic_edit.readonly && command && shift && keys.just_pressed(KeyCode::Z) {
+                #[cfg(target_os = "macos")]
+                let requested_redo = command && shift && keys.just_pressed(KeyCode::Z);
+                #[cfg(not(target_os = "macos"))]
+                let requested_redo = command && keys.just_pressed(KeyCode::Y);
+
+                if !cosmic_edit.readonly && requested_redo {
                     let edits = &edit_history.edits;
                     if edits.is_empty() {
                         // RETURN
@@ -461,7 +576,9 @@ pub fn cosmic_edit_bevy_events(
                     return;
                 }
                 // undo
-                if !cosmic_edit.readonly && command && keys.just_pressed(KeyCode::Z) {
+                let requested_undo = command && keys.just_pressed(KeyCode::Z);
+
+                if !cosmic_edit.readonly && requested_undo {
                     let edits = &edit_history.edits;
                     if edits.is_empty() {
                         // RETURN
@@ -535,6 +652,12 @@ pub fn cosmic_edit_bevy_events(
                     ),
                     CosmicTextPos::TopLeft => (0, 0),
                 };
+                let point = |node_cursor_pos: (f32, f32)| {
+                    (
+                        (node_cursor_pos.0 * scale_factor) as i32 - offset_x,
+                        (node_cursor_pos.1 * scale_factor) as i32 - offset_y,
+                    )
+                };
                 if buttons.just_pressed(MouseButton::Left) {
                     if let Some(node_cursor_pos) = get_node_cursor_pos(
                         primary_window,
@@ -544,13 +667,16 @@ pub fn cosmic_edit_bevy_events(
                         camera,
                         camera_transform,
                     ) {
-                        cosmic_edit.editor.action(
-                            &mut font_system.0,
-                            Action::Click {
-                                x: (node_cursor_pos.0 * scale_factor) as i32 - offset_x,
-                                y: (node_cursor_pos.1 * scale_factor) as i32 - offset_y,
-                            },
-                        );
+                        let (x, y) = point(node_cursor_pos);
+                        if shift {
+                            cosmic_edit
+                                .editor
+                                .action(&mut font_system.0, Action::Drag { x, y });
+                        } else {
+                            cosmic_edit
+                                .editor
+                                .action(&mut font_system.0, Action::Click { x, y });
+                        }
                     }
                     // RETURN
                     return;
@@ -564,13 +690,10 @@ pub fn cosmic_edit_bevy_events(
                         camera,
                         camera_transform,
                     ) {
-                        cosmic_edit.editor.action(
-                            &mut font_system.0,
-                            Action::Drag {
-                                x: (node_cursor_pos.0 * scale_factor) as i32 - offset_x,
-                                y: (node_cursor_pos.1 * scale_factor) as i32 - offset_y,
-                            },
-                        );
+                        let (x, y) = point(node_cursor_pos);
+                        cosmic_edit
+                            .editor
+                            .action(&mut font_system.0, Action::Drag { x, y });
                     }
                     // RETURN
                     return;
