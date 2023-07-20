@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     create_cosmic_font_system, spawn_cosmic_edit, ActiveEditor, CosmicEditMeta, CosmicEditPlugin,
