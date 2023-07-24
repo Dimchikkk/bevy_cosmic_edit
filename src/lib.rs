@@ -71,10 +71,13 @@ impl Default for CosmicEditor {
 
 /// Adds the font system to each editor when added
 fn cosmic_editor_builder(
-    mut added_editors: Query<(&mut CosmicEditor, &CosmicAttrs), Added<CosmicEditor>>,
+    mut added_editors: Query<
+        (&mut CosmicEditor, &CosmicAttrs, &CosmicMetrics),
+        Added<CosmicEditor>,
+    >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut editor, attrs) in added_editors.iter_mut() {
+    for (mut editor, attrs, metrics) in added_editors.iter_mut() {
         // keep old text if set
         let mut text = get_cosmic_text(editor.0.buffer());
 
@@ -87,6 +90,11 @@ fn cosmic_editor_builder(
             text.as_str(),
             attrs.0.as_attrs(),
             Shaping::Advanced,
+        );
+
+        editor.0.buffer_mut().set_metrics(
+            &mut font_system.0,
+            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
 
         editor

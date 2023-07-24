@@ -3,6 +3,10 @@
 
 BUGS INTRODUCED:
 
-[ ] Font size has been changed somehow
-[ ] No cursor on readonly
+[ ] Cursor on readonly
 [ ] Window resizing broken
+    Used to redraw on click, now redraws on scroll or drag?
+
+BUGS SQUASHED:
+
+[x] Font size has been changed somehow
