@@ -20,20 +20,6 @@ use cosmic_text::{
 use image::{imageops::FilterType, GenericImageView};
 
 #[derive(Clone)]
-pub struct CosmicEditUi;
-
-#[derive(Clone)]
-pub struct CosmicEditSprite {
-    pub transform: Transform,
-}
-
-#[derive(Clone)]
-pub enum CosmicNode {
-    Ui,
-    Sprite(CosmicEditSprite),
-}
-
-#[derive(Clone)]
 pub enum CosmicText {
     OneStyle(String),
     MultiStyle(Vec<Vec<(String, cosmic_text::AttrsOwned)>>),
@@ -66,7 +52,7 @@ impl Default for CosmicMetrics {
 }
 
 #[derive(Resource)]
-pub struct CosmicFontSystem(FontSystem);
+pub struct CosmicFontSystem(pub FontSystem);
 
 #[derive(Component)]
 pub struct ReadOnly; // tag component
@@ -85,18 +71,27 @@ impl Default for CosmicEditor {
 
 /// Adds the font system to each editor when added
 fn cosmic_editor_builder(
-    mut added_editors: Query<&mut CosmicEditor, Added<CosmicEditor>>,
+    mut added_editors: Query<(&mut CosmicEditor, &CosmicAttrs), Added<CosmicEditor>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for mut editor in added_editors.iter_mut() {
-        editor
-            .0
-            .buffer_mut()
-            .set_text(&mut font_system.0, "", Attrs::new(), Shaping::Advanced);
+    for (mut editor, attrs) in added_editors.iter_mut() {
+        // keep old text if set
+        let mut text = get_cosmic_text(editor.0.buffer());
+
+        if text.is_empty() {
+            text = "".into();
+        }
+
+        editor.0.buffer_mut().set_text(
+            &mut font_system.0,
+            text.as_str(),
+            attrs.0.as_attrs(),
+            Shaping::Advanced,
+        );
 
         editor
             .0
-            .buffer_mut()
+            .buffer_mut() // TODO size here????
             .set_size(&mut font_system.0, 100., 100.)
     }
 }
@@ -410,9 +405,12 @@ pub fn cosmic_edit_set_text(
     editor: &mut Editor,
     font_system: &mut FontSystem,
 ) {
+    println!("SETTING TEXT");
     editor.buffer_mut().lines.clear();
     match text {
         CosmicText::OneStyle(text) => {
+            println!("ONESTYLE {:?}, {:?}", text, attrs);
+
             editor.buffer_mut().set_text(
                 font_system,
                 text.as_str(),
@@ -421,6 +419,8 @@ pub fn cosmic_edit_set_text(
             );
         }
         CosmicText::MultiStyle(lines) => {
+            println!("M-M-M-M-MULTI-STYLE");
+
             for line in lines {
                 let mut line_text = String::new();
                 let mut attrs_list = AttrsList::new(attrs.as_attrs());

@@ -1,0 +1,8 @@
+
+[ ] Friendly get/set text fns on CosmicEditor impl
+
+BUGS INTRODUCED:
+
+[ ] Font size has been changed somehow
+[ ] No cursor on readonly
+[ ] Window resizing broken
