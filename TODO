@@ -1,11 +1,12 @@
 
-[ ] Friendly get/set text fns on CosmicEditor impl
+[x] Friendly get/set text fns on CosmicEditor impl
 
 BUGS INTRODUCED:
 
 [ ] Cursor on readonly
 [ ] Window resizing broken
     Used to redraw on click, now redraws on scroll or drag?
+    Now drag doesn't work either (tested on readonly, might be that)
 
 BUGS SQUASHED:
 

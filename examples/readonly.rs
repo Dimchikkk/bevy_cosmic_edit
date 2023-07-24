@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    cosmic_edit_set_text, ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle,
-    CosmicFontConfig, CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition, ReadOnly,
+    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
+    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition, ReadOnly,
 };
 use cosmic_text::AttrsOwned;
 
@@ -28,8 +28,7 @@ fn setup(
     attrs = attrs.family(cosmic_text::Family::Name("Victor Mono"));
     attrs = attrs.color(cosmic_text::Color::rgb(0x94, 0x00, 0xD3));
 
-    //
-    let mut cosmic_edit = CosmicEditUiBundle {
+    let cosmic_edit = CosmicEditUiBundle {
         style: Style {
             width: Val::Percent(100.),
             height: Val::Percent(100.),
@@ -44,21 +43,20 @@ fn setup(
             scale_factor: primary_window.scale_factor() as f32,
         },
         ..default()
-    };
-
-    cosmic_edit_set_text(
+    }
+    .set_text(
         CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
         AttrsOwned::new(attrs),
-        &mut cosmic_edit.editor.0,
         &mut font_system.0,
     );
 
-    //
     let mut id = None;
+    // Spawn the CosmicEditUiBundle as a child of root
     commands.entity(root).with_children(|parent| {
         id = Some(parent.spawn(cosmic_edit).insert(ReadOnly).id());
     });
 
+    // Set active editor
     commands.insert_resource(ActiveEditor { entity: id });
 }
 

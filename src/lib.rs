@@ -69,6 +69,73 @@ impl Default for CosmicEditor {
     }
 }
 
+impl CosmicEditor {
+    pub fn set_text(
+        &mut self,
+        text: CosmicText,
+        attrs: AttrsOwned,
+        // i'd like to get this automagically but i'm too 3head -bytemunch
+        font_system: &mut FontSystem,
+    ) -> &mut Self {
+        let editor = &mut self.0;
+        editor.buffer_mut().lines.clear();
+        match text {
+            CosmicText::OneStyle(text) => {
+                editor.buffer_mut().set_text(
+                    font_system,
+                    text.as_str(),
+                    attrs.as_attrs(),
+                    Shaping::Advanced,
+                );
+            }
+            // TODO test
+            CosmicText::MultiStyle(lines) => {
+                for line in lines {
+                    let mut line_text = String::new();
+                    let mut attrs_list = AttrsList::new(attrs.as_attrs());
+                    for (text, attrs) in line.iter() {
+                        let start = line_text.len();
+                        line_text.push_str(text);
+                        let end = line_text.len();
+                        attrs_list.add_span(start..end, attrs.as_attrs());
+                    }
+                    editor.buffer_mut().lines.push(BufferLine::new(
+                        line_text,
+                        attrs_list,
+                        Shaping::Advanced,
+                    ));
+                }
+            }
+        }
+        self
+    }
+
+    /// Retrieves the cosmic text content from an editor.
+    ///
+    /// # Arguments
+    ///
+    /// * none, takes the rust magic ref to self
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the cosmic text content.
+    pub fn get_text(&self) -> String {
+        let buffer = self.0.buffer();
+        let mut text = String::new();
+        let line_count = buffer.lines.len();
+
+        for (i, line) in buffer.lines.iter().enumerate() {
+            text.push_str(line.text());
+
+            if i < line_count - 1 {
+                text.push('\n');
+            }
+        }
+
+        text
+    }
+}
+
 /// Adds the font system to each editor when added
 fn cosmic_editor_builder(
     mut added_editors: Query<
@@ -79,7 +146,7 @@ fn cosmic_editor_builder(
 ) {
     for (mut editor, attrs, metrics) in added_editors.iter_mut() {
         // keep old text if set
-        let mut text = get_cosmic_text(editor.0.buffer());
+        let mut text = editor.get_text();
 
         if text.is_empty() {
             text = "".into();
@@ -165,6 +232,18 @@ pub struct CosmicEditUiBundle {
     pub cosmic_attrs: CosmicAttrs,
     /// bg img
     pub background_image: CosmicBackground,
+}
+
+impl CosmicEditUiBundle {
+    pub fn set_text(
+        mut self,
+        text: CosmicText,
+        attrs: AttrsOwned,
+        font_system: &mut FontSystem,
+    ) -> Self {
+        self.editor.set_text(text, attrs, font_system);
+        self
+    }
 }
 
 impl Default for CosmicEditUiBundle {
@@ -301,13 +380,13 @@ fn change_active_editor(
         (Changed<Interaction>, With<CosmicEditor>),
     >,
 ) {
-    for (interaction, cosmic_edit, entity) in interaction_query.iter_mut() {
+    for (interaction, editor, entity) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
             info!("PRESSED");
             commands.insert_resource(ActiveEditor {
                 entity: Some(entity),
             });
-            info!("Widget text: {}", get_cosmic_text(cosmic_edit.0.buffer()));
+            info!("Widget text: {}", editor.get_text());
         }
     }
 }
@@ -404,73 +483,6 @@ pub fn get_node_cursor_pos(
                 })
         }
     })
-}
-
-// Sets text in a CosmicEdit
-pub fn cosmic_edit_set_text(
-    text: CosmicText,
-    attrs: AttrsOwned,
-    editor: &mut Editor,
-    font_system: &mut FontSystem,
-) {
-    println!("SETTING TEXT");
-    editor.buffer_mut().lines.clear();
-    match text {
-        CosmicText::OneStyle(text) => {
-            println!("ONESTYLE {:?}, {:?}", text, attrs);
-
-            editor.buffer_mut().set_text(
-                font_system,
-                text.as_str(),
-                attrs.as_attrs(),
-                Shaping::Advanced,
-            );
-        }
-        CosmicText::MultiStyle(lines) => {
-            println!("M-M-M-M-MULTI-STYLE");
-
-            for line in lines {
-                let mut line_text = String::new();
-                let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                for (text, attrs) in line.iter() {
-                    let start = line_text.len();
-                    line_text.push_str(text);
-                    let end = line_text.len();
-                    attrs_list.add_span(start..end, attrs.as_attrs());
-                }
-                editor.buffer_mut().lines.push(BufferLine::new(
-                    line_text,
-                    attrs_list,
-                    Shaping::Advanced,
-                ));
-            }
-        }
-    }
-}
-
-/// Retrieves the cosmic text content from an editor.
-///
-/// # Arguments
-///
-/// * `editor` - A reference to the `Editor` instance containing the text content.
-///
-/// # Returns
-///
-/// A `String` containing the cosmic text content.
-// TODO put this on the CosmicEdit impl
-pub fn get_cosmic_text(buffer: &Buffer) -> String {
-    let mut text = String::new();
-    let line_count = buffer.lines.len();
-
-    for (i, line) in buffer.lines.iter().enumerate() {
-        text.push_str(line.text());
-
-        if i < line_count - 1 {
-            text.push('\n');
-        }
-    }
-
-    text
 }
 
 /// Returns texts from a MultiStyle buffer
