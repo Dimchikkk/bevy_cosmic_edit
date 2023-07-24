@@ -3,11 +3,13 @@
 
 BUGS INTRODUCED:
 
-[ ] Cursor on readonly
 [ ] Window resizing broken
     Used to redraw on click, now redraws on scroll or drag?
     Now drag doesn't work either (tested on readonly, might be that)
+    Either way redraw on resize would be nice.
 
 BUGS SQUASHED:
 
 [x] Font size has been changed somehow
+
+[x] Cursor on readonly

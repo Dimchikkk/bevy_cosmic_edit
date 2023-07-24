@@ -139,12 +139,18 @@ impl CosmicEditor {
 /// Adds the font system to each editor when added
 fn cosmic_editor_builder(
     mut added_editors: Query<
-        (&mut CosmicEditor, &CosmicAttrs, &CosmicMetrics),
+        (
+            &mut CosmicEditor,
+            &CosmicAttrs,
+            &CosmicMetrics,
+            &BackgroundColor,
+            Option<&ReadOnly>,
+        ),
         Added<CosmicEditor>,
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut editor, attrs, metrics) in added_editors.iter_mut() {
+    for (mut editor, attrs, metrics, background_color, readonly) in added_editors.iter_mut() {
         // keep old text if set
         let mut text = editor.get_text();
 
@@ -167,7 +173,14 @@ fn cosmic_editor_builder(
         editor
             .0
             .buffer_mut() // TODO size here????
-            .set_size(&mut font_system.0, 100., 100.)
+            .set_size(&mut font_system.0, 100., 100.);
+
+        // hide cursor on readonly buffers
+        let mut cursor = editor.0.cursor();
+        if readonly.is_some() {
+            cursor.color = Some(bevy_color_to_cosmic(background_color.0));
+        }
+        editor.0.set_cursor(cursor);
     }
 }
 
