@@ -3,6 +3,13 @@
 
 BUGS INTRODUCED:
 
+[ ] MultiStyle text is fully dead. Idk what I did to it :(
+
+[ ] Cannot select text on Ui bundles sized by percentage
+        Maybe intercept percentages and set as px on instantiation?
+        Replace evaluate() with custom percent to px fn?
+            Read into how evaluate() works
+
 [ ] Window resizing broken
     Used to redraw on click, now redraws on scroll or drag?
     Now drag doesn't work either (tested on readonly, might be that)

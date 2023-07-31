@@ -22,7 +22,7 @@ use image::{imageops::FilterType, GenericImageView};
 #[derive(Clone)]
 pub enum CosmicText {
     OneStyle(String),
-    MultiStyle(Vec<Vec<(String, cosmic_text::AttrsOwned)>>),
+    MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
 }
 
 /// Enum representing the position of the cosmic text.
@@ -58,9 +58,6 @@ pub struct CosmicFontSystem(pub FontSystem);
 pub struct ReadOnly; // tag component
 
 #[derive(Component)]
-pub struct CosmicUiNode; // tag component
-
-#[derive(Component)]
 pub struct CosmicEditor(pub Editor);
 
 impl Default for CosmicEditor {
@@ -74,7 +71,7 @@ impl CosmicEditor {
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
-        // i'd like to get this automagically but i'm too 3head -bytemunch
+        // i'd like to get the font system automagically but i'm too 3head -bytemunch
         font_system: &mut FontSystem,
     ) -> &mut Self {
         let editor = &mut self.0;
@@ -88,7 +85,7 @@ impl CosmicEditor {
                     Shaping::Advanced,
                 );
             }
-            // TODO test
+            // TODO why not working?
             CosmicText::MultiStyle(lines) => {
                 for line in lines {
                     let mut line_text = String::new();
@@ -313,6 +310,18 @@ pub struct CosmicEditSpriteBundle {
     pub background_image: CosmicBackground,
 }
 
+impl CosmicEditSpriteBundle {
+    pub fn set_text(
+        mut self,
+        text: CosmicText,
+        attrs: AttrsOwned,
+        font_system: &mut FontSystem,
+    ) -> Self {
+        self.editor.set_text(text, attrs, font_system);
+        self
+    }
+}
+
 impl Default for CosmicEditSpriteBundle {
     fn default() -> Self {
         Self {
@@ -361,7 +370,8 @@ impl Plugin for CosmicEditPlugin {
             .add_systems(
                 Update,
                 (
-                    change_active_editor,
+                    change_active_editor_ui,
+                    change_active_editor_sprite,
                     cosmic_edit_bevy_events,
                     cosmic_edit_set_redraw,
                     on_scale_factor_change,
@@ -386,20 +396,53 @@ pub struct ActiveEditor {
     pub entity: Option<Entity>,
 }
 
-fn change_active_editor(
+fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, &mut CosmicEditor, Entity),
-        (Changed<Interaction>, With<CosmicEditor>),
+        (&Interaction, Entity),
+        (
+            Changed<Interaction>,
+            (With<CosmicEditor>, Without<ReadOnly>),
+        ),
     >,
 ) {
-    for (interaction, editor, entity) in interaction_query.iter_mut() {
+    for (interaction, entity) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            info!("PRESSED");
             commands.insert_resource(ActiveEditor {
                 entity: Some(entity),
             });
-            info!("Widget text: {}", editor.get_text());
+        }
+    }
+}
+
+fn change_active_editor_sprite(
+    mut commands: Commands,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    buttons: Res<Input<MouseButton>>,
+    mut cosmic_edit_query: Query<
+        (&mut Sprite, &GlobalTransform, Entity),
+        (With<CosmicEditor>, Without<ReadOnly>),
+    >,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+) {
+    let window = windows.single();
+    let (camera, camera_transform) = camera_q.single();
+    if buttons.just_pressed(MouseButton::Left) {
+        for (sprite, node_transform, entity) in &mut cosmic_edit_query.iter_mut() {
+            let size = sprite.custom_size.unwrap_or(Vec2::new(1., 1.));
+            let x_min = node_transform.affine().translation.x - size.x / 2.;
+            let y_min = node_transform.affine().translation.y - size.y / 2.;
+            let x_max = node_transform.affine().translation.x + size.x / 2.;
+            let y_max = node_transform.affine().translation.y + size.y / 2.;
+            if let Some(pos) = window.cursor_position() {
+                if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
+                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                        commands.insert_resource(ActiveEditor {
+                            entity: Some(entity),
+                        });
+                    };
+                }
+            };
         }
     }
 }
@@ -630,8 +673,8 @@ pub fn cosmic_edit_bevy_events(
 
         let (width, height, is_ui_node) = match style_query.get(entity) {
             Ok(style) => (
-                style.width.evaluate(1.).unwrap(),
-                style.height.evaluate(1.).unwrap(),
+                style.width.evaluate(1.).unwrap_or(1.),
+                style.height.evaluate(1.).unwrap_or(1.),
                 true,
             ),
             Err(_) => {
@@ -1054,8 +1097,6 @@ fn redraw_buffer_common(
     let swash_cache = &mut swash_cache_state.swash_cache;
     editor.shape_as_needed(&mut font_system.0);
     if editor.buffer().redraw() {
-        println!("REDRAW");
-
         editor
             .buffer_mut()
             .set_size(&mut font_system.0, width, height);
@@ -1116,10 +1157,8 @@ fn redraw_buffer_common(
         );
         editor.buffer_mut().set_redraw(false);
 
-        println!("TRY CLEAR");
         if let Some(prev_image) = images.get_mut(cosmic_canvas_img_handle) {
             if *cosmic_canvas_img_handle == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
-                println!("SWAP HANDLE");
                 let mut prev_image = prev_image.clone();
                 prev_image.data.clear();
                 prev_image.data.extend_from_slice(pixels.as_slice());
@@ -1133,7 +1172,6 @@ fn redraw_buffer_common(
                 let new_handle = images.set(new_handle, prev_image);
                 *cosmic_canvas_img_handle = new_handle;
             } else {
-                println!("CLEAR CANVAS");
                 prev_image.data.clear();
                 prev_image.data.extend_from_slice(pixels.as_slice());
                 prev_image.resize(Extent3d {
