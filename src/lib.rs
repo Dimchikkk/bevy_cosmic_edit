@@ -85,7 +85,6 @@ impl CosmicEditor {
                     Shaping::Advanced,
                 );
             }
-            // TODO why not working?
             CosmicText::MultiStyle(lines) => {
                 for line in lines {
                     let mut line_text = String::new();
@@ -153,14 +152,13 @@ fn cosmic_editor_builder(
 
         if text.is_empty() {
             text = "".into();
+            editor.0.buffer_mut().set_text(
+                &mut font_system.0,
+                text.as_str(),
+                attrs.0.as_attrs(),
+                Shaping::Advanced,
+            );
         }
-
-        editor.0.buffer_mut().set_text(
-            &mut font_system.0,
-            text.as_str(),
-            attrs.0.as_attrs(),
-            Shaping::Advanced,
-        );
 
         editor.0.buffer_mut().set_metrics(
             &mut font_system.0,

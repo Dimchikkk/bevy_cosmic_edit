@@ -3,8 +3,6 @@
 
 BUGS INTRODUCED:
 
-[ ] MultiStyle text is fully dead. Idk what I did to it :(
-
 [ ] Cannot select text on Ui bundles sized by percentage
         Maybe intercept percentages and set as px on instantiation?
         Replace evaluate() with custom percent to px fn?
@@ -15,8 +13,13 @@ BUGS INTRODUCED:
     Now drag doesn't work either (tested on readonly, might be that)
     Either way redraw on resize would be nice.
 
+[ ] Not all text boxes want to be click-selectable
+    Make utils.rs in examples; move click functions there.
+
 BUGS SQUASHED:
 
 [x] Font size has been changed somehow
 
 [x] Cursor on readonly
+
+[x] MultiStyle text is fully dead. Idk what I did to it :(
