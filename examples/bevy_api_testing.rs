@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    ActiveEditor, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicEditUiBundle,
+    change_active_editor_sprite, change_active_editor_ui, ActiveEditor, CosmicEditPlugin,
+    CosmicEditSpriteBundle, CosmicEditUiBundle,
 };
 
 fn setup(mut commands: Commands) {
@@ -42,5 +43,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin::default())
         .add_systems(Startup, setup)
+        .add_systems(Update, change_active_editor_ui)
+        .add_systems(Update, change_active_editor_sprite)
         .run();
 }

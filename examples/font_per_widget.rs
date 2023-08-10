@@ -1,6 +1,8 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_cosmic_edit::change_active_editor_sprite;
+use bevy_cosmic_edit::change_active_editor_ui;
 use bevy_cosmic_edit::{
     ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
     CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
@@ -292,5 +294,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
+        .add_systems(Update, change_active_editor_ui)
+        .add_systems(Update, change_active_editor_sprite)
         .run();
 }

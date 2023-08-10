@@ -3,8 +3,6 @@
 
 BUGS INTRODUCED:
 
-[ ] Not all text boxes want to be click-selectable
-    Make utils.rs in examples; move click functions there.
 
 BUGS SQUASHED:
 
@@ -20,3 +18,6 @@ BUGS SQUASHED:
     Used to redraw on click, now redraws on scroll or drag?
     Now drag doesn't work either (tested on readonly, might be that)
       fixed by percentage-select fix
+
+[x] Not all text boxes want to be click-selectable
+    Make utils.rs in examples; move click functions there.
