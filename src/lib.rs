@@ -652,7 +652,7 @@ pub fn cosmic_edit_bevy_events(
         With<CosmicEditor>,
     >,
     readonly_query: Query<&ReadOnly>,
-    style_query: Query<&mut Style>,
+    node_query: Query<&mut Node>,
     sprite_query: Query<&mut Sprite>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut is_deleting: Local<bool>,
@@ -669,12 +669,8 @@ pub fn cosmic_edit_bevy_events(
     {
         let readonly = readonly_query.get(entity).is_ok();
 
-        let (width, height, is_ui_node) = match style_query.get(entity) {
-            Ok(style) => (
-                style.width.evaluate(1.).unwrap_or(1.),
-                style.height.evaluate(1.).unwrap_or(1.),
-                true,
-            ),
+        let (width, height, is_ui_node) = match node_query.get(entity) {
+            Ok(node) => (node.size().x, node.size().y, true),
             Err(_) => {
                 let sprite = sprite_query.get(entity).unwrap();
                 let size = sprite.custom_size.unwrap();

@@ -3,16 +3,6 @@
 
 BUGS INTRODUCED:
 
-[ ] Cannot select text on Ui bundles sized by percentage
-        Maybe intercept percentages and set as px on instantiation?
-        Replace evaluate() with custom percent to px fn?
-            Read into how evaluate() works
-
-[ ] Window resizing broken
-    Used to redraw on click, now redraws on scroll or drag?
-    Now drag doesn't work either (tested on readonly, might be that)
-    Either way redraw on resize would be nice.
-
 [ ] Not all text boxes want to be click-selectable
     Make utils.rs in examples; move click functions there.
 
@@ -23,3 +13,10 @@ BUGS SQUASHED:
 [x] Cursor on readonly
 
 [x] MultiStyle text is fully dead. Idk what I did to it :(
+
+[x] Cannot select text on Ui bundles sized by percentage
+
+[x] Window resizing broken
+    Used to redraw on click, now redraws on scroll or drag?
+    Now drag doesn't work either (tested on readonly, might be that)
+      fixed by percentage-select fix
