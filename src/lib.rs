@@ -141,12 +141,16 @@ fn cosmic_editor_builder(
             &CosmicMetrics,
             &BackgroundColor,
             Option<&ReadOnly>,
+            Option<&Node>,
+            Option<&Sprite>,
         ),
         Added<CosmicEditor>,
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut editor, attrs, metrics, background_color, readonly) in added_editors.iter_mut() {
+    for (mut editor, attrs, metrics, background_color, readonly, node, sprite) in
+        added_editors.iter_mut()
+    {
         // keep old text if set
         let mut text = editor.get_text();
 
@@ -165,10 +169,21 @@ fn cosmic_editor_builder(
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
 
-        editor
-            .0
-            .buffer_mut() // TODO size here????
-            .set_size(&mut font_system.0, 100., 100.);
+        if let Some(node) = node {
+            editor
+                .0
+                .buffer_mut()
+                .set_size(&mut font_system.0, node.size().x, node.size().y)
+        }
+
+        if let Some(sprite) = sprite {
+            if let Some(size) = sprite.custom_size {
+                editor
+                    .0
+                    .buffer_mut()
+                    .set_size(&mut font_system.0, size.x, size.y)
+            }
+        }
 
         // hide cursor on readonly buffers
         let mut cursor = editor.0.cursor();
