@@ -28,7 +28,6 @@ pub enum CosmicText {
 /// Enum representing the position of the cosmic text.
 #[derive(Clone, Component, Default)]
 pub enum CosmicTextPosition {
-    // we have the space for full words :)
     #[default]
     Center,
     TopLeft,
@@ -71,7 +70,7 @@ impl CosmicEditor {
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
-        // i'd like to get the font system automagically but i'm too 3head -bytemunch
+        // i'd like to get the font system + attrs automagically but i'm too 3head -bytemunch
         font_system: &mut FontSystem,
     ) -> &mut Self {
         let editor = &mut self.0;
@@ -595,7 +594,6 @@ pub fn get_x_offset(buffer: &Buffer) -> i32 {
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 // the meat of the input management
-// why public?
 pub fn cosmic_edit_bevy_events(
     windows: Query<&Window, With<PrimaryWindow>>,
     active_editor: Res<ActiveEditor>,
@@ -674,7 +672,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::Right) {
@@ -682,7 +679,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::Home) {
@@ -693,7 +689,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::End) {
@@ -704,7 +699,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
 
@@ -713,7 +707,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::Right) {
@@ -721,7 +714,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::Up) {
@@ -729,7 +721,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::Down) {
@@ -737,7 +728,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
 
@@ -764,7 +754,6 @@ pub fn cosmic_edit_bevy_events(
                     affinity: current_cursor.affinity,
                     color: current_cursor.color,
                 }));
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::Home) {
@@ -772,7 +761,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::End) {
@@ -780,7 +768,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::PageUp) {
@@ -788,7 +775,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
             if keys.just_pressed(KeyCode::PageDown) {
@@ -796,7 +782,6 @@ pub fn cosmic_edit_bevy_events(
                 if !shift {
                     editor.set_select_opt(None);
                 }
-                // RETURN
                 return;
             }
 
@@ -809,11 +794,9 @@ pub fn cosmic_edit_bevy_events(
             if !readonly && requested_redo {
                 let edits = &edit_history.edits;
                 if edits.is_empty() {
-                    // RETURN
                     return;
                 }
                 if edit_history.current_edit == edits.len() - 1 {
-                    // RETURN
                     return;
                 }
                 let idx = edit_history.current_edit + 1;
@@ -839,7 +822,6 @@ pub fn cosmic_edit_bevy_events(
                     edit_history.current_edit += 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-                // RETURN
                 return;
             }
             // undo
@@ -848,11 +830,9 @@ pub fn cosmic_edit_bevy_events(
             if !readonly && requested_undo {
                 let edits = &edit_history.edits;
                 if edits.is_empty() {
-                    // RETURN
                     return;
                 }
                 if edit_history.current_edit <= 1 {
-                    // RETURN
                     return;
                 }
                 let idx = edit_history.current_edit - 1;
@@ -878,7 +858,6 @@ pub fn cosmic_edit_bevy_events(
                     edit_history.current_edit -= 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-                // RETURN
                 return;
             }
 
@@ -889,7 +868,6 @@ pub fn cosmic_edit_bevy_events(
                     if command && keys.just_pressed(KeyCode::C) {
                         if let Some(text) = editor.copy_selection() {
                             clipboard.set_text(text).unwrap();
-                            // RETURN
                             return;
                         }
                     }
@@ -939,7 +917,6 @@ pub fn cosmic_edit_bevy_events(
                         editor.action(&mut font_system.0, Action::Click { x, y });
                     }
                 }
-                // RETURN
                 return;
             }
             if buttons.pressed(MouseButton::Left) {
@@ -954,7 +931,6 @@ pub fn cosmic_edit_bevy_events(
                     let (x, y) = point(node_cursor_pos);
                     editor.action(&mut font_system.0, Action::Drag { x, y });
                 }
-                // RETURN
                 return;
             }
             for ev in scroll_evr.iter() {
@@ -980,7 +956,6 @@ pub fn cosmic_edit_bevy_events(
             }
 
             if readonly {
-                // RETURN
                 return;
             }
 
@@ -1005,7 +980,6 @@ pub fn cosmic_edit_bevy_events(
             }
 
             if !is_edit {
-                // RETURN
                 return;
             }
 
@@ -1289,70 +1263,50 @@ fn draw_pixel(
     buffer[offset + 3] = (current >> 24) as u8;
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use bevy::prelude::*;
-//     use cosmic_text::{Attrs, AttrsOwned};
+#[cfg(test)]
+mod tests {
+    use crate::*;
 
-//     use crate::*;
+    fn test_spawn_cosmic_edit_system(
+        mut commands: Commands,
+        mut font_system: ResMut<CosmicFontSystem>,
+    ) {
+        commands.spawn(CosmicEditUiBundle::default().set_text(
+            CosmicText::OneStyle("Blah".into()),
+            AttrsOwned::new(Attrs::new()),
+            &mut font_system.0,
+        ));
+    }
 
-//     fn test_spawn_cosmic_edit_system(
-//         mut commands: Commands,
-//         mut cosmic_fonts: ResMut<Assets<CosmicFont>>,
-//     ) {
-//         let cosmic_font_config = CosmicFontConfig {
-//             fonts_dir_path: None,
-//             font_bytes: None,
-//             load_system_fonts: true,
-//         };
-//         let font_system = create_cosmic_font_system(cosmic_font_config);
-//         let font_system_handle = cosmic_fonts.add(CosmicFont(font_system));
-//         let cosmic_edit_meta = CosmicEditMeta {
-//             text: CosmicText::OneStyle("Blah".to_string()),
-//             attrs: AttrsOwned::new(Attrs::new()),
-//             metrics: CosmicMetrics {
-//                 font_size: 14.,
-//                 line_height: 18.,
-//                 scale_factor: 1.,
-//             },
-//             text_pos: CosmicTextPosition::Center,
-//             font_system_handle,
-//             node: CosmicNode::Ui,
-//             size: None,
-//             bg: bevy::prelude::Color::NONE,
-//             readonly: false,
-//             bg_image: None,
-//         };
-//         spawn_cosmic_edit(&mut commands, &mut cosmic_fonts, cosmic_edit_meta);
-//     }
+    #[test]
+    fn test_spawn_cosmic_edit() {
+        let mut app = App::new();
+        app.add_plugins(TaskPoolPlugin::default());
+        app.add_plugins(AssetPlugin::default());
+        app.insert_resource(CosmicFontSystem(create_cosmic_font_system(
+            CosmicFontConfig::default(),
+        )));
+        app.add_systems(Update, test_spawn_cosmic_edit_system);
 
-//     #[test]
-//     fn test_spawn_cosmic_edit() {
-//         let mut app = App::new();
-//         app.add_plugins(TaskPoolPlugin::default());
-//         app.add_plugins(AssetPlugin::default());
-//         app.add_systems(Update, test_spawn_cosmic_edit_system);
+        let input = Input::<KeyCode>::default();
+        app.insert_resource(input);
+        let mouse_input: Input<MouseButton> = Input::<MouseButton>::default();
+        app.insert_resource(mouse_input);
+        app.add_asset::<Image>();
 
-//         let input = Input::<KeyCode>::default();
-//         app.insert_resource(input);
-//         let mouse_input: Input<MouseButton> = Input::<MouseButton>::default();
-//         app.insert_resource(mouse_input);
-//         app.add_asset::<Image>();
-//         app.add_asset::<CosmicFont>();
+        app.add_event::<ReceivedCharacter>();
 
-//         app.add_event::<ReceivedCharacter>();
+        app.update();
 
-//         app.update();
-
-//         let mut text_nodes_query = app.world.query::<&CosmicEdit>();
-//         for node in text_nodes_query.iter(&app.world) {
-//             insta::assert_debug_snapshot!(node
-//                 .editor
-//                 .buffer()
-//                 .lines
-//                 .iter()
-//                 .map(|line| line.text())
-//                 .collect::<Vec<_>>());
-//         }
-//     }
-// }
+        let mut text_nodes_query = app.world.query::<&CosmicEditor>();
+        for cosmic_editor in text_nodes_query.iter(&app.world) {
+            insta::assert_debug_snapshot!(cosmic_editor
+                .0
+                .buffer()
+                .lines
+                .iter()
+                .map(|line| line.text())
+                .collect::<Vec<_>>());
+        }
+    }
+}
