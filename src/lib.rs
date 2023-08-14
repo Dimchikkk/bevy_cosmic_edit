@@ -733,7 +733,7 @@ pub fn cosmic_edit_bevy_events(
 
             if !readonly && keys.just_pressed(KeyCode::Back) {
                 #[cfg(target_arch = "wasm32")]
-                editor.editor.action(&mut font_system.0, Action::Backspace);
+                editor.action(&mut font_system.0, Action::Backspace);
                 *is_deleting = true;
             }
             if !readonly && keys.just_released(KeyCode::Back) {
