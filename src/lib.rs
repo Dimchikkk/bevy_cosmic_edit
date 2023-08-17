@@ -203,7 +203,7 @@ impl Default for CosmicAttrs {
 }
 
 #[derive(Component, Default)]
-pub struct CosmicBackground(Option<Handle<Image>>);
+pub struct CosmicBackground(pub Option<Handle<Image>>);
 
 #[derive(Bundle)]
 pub struct CosmicEditUiBundle {
