@@ -39,7 +39,7 @@ js-sys = "0.3.61"
 insta = "1.29.0"
 
 [[example]]
-name = "basic_button"
+name = "basic_ui"
 
 [[example]]
 name = "basic_sprite"

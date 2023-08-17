@@ -1,15 +1,18 @@
+#![allow(clippy::type_complexity)]
+
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_cosmic_edit::change_active_editor_sprite;
+use bevy_cosmic_edit::change_active_editor_ui;
 use bevy_cosmic_edit::{
-    create_cosmic_font_system, get_cosmic_text, spawn_cosmic_edit, ActiveEditor, CosmicEdit,
-    CosmicEditMeta, CosmicEditPlugin, CosmicFont, CosmicFontConfig, CosmicMetrics, CosmicNode,
-    CosmicText, CosmicTextPos,
+    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
+    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
 };
-use cosmic_text::*;
+use cosmic_text::{Attrs, AttrsOwned, Family};
 
 fn setup(
     mut commands: Commands,
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_fonts: ResMut<Assets<CosmicFont>>,
+    mut font_system: ResMut<CosmicFontSystem>,
 ) {
     commands.spawn(Camera2dBundle::default());
     let root = commands
@@ -24,13 +27,6 @@ fn setup(
         })
         .id();
     let primary_window = windows.single();
-    let cosmic_font_config = CosmicFontConfig {
-        fonts_dir_path: None,
-        font_bytes: None,
-        load_system_fonts: true,
-    };
-    let font_system = create_cosmic_font_system(cosmic_font_config);
-    let font_system_handle = cosmic_fonts.add(CosmicFont(font_system));
 
     let attrs = Attrs::new();
     let serif_attrs = attrs.family(Family::Serif);
@@ -229,77 +225,76 @@ fn setup(
         )],
     ];
 
-    let cosmic_edit_meta_1 = CosmicEditMeta {
-        text: CosmicText::MultiStyle(lines),
-        attrs: AttrsOwned::new(attrs),
-        text_pos: CosmicTextPos::Center,
-        metrics: CosmicMetrics {
+    let cosmic_edit_1 = CosmicEditUiBundle {
+        text_position: bevy_cosmic_edit::CosmicTextPosition::Center,
+        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+        cosmic_metrics: CosmicMetrics {
             font_size: 18.,
             line_height: 22.,
             scale_factor: primary_window.scale_factor() as f32,
         },
-        font_system_handle: font_system_handle.clone(),
-        node: CosmicNode::Ui,
-        size: None,
-        bg: bevy::prelude::Color::WHITE,
-        readonly: false,
-        bg_image: None,
-    };
-    let cosmic_edit_1 = spawn_cosmic_edit(&mut commands, &mut cosmic_fonts, cosmic_edit_meta_1);
+        style: Style {
+            width: Val::Percent(50.),
+            height: Val::Percent(100.),
+            ..default()
+        },
+        background_color: BackgroundColor(Color::WHITE),
+        ..default()
+    }
+    .set_text(
+        CosmicText::MultiStyle(lines),
+        AttrsOwned::new(attrs),
+        &mut font_system.0,
+    );
 
     let mut attrs_2 = cosmic_text::Attrs::new();
     attrs_2 = attrs_2.family(cosmic_text::Family::Name("Times New Roman"));
-    let cosmic_edit_meta_2 = CosmicEditMeta {
-        text: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
-        attrs: AttrsOwned::new(attrs_2),
-        metrics: CosmicMetrics {
+
+    let cosmic_edit_2 = CosmicEditUiBundle {
+        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs_2)),
+        cosmic_metrics: CosmicMetrics {
             font_size: 14.,
             line_height: 18.,
             scale_factor: primary_window.scale_factor() as f32,
         },
-        font_system_handle: font_system_handle.clone(),
-        node: CosmicNode::Ui,
-        text_pos: CosmicTextPos::Center,
-        size: None,
-        bg: bevy::prelude::Color::WHITE.with_a(0.8),
-        readonly: false,
-        bg_image: None,
-    };
-    let cosmic_edit_2 = spawn_cosmic_edit(&mut commands, &mut cosmic_fonts, cosmic_edit_meta_2);
-
-    commands.entity(root).add_child(cosmic_edit_1);
-    commands.entity(root).add_child(cosmic_edit_2);
-
-    commands.insert_resource(ActiveEditor {
-        entity: Some(cosmic_edit_1),
-    });
-}
-
-fn change_active_editor(
-    mut commands: Commands,
-    mut interaction_query: Query<
-        (&Interaction, &mut CosmicEdit, Entity),
-        (Changed<Interaction>, With<CosmicEdit>),
-    >,
-) {
-    for (interaction, cosmic_edit, entity) in interaction_query.iter_mut() {
-        if let Interaction::Pressed = interaction {
-            commands.insert_resource(ActiveEditor {
-                entity: Some(entity),
-            });
-            info!(
-                "Widget text: {}",
-                get_cosmic_text(&cosmic_edit.editor.buffer())
-            );
-        }
+        text_position: CosmicTextPosition::Center,
+        background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
+        style: Style {
+            width: Val::Percent(50.),
+            height: Val::Percent(100.),
+            ..default()
+        },
+        ..default()
     }
+    .set_text(
+        CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
+        AttrsOwned::new(attrs_2),
+        &mut font_system.0,
+    );
+
+    let mut id = None;
+    // Spawn the CosmicEditUiBundles as children of root
+    commands.entity(root).with_children(|parent| {
+        id = Some(parent.spawn(cosmic_edit_1).id());
+        parent.spawn(cosmic_edit_2);
+    });
+
+    // Set active editor
+    commands.insert_resource(ActiveEditor { entity: id });
 }
 
 fn main() {
+    let font_config = CosmicFontConfig {
+        fonts_dir_path: None,
+        font_bytes: None,
+        load_system_fonts: true,
+    };
+
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin)
+        .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(Update, change_active_editor)
+        .add_systems(Update, change_active_editor_ui)
+        .add_systems(Update, change_active_editor_sprite)
         .run();
 }
