@@ -1009,6 +1009,7 @@ fn redraw_buffer_common(
     images: &mut ResMut<Assets<Image>>,
     swash_cache_state: &mut ResMut<SwashCacheState>,
     editor: &mut Editor,
+    attrs: &CosmicAttrs,
     background_image: Option<Handle<Image>>,
     background_color: Color,
     cosmic_canvas_img_handle: &mut Handle<Image>,
@@ -1026,7 +1027,11 @@ fn redraw_buffer_common(
         editor
             .buffer_mut()
             .set_size(&mut font_system.0, width, height);
-        let font_color = cosmic_text::Color::rgb(0, 0, 0);
+
+        let font_color = attrs
+            .0
+            .color_opt
+            .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         let mut pixels = vec![0; width as usize * height as usize * 4];
         if let Some(bg_image) = background_image {
@@ -1116,6 +1121,7 @@ fn cosmic_edit_redraw_buffer_ui(
     mut swash_cache_state: ResMut<SwashCacheState>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
+        &CosmicAttrs,
         &CosmicBackground,
         &BackgroundColor,
         &CosmicTextPosition,
@@ -1128,6 +1134,7 @@ fn cosmic_edit_redraw_buffer_ui(
     let primary_window = windows.single();
     for (
         mut editor,
+        attrs,
         background_image,
         background_color,
         text_position,
@@ -1144,6 +1151,7 @@ fn cosmic_edit_redraw_buffer_ui(
             &mut images,
             &mut swash_cache_state,
             &mut editor.0,
+            attrs,
             background_image.0.clone(),
             background_color.0,
             &mut img.texture,
@@ -1168,6 +1176,7 @@ fn cosmic_edit_redraw_buffer(
     mut swash_cache_state: ResMut<SwashCacheState>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
+        &CosmicAttrs,
         &Sprite,
         &CosmicBackground,
         &BackgroundColor,
@@ -1180,6 +1189,7 @@ fn cosmic_edit_redraw_buffer(
     let primary_window = windows.single();
     for (
         mut editor,
+        attrs,
         sprite,
         background_image,
         background_color,
@@ -1196,6 +1206,7 @@ fn cosmic_edit_redraw_buffer(
             &mut images,
             &mut swash_cache_state,
             &mut editor.0,
+            attrs,
             background_image.0.clone(),
             background_color.0,
             &mut handle,
