@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
-    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
+    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor,
+    CosmicFontConfig, CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
 };
 use cosmic_text::AttrsOwned;
 
@@ -53,6 +53,20 @@ fn setup(
     });
 }
 
+fn print_text(
+    text_inputs_q: Query<&CosmicEditor, With<CosmicEditor>>,
+    mut previous_value: Local<String>,
+) {
+    for text_input in text_inputs_q.iter() {
+        let current_text = text_input.get_text();
+        if current_text == *previous_value {
+            return;
+        }
+        *previous_value = current_text.clone();
+        info!("Widget text: {}", current_text);
+    }
+}
+
 fn main() {
     let font_bytes: &[u8] = include_bytes!("../assets/fonts/VictorMono-Regular.ttf");
     let font_config = CosmicFontConfig {
@@ -65,5 +79,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
+        .add_systems(Update, print_text)
         .run();
 }
