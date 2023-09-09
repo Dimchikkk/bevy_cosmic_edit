@@ -959,6 +959,13 @@ pub fn cosmic_edit_bevy_events(
                 return;
             }
 
+            // fix for issue #8
+            if let Some(select) = editor.select_opt() {
+                if editor.cursor().line == select.line && editor.cursor().index == select.index {
+                    editor.set_select_opt(None);
+                }
+            }
+
             let mut is_edit = is_clipboard;
             let mut is_return = false;
             if keys.just_pressed(KeyCode::Return) {
