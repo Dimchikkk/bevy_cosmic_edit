@@ -972,6 +972,15 @@ pub fn cosmic_edit_bevy_events(
                 for char_ev in char_evr.iter() {
                     is_edit = true;
                     if *is_deleting {
+                        // fix for issue #8
+                        if let Some(select) = editor.select_opt() {
+                            if editor.cursor().line == select.line
+                                && editor.cursor().index == select.index
+                            {
+                                editor.set_select_opt(None);
+                            }
+                        }
+
                         editor.action(&mut font_system.0, Action::Backspace);
                     } else {
                         editor.action(&mut font_system.0, Action::Insert(char_ev.char));
