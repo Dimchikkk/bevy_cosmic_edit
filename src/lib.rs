@@ -389,6 +389,7 @@ impl Plugin for CosmicEditPlugin {
                         .before(cosmic_edit_set_redraw)
                         .before(on_scale_factor_change),
                     cosmic_edit_redraw_buffer.before(on_scale_factor_change),
+                    blink_cursor,
                 ),
             )
             .init_resource::<ActiveEditor>()
@@ -1174,6 +1175,31 @@ fn cosmic_edit_redraw_buffer_ui(
         {
             *visibility = Visibility::Visible;
         }
+    }
+}
+
+fn blink_cursor(
+    mut visible: Local<bool>,
+    mut timer: Local<Option<Timer>>,
+    time: Res<Time>,
+    mut cosmic_editor_q: Query<(&mut CosmicEditor, &BackgroundColor), Without<ReadOnly>>,
+) {
+    let timer = timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
+    timer.tick(time.delta());
+    if !timer.just_finished() {
+        return;
+    }
+    *visible = !*visible;
+    for (mut editor, bg_color) in &mut cosmic_editor_q.iter_mut() {
+        let mut cursor = editor.0.cursor();
+        let new_color = if *visible {
+            None
+        } else {
+            Some(bevy_color_to_cosmic(bg_color.0))
+        };
+        cursor.color = new_color;
+        editor.0.set_cursor(cursor);
+        editor.0.buffer_mut().set_redraw(true);
     }
 }
 
