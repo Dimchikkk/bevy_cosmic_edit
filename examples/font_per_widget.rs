@@ -249,12 +249,13 @@ fn setup(
 
     let mut attrs_2 = cosmic_text::Attrs::new();
     attrs_2 = attrs_2.family(cosmic_text::Family::Name("Times New Roman"));
+    attrs_2.color_opt = Some(cosmic_text::Color::rgb(0x94, 0x00, 0xD3));
 
     let cosmic_edit_2 = CosmicEditUiBundle {
         cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs_2)),
         cosmic_metrics: CosmicMetrics {
-            font_size: 14.,
-            line_height: 18.,
+            font_size: 28.,
+            line_height: 36.,
             scale_factor: primary_window.scale_factor() as f32,
         },
         text_position: CosmicTextPosition::Center,

@@ -389,6 +389,8 @@ impl Plugin for CosmicEditPlugin {
                         .before(cosmic_edit_set_redraw)
                         .before(on_scale_factor_change),
                     cosmic_edit_redraw_buffer.before(on_scale_factor_change),
+                    blink_cursor,
+                    hide_inactive_cursor,
                 ),
             )
             .init_resource::<ActiveEditor>()
@@ -1173,6 +1175,61 @@ fn cosmic_edit_redraw_buffer_ui(
             && img.texture.clone() != bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed()
         {
             *visibility = Visibility::Visible;
+        }
+    }
+}
+
+fn blink_cursor(
+    mut visible: Local<bool>,
+    mut timer: Local<Option<Timer>>,
+    time: Res<Time>,
+    active_editor: ResMut<ActiveEditor>,
+    mut cosmic_editor_q: Query<(&mut CosmicEditor, &BackgroundColor), Without<ReadOnly>>,
+) {
+    if let Some(e) = active_editor.entity {
+        if let Ok((mut editor, bg_color)) = cosmic_editor_q.get_mut(e) {
+            let timer =
+                timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
+
+            timer.tick(time.delta());
+            if !timer.just_finished() && !active_editor.is_changed() {
+                return;
+            }
+            *visible = !*visible;
+
+            // always start cursor visible on focus
+            if active_editor.is_changed() {
+                *visible = true;
+                timer.set_elapsed(Duration::from_secs(0));
+            }
+
+            let mut cursor = editor.0.cursor();
+            let new_color = if *visible {
+                None
+            } else {
+                Some(bevy_color_to_cosmic(bg_color.0))
+            };
+            cursor.color = new_color;
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn hide_inactive_cursor(
+    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor, &BackgroundColor)>,
+    active_editor: Res<ActiveEditor>,
+) {
+    if !active_editor.is_changed() || active_editor.entity.is_none() {
+        return;
+    }
+
+    for (e, mut editor, bg_color) in &mut cosmic_editor_q.iter_mut() {
+        if e != active_editor.entity.unwrap() {
+            let mut cursor = editor.0.cursor();
+            cursor.color = Some(bevy_color_to_cosmic(bg_color.0));
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
         }
     }
 }
