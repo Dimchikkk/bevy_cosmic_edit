@@ -1046,19 +1046,22 @@ fn redraw_buffer_common(
 
         let mut pixels = vec![0; width as usize * height as usize * 4];
         if let Some(bg_image) = background_image {
-            let image = images.get(&bg_image).unwrap();
-
-            let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
-            if image.size().x != width || image.size().y != height {
-                dynamic_image =
-                    dynamic_image.resize_to_fill(width as u32, height as u32, FilterType::Triangle);
-            }
-            for (i, (_, _, rgba)) in dynamic_image.pixels().enumerate() {
-                if let Some(p) = pixels.get_mut(i * 4..(i + 1) * 4) {
-                    p[0] = rgba[0];
-                    p[1] = rgba[1];
-                    p[2] = rgba[2];
-                    p[3] = rgba[3];
+            if let Some(image) = images.get(&bg_image) {
+                let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
+                if image.size().x != width || image.size().y != height {
+                    dynamic_image = dynamic_image.resize_to_fill(
+                        width as u32,
+                        height as u32,
+                        FilterType::Triangle,
+                    );
+                }
+                for (i, (_, _, rgba)) in dynamic_image.pixels().enumerate() {
+                    if let Some(p) = pixels.get_mut(i * 4..(i + 1) * 4) {
+                        p[0] = rgba[0];
+                        p[1] = rgba[1];
+                        p[2] = rgba[2];
+                        p[3] = rgba[3];
+                    }
                 }
             }
         } else {
