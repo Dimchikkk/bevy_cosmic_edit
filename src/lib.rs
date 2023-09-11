@@ -932,7 +932,11 @@ pub fn cosmic_edit_bevy_events(
                     camera_transform,
                 ) {
                     let (x, y) = point(node_cursor_pos);
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
+                    if active_editor.is_changed() && !shift {
+                        editor.action(&mut font_system.0, Action::Click { x, y });
+                    } else {
+                        editor.action(&mut font_system.0, Action::Drag { x, y });
+                    }
                 }
                 return;
             }
