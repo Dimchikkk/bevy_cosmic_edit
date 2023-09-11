@@ -1187,34 +1187,31 @@ fn blink_cursor(
     mut cosmic_editor_q: Query<(&mut CosmicEditor, &BackgroundColor), Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.entity {
-        match cosmic_editor_q.get_mut(e) {
-            Ok((mut editor, bg_color)) => {
-                let timer =
-                    timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
+        if let Ok((mut editor, bg_color)) = cosmic_editor_q.get_mut(e) {
+            let timer =
+                timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
 
-                timer.tick(time.delta());
-                if !timer.just_finished() && !active_editor.is_changed() {
-                    return;
-                }
-                *visible = !*visible;
-
-                // always start cursor visible on focus
-                if active_editor.is_changed() {
-                    *visible = true;
-                    timer.set_elapsed(Duration::from_secs(0));
-                }
-
-                let mut cursor = editor.0.cursor();
-                let new_color = if *visible {
-                    None
-                } else {
-                    Some(bevy_color_to_cosmic(bg_color.0))
-                };
-                cursor.color = new_color;
-                editor.0.set_cursor(cursor);
-                editor.0.buffer_mut().set_redraw(true);
+            timer.tick(time.delta());
+            if !timer.just_finished() && !active_editor.is_changed() {
+                return;
             }
-            Err(_) => {}
+            *visible = !*visible;
+
+            // always start cursor visible on focus
+            if active_editor.is_changed() {
+                *visible = true;
+                timer.set_elapsed(Duration::from_secs(0));
+            }
+
+            let mut cursor = editor.0.cursor();
+            let new_color = if *visible {
+                None
+            } else {
+                Some(bevy_color_to_cosmic(bg_color.0))
+            };
+            cursor.color = new_color;
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
         }
     }
 }
