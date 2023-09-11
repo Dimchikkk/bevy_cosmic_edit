@@ -391,6 +391,7 @@ impl Plugin for CosmicEditPlugin {
                     cosmic_edit_redraw_buffer.before(on_scale_factor_change),
                     blink_cursor,
                     hide_inactive_cursor,
+                    clear_inactive_selection,
                 ),
             )
             .init_resource::<ActiveEditor>()
@@ -931,7 +932,11 @@ pub fn cosmic_edit_bevy_events(
                     camera_transform,
                 ) {
                     let (x, y) = point(node_cursor_pos);
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
+                    if active_editor.is_changed() && !shift {
+                        editor.action(&mut font_system.0, Action::Click { x, y });
+                    } else {
+                        editor.action(&mut font_system.0, Action::Drag { x, y });
+                    }
                 }
                 return;
             }
@@ -1230,6 +1235,21 @@ fn hide_inactive_cursor(
             cursor.color = Some(bevy_color_to_cosmic(bg_color.0));
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn clear_inactive_selection(
+    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
+    active_editor: Res<ActiveEditor>,
+) {
+    if !active_editor.is_changed() || active_editor.entity.is_none() {
+        return;
+    }
+
+    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
+        if e != active_editor.entity.unwrap() {
+            editor.0.set_select_opt(None);
         }
     }
 }
