@@ -1,6 +1,6 @@
 # bevy_cosmic_edit
 
-This bevy plugin provides mutliline text editing for bevy apps, thanks to [cosmic_text](https://github.com/pop-os/cosmic-text) crate!
+This bevy plugin provides multiline text editing for bevy apps, thanks to [cosmic_text](https://github.com/pop-os/cosmic-text) crate!
 
 Emoji, ligatures, and other fancy stuff is supported!
 
