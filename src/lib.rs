@@ -138,7 +138,6 @@ fn cosmic_editor_builder(
             &mut CosmicEditor,
             &CosmicAttrs,
             &CosmicMetrics,
-            &BackgroundColor,
             Option<&ReadOnly>,
             Option<&Node>,
             Option<&Sprite>,
@@ -147,9 +146,7 @@ fn cosmic_editor_builder(
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut editor, attrs, metrics, background_color, readonly, node, sprite) in
-        added_editors.iter_mut()
-    {
+    for (mut editor, attrs, metrics, readonly, node, sprite) in added_editors.iter_mut() {
         // keep old text if set
         let mut text = editor.get_text();
 
@@ -187,7 +184,7 @@ fn cosmic_editor_builder(
         // hide cursor on readonly buffers
         let mut cursor = editor.0.cursor();
         if readonly.is_some() {
-            cursor.color = Some(bevy_color_to_cosmic(background_color.0));
+            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
         }
         editor.0.set_cursor(cursor);
     }
@@ -1184,10 +1181,10 @@ fn blink_cursor(
     mut timer: Local<Option<Timer>>,
     time: Res<Time>,
     active_editor: ResMut<ActiveEditor>,
-    mut cosmic_editor_q: Query<(&mut CosmicEditor, &BackgroundColor), Without<ReadOnly>>,
+    mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.entity {
-        if let Ok((mut editor, bg_color)) = cosmic_editor_q.get_mut(e) {
+        if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
             let timer =
                 timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
 
@@ -1207,7 +1204,7 @@ fn blink_cursor(
             let new_color = if *visible {
                 None
             } else {
-                Some(bevy_color_to_cosmic(bg_color.0))
+                Some(cosmic_text::Color::rgba(0, 0, 0, 0))
             };
             cursor.color = new_color;
             editor.0.set_cursor(cursor);
@@ -1217,17 +1214,17 @@ fn blink_cursor(
 }
 
 fn hide_inactive_cursor(
-    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor, &BackgroundColor)>,
+    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
     active_editor: Res<ActiveEditor>,
 ) {
     if !active_editor.is_changed() || active_editor.entity.is_none() {
         return;
     }
 
-    for (e, mut editor, bg_color) in &mut cosmic_editor_q.iter_mut() {
+    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
         if e != active_editor.entity.unwrap() {
             let mut cursor = editor.0.cursor();
-            cursor.color = Some(bevy_color_to_cosmic(bg_color.0));
+            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);
         }
