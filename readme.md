@@ -15,14 +15,14 @@ Explore examples folder for basic usage.
 Native:
 
 ```rust
-cargo r --example basic_sprite
+cargo r --example restricted_input
 ```
 
 Wasm:
 
 ```rust
 cargo install wasm-server-runner
-RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example multiple_sprites
+RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example restricted_input
 ```
 
 ## Compatibility
