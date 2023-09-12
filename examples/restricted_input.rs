@@ -14,8 +14,10 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let editor = commands
         .spawn(
             CosmicEditUiBundle {
+                border_color: Color::LIME_GREEN.into(),
                 style: Style {
                     // Size and position of text box
+                    border: UiRect::all(Val::Px(4.)),
                     width: Val::Percent(20.),
                     height: Val::Px(50.),
                     left: Val::Percent(40.),
