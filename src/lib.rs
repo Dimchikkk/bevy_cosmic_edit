@@ -33,6 +33,7 @@ pub enum CosmicTextPosition {
     TopLeft,
 }
 
+// TODO docs
 #[derive(Clone, Component)]
 pub struct CosmicMetrics {
     pub font_size: f32,
@@ -202,6 +203,12 @@ impl Default for CosmicAttrs {
 #[derive(Component, Default)]
 pub struct CosmicBackground(pub Option<Handle<Image>>);
 
+#[derive(Component, Default)]
+pub struct CosmicMaxLines(pub usize);
+
+#[derive(Component, Default)]
+pub struct CosmicMaxChars(pub usize);
+
 #[derive(Bundle)]
 pub struct CosmicEditUiBundle {
     // Bevy UI bits
@@ -251,6 +258,10 @@ pub struct CosmicEditUiBundle {
     pub cosmic_attrs: CosmicAttrs,
     /// bg img
     pub background_image: CosmicBackground,
+    /// How many lines are allowed in buffer, 0 for no limit
+    pub max_lines: CosmicMaxLines,
+    /// How many characters are allowed in buffer, 0 for no limit
+    pub max_chars: CosmicMaxChars,
 }
 
 impl CosmicEditUiBundle {
@@ -260,8 +271,90 @@ impl CosmicEditUiBundle {
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
     ) -> Self {
+        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
         self.editor.set_text(text, attrs, font_system);
         self
+    }
+}
+
+fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
+    if max_chars == 0 && max_lines == 0 {
+        // no limits, no work to do
+        return text;
+    }
+
+    match text {
+        CosmicText::OneStyle(mut string) => {
+            string.truncate(max_chars);
+
+            if max_lines == 0 {
+                return CosmicText::OneStyle(string);
+            }
+
+            let mut line_acc = 0;
+            let mut char_pos = 0;
+            for c in string.chars() {
+                char_pos += 1;
+                if c == 0xA as char {
+                    line_acc += 1;
+                    if line_acc >= max_lines {
+                        // break text to pos
+                        string.truncate(char_pos);
+                        break;
+                    }
+                }
+            }
+
+            CosmicText::OneStyle(string)
+        }
+        CosmicText::MultiStyle(lines) => {
+            let mut char_acc = 0;
+            let mut line_acc = 0;
+
+            let mut trimmed_styles = vec![];
+
+            for line in lines.iter() {
+                line_acc += 1;
+                char_acc += 1; // count newlines for consistent behaviour
+
+                if (line_acc >= max_lines && max_lines > 0)
+                    || (char_acc >= max_chars && max_chars > 0)
+                {
+                    break;
+                }
+
+                let mut strs = vec![];
+
+                for (string, attrs) in line.iter() {
+                    if char_acc >= max_chars && max_chars > 0 {
+                        break;
+                    }
+
+                    let mut string = string.clone();
+
+                    if max_chars > 0 {
+                        string.truncate(max_chars - char_acc);
+                        char_acc += string.len();
+                    }
+
+                    if max_lines > 0 {
+                        for c in string.chars() {
+                            if c == 0xA as char {
+                                line_acc += 1;
+                                char_acc += 1; // count newlines for consistent behaviour
+                                if line_acc >= max_lines {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    strs.push((string, attrs.clone()));
+                }
+                trimmed_styles.push(strs);
+            }
+            CosmicText::MultiStyle(trimmed_styles)
+        }
     }
 }
 
@@ -287,6 +380,8 @@ impl Default for CosmicEditUiBundle {
             cosmic_edit_history: Default::default(),
             cosmic_attrs: Default::default(),
             background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
         }
     }
 }
@@ -317,6 +412,10 @@ pub struct CosmicEditSpriteBundle {
     pub cosmic_attrs: CosmicAttrs,
     /// bg img
     pub background_image: CosmicBackground,
+    /// How many lines are allowed in buffer, 0 for no limit
+    pub max_lines: CosmicMaxLines,
+    /// How many characters are allowed in buffer, 0 for no limit
+    pub max_chars: CosmicMaxChars,
 }
 
 impl CosmicEditSpriteBundle {
@@ -326,6 +425,7 @@ impl CosmicEditSpriteBundle {
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
     ) -> Self {
+        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
         self.editor.set_text(text, attrs, font_system);
         self
     }
@@ -340,15 +440,15 @@ impl Default for CosmicEditSpriteBundle {
             texture: DEFAULT_IMAGE_HANDLE.typed(),
             visibility: Visibility::Hidden,
             computed_visibility: Default::default(),
-            //
             background_color: Default::default(),
-            //
             editor: Default::default(),
             text_position: Default::default(),
             cosmic_metrics: Default::default(),
             cosmic_edit_history: Default::default(),
             cosmic_attrs: Default::default(),
             background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
         }
     }
 }
@@ -608,6 +708,8 @@ pub fn cosmic_edit_bevy_events(
             &GlobalTransform,
             &CosmicAttrs,
             &CosmicTextPosition,
+            &CosmicMaxLines,
+            &CosmicMaxChars,
             Entity,
         ),
         With<CosmicEditor>,
@@ -625,8 +727,16 @@ pub fn cosmic_edit_bevy_events(
     let primary_window = windows.single();
     let scale_factor = primary_window.scale_factor() as f32;
     let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
-    for (mut editor, mut edit_history, node_transform, attrs, text_position, entity) in
-        &mut cosmic_edit_query.iter_mut()
+    for (
+        mut editor,
+        mut edit_history,
+        node_transform,
+        attrs,
+        text_position,
+        max_lines,
+        max_chars,
+        entity,
+    ) in &mut cosmic_edit_query.iter_mut()
     {
         let readonly = readonly_query.get(entity).is_ok();
 
@@ -639,7 +749,6 @@ pub fn cosmic_edit_bevy_events(
             }
         };
 
-        let editor = &mut editor.0;
         let attrs = &attrs.0;
 
         if active_editor.entity == Some(entity) {
@@ -657,10 +766,10 @@ pub fn cosmic_edit_bevy_events(
             let option = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
 
             // if shift key is pressed
-            let already_has_selection = editor.select_opt().is_some();
+            let already_has_selection = editor.0.select_opt().is_some();
             if shift && !already_has_selection {
-                let cursor = editor.cursor();
-                editor.set_select_opt(Some(cursor));
+                let cursor = editor.0.cursor();
+                editor.0.set_select_opt(Some(cursor));
             }
 
             #[cfg(target_os = "macos")]
@@ -669,87 +778,87 @@ pub fn cosmic_edit_bevy_events(
             let should_jump = command;
 
             if should_jump && keys.just_pressed(KeyCode::Left) {
-                editor.action(&mut font_system.0, Action::PreviousWord);
+                editor.0.action(&mut font_system.0, Action::PreviousWord);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::Right) {
-                editor.action(&mut font_system.0, Action::NextWord);
+                editor.0.action(&mut font_system.0, Action::NextWord);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::Home) {
-                editor.action(&mut font_system.0, Action::BufferStart);
+                editor.0.action(&mut font_system.0, Action::BufferStart);
                 // there's a bug with cosmic text where it doesn't update the visual cursor for this action
                 // TODO: fix upstream
-                editor.buffer_mut().set_redraw(true);
+                editor.0.buffer_mut().set_redraw(true);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if should_jump && keys.just_pressed(KeyCode::End) {
-                editor.action(&mut font_system.0, Action::BufferEnd);
+                editor.0.action(&mut font_system.0, Action::BufferEnd);
                 // there's a bug with cosmic text where it doesn't update the visual cursor for this action
                 // TODO: fix upstream
-                editor.buffer_mut().set_redraw(true);
+                editor.0.buffer_mut().set_redraw(true);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
 
             if keys.just_pressed(KeyCode::Left) {
-                editor.action(&mut font_system.0, Action::Left);
+                editor.0.action(&mut font_system.0, Action::Left);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::Right) {
-                editor.action(&mut font_system.0, Action::Right);
+                editor.0.action(&mut font_system.0, Action::Right);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::Up) {
-                editor.action(&mut font_system.0, Action::Up);
+                editor.0.action(&mut font_system.0, Action::Up);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::Down) {
-                editor.action(&mut font_system.0, Action::Down);
+                editor.0.action(&mut font_system.0, Action::Down);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
 
             if !readonly && keys.just_pressed(KeyCode::Back) {
                 #[cfg(target_arch = "wasm32")]
-                editor.action(&mut font_system.0, Action::Backspace);
+                editor.0.action(&mut font_system.0, Action::Backspace);
                 *is_deleting = true;
             }
             if !readonly && keys.just_released(KeyCode::Back) {
                 *is_deleting = false;
             }
             if !readonly && keys.just_pressed(KeyCode::Delete) {
-                editor.action(&mut font_system.0, Action::Delete);
+                editor.0.action(&mut font_system.0, Action::Delete);
             }
             if keys.just_pressed(KeyCode::Escape) {
-                editor.action(&mut font_system.0, Action::Escape);
+                editor.0.action(&mut font_system.0, Action::Escape);
             }
             if command && keys.just_pressed(KeyCode::A) {
-                editor.action(&mut font_system.0, Action::BufferEnd);
-                let current_cursor = editor.cursor();
-                editor.set_select_opt(Some(Cursor {
+                editor.0.action(&mut font_system.0, Action::BufferEnd);
+                let current_cursor = editor.0.cursor();
+                editor.0.set_select_opt(Some(Cursor {
                     line: 0,
                     index: 0,
                     affinity: current_cursor.affinity,
@@ -758,30 +867,30 @@ pub fn cosmic_edit_bevy_events(
                 return;
             }
             if keys.just_pressed(KeyCode::Home) {
-                editor.action(&mut font_system.0, Action::Home);
+                editor.0.action(&mut font_system.0, Action::Home);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::End) {
-                editor.action(&mut font_system.0, Action::End);
+                editor.0.action(&mut font_system.0, Action::End);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::PageUp) {
-                editor.action(&mut font_system.0, Action::PageUp);
+                editor.0.action(&mut font_system.0, Action::PageUp);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
             if keys.just_pressed(KeyCode::PageDown) {
-                editor.action(&mut font_system.0, Action::PageDown);
+                editor.0.action(&mut font_system.0, Action::PageDown);
                 if !shift {
-                    editor.set_select_opt(None);
+                    editor.0.set_select_opt(None);
                 }
                 return;
             }
@@ -802,7 +911,7 @@ pub fn cosmic_edit_bevy_events(
                 }
                 let idx = edit_history.current_edit + 1;
                 if let Some(current_edit) = edits.get(idx) {
-                    editor.buffer_mut().lines.clear();
+                    editor.0.buffer_mut().lines.clear();
                     for line in current_edit.lines.iter() {
                         let mut line_text = String::new();
                         let mut attrs_list = AttrsList::new(attrs.as_attrs());
@@ -812,14 +921,14 @@ pub fn cosmic_edit_bevy_events(
                             let end = line_text.len();
                             attrs_list.add_span(start..end, attrs.as_attrs());
                         }
-                        editor.buffer_mut().lines.push(BufferLine::new(
+                        editor.0.buffer_mut().lines.push(BufferLine::new(
                             line_text,
                             attrs_list,
                             Shaping::Advanced,
                         ));
                     }
-                    editor.set_cursor(current_edit.cursor);
-                    editor.buffer_mut().set_redraw(true);
+                    editor.0.set_cursor(current_edit.cursor);
+                    editor.0.buffer_mut().set_redraw(true);
                     edit_history.current_edit += 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
@@ -838,7 +947,7 @@ pub fn cosmic_edit_bevy_events(
                 }
                 let idx = edit_history.current_edit - 1;
                 if let Some(current_edit) = edits.get(idx) {
-                    editor.buffer_mut().lines.clear();
+                    editor.0.buffer_mut().lines.clear();
                     for line in current_edit.lines.iter() {
                         let mut line_text = String::new();
                         let mut attrs_list = AttrsList::new(attrs.as_attrs());
@@ -848,14 +957,14 @@ pub fn cosmic_edit_bevy_events(
                             let end = line_text.len();
                             attrs_list.add_span(start..end, attrs.as_attrs());
                         }
-                        editor.buffer_mut().lines.push(BufferLine::new(
+                        editor.0.buffer_mut().lines.push(BufferLine::new(
                             line_text,
                             attrs_list,
                             Shaping::Advanced,
                         ));
                     }
-                    editor.set_cursor(current_edit.cursor);
-                    editor.buffer_mut().set_redraw(true);
+                    editor.0.set_cursor(current_edit.cursor);
+                    editor.0.buffer_mut().set_redraw(true);
                     edit_history.current_edit -= 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
@@ -867,22 +976,32 @@ pub fn cosmic_edit_bevy_events(
             {
                 if let Ok(mut clipboard) = arboard::Clipboard::new() {
                     if command && keys.just_pressed(KeyCode::C) {
-                        if let Some(text) = editor.copy_selection() {
+                        if let Some(text) = editor.0.copy_selection() {
                             clipboard.set_text(text).unwrap();
                             return;
                         }
                     }
                     if !readonly && command && keys.just_pressed(KeyCode::X) {
-                        if let Some(text) = editor.copy_selection() {
+                        if let Some(text) = editor.0.copy_selection() {
                             clipboard.set_text(text).unwrap();
-                            editor.delete_selection();
+                            editor.0.delete_selection();
                         }
                         is_clipboard = true;
                     }
                     if !readonly && command && keys.just_pressed(KeyCode::V) {
                         if let Ok(text) = clipboard.get_text() {
                             for c in text.chars() {
-                                editor.action(&mut font_system.0, Action::Insert(c));
+                                if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                                    if c == 0xA as char {
+                                        if max_lines.0 == 0
+                                            || editor.0.buffer().lines.len() < max_lines.0
+                                        {
+                                            editor.0.action(&mut font_system.0, Action::Insert(c));
+                                        }
+                                    } else {
+                                        editor.0.action(&mut font_system.0, Action::Insert(c));
+                                    }
+                                }
                             }
                         }
                         is_clipboard = true;
@@ -890,9 +1009,10 @@ pub fn cosmic_edit_bevy_events(
                 }
             }
             let (offset_x, offset_y) = match text_position {
-                CosmicTextPosition::Center => {
-                    (get_x_offset(editor.buffer()), get_y_offset(editor.buffer()))
-                }
+                CosmicTextPosition::Center => (
+                    get_x_offset(editor.0.buffer()),
+                    get_y_offset(editor.0.buffer()),
+                ),
                 CosmicTextPosition::TopLeft => (0, 0),
             };
             let point = |node_cursor_pos: (f32, f32)| {
@@ -913,9 +1033,9 @@ pub fn cosmic_edit_bevy_events(
                 ) {
                     let (x, y) = point(node_cursor_pos);
                     if shift {
-                        editor.action(&mut font_system.0, Action::Drag { x, y });
+                        editor.0.action(&mut font_system.0, Action::Drag { x, y });
                     } else {
-                        editor.action(&mut font_system.0, Action::Click { x, y });
+                        editor.0.action(&mut font_system.0, Action::Click { x, y });
                     }
                 }
                 return;
@@ -931,9 +1051,9 @@ pub fn cosmic_edit_bevy_events(
                 ) {
                     let (x, y) = point(node_cursor_pos);
                     if active_editor.is_changed() && !shift {
-                        editor.action(&mut font_system.0, Action::Click { x, y });
+                        editor.0.action(&mut font_system.0, Action::Click { x, y });
                     } else {
-                        editor.action(&mut font_system.0, Action::Drag { x, y });
+                        editor.0.action(&mut font_system.0, Action::Drag { x, y });
                     }
                 }
                 return;
@@ -941,7 +1061,7 @@ pub fn cosmic_edit_bevy_events(
             for ev in scroll_evr.iter() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
-                        editor.action(
+                        editor.0.action(
                             &mut font_system.0,
                             Action::Scroll {
                                 lines: -ev.y as i32,
@@ -949,8 +1069,8 @@ pub fn cosmic_edit_bevy_events(
                         );
                     }
                     MouseScrollUnit::Pixel => {
-                        let line_height = editor.buffer().metrics().line_height;
-                        editor.action(
+                        let line_height = editor.0.buffer().metrics().line_height;
+                        editor.0.action(
                             &mut font_system.0,
                             Action::Scroll {
                                 lines: -(ev.y / line_height) as i32,
@@ -965,9 +1085,10 @@ pub fn cosmic_edit_bevy_events(
             }
 
             // fix for issue #8
-            if let Some(select) = editor.select_opt() {
-                if editor.cursor().line == select.line && editor.cursor().index == select.index {
-                    editor.set_select_opt(None);
+            if let Some(select) = editor.0.select_opt() {
+                if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
+                {
+                    editor.0.set_select_opt(None);
                 }
             }
 
@@ -976,17 +1097,23 @@ pub fn cosmic_edit_bevy_events(
             if keys.just_pressed(KeyCode::Return) {
                 is_return = true;
                 is_edit = true;
-                // to have new line on wasm rather than E
-                editor.action(&mut font_system.0, Action::Insert('\n'));
+                if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
+                    && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
+                {
+                    // to have new line on wasm rather than E
+                    editor.0.action(&mut font_system.0, Action::Insert('\n'));
+                }
             }
 
             if !(is_clipboard || is_return) {
                 for char_ev in char_evr.iter() {
                     is_edit = true;
                     if *is_deleting {
-                        editor.action(&mut font_system.0, Action::Backspace);
-                    } else {
-                        editor.action(&mut font_system.0, Action::Insert(char_ev.char));
+                        editor.0.action(&mut font_system.0, Action::Backspace);
+                    } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                        editor
+                            .0
+                            .action(&mut font_system.0, Action::Insert(char_ev.char));
                     }
                 }
             }
@@ -999,11 +1126,11 @@ pub fn cosmic_edit_bevy_events(
                 if Duration::from_millis(now_ms as u64) - last_edit_duration
                     > Duration::from_millis(150)
                 {
-                    save_edit_history(editor, attrs, &mut edit_history);
+                    save_edit_history(&mut editor.0, attrs, &mut edit_history);
                     *edits_duration = Some(Duration::from_millis(now_ms as u64));
                 }
             } else {
-                save_edit_history(editor, attrs, &mut edit_history);
+                save_edit_history(&mut editor.0, attrs, &mut edit_history);
                 *edits_duration = Some(Duration::from_millis(now_ms as u64));
             }
         }
