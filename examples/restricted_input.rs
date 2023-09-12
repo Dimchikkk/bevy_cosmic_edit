@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     change_active_editor_sprite, change_active_editor_ui, ActiveEditor, CosmicAttrs,
     CosmicEditPlugin, CosmicEditUiBundle, CosmicFontSystem, CosmicMaxChars, CosmicMaxLines,
@@ -6,10 +6,15 @@ use bevy_cosmic_edit::{
 };
 use cosmic_text::{Attrs, AttrsOwned};
 
-fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
+fn setup(
+    mut commands: Commands,
+    mut font_system: ResMut<CosmicFontSystem>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let attrs = AttrsOwned::new(Attrs::new().color(cosmic_text::Color::rgb(69, 69, 69)));
+    let primary_window = windows.single();
 
     let editor = commands
         .spawn(
@@ -28,7 +33,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 cosmic_metrics: CosmicMetrics {
                     font_size: 16.,
                     line_height: 16.,
-                    ..Default::default()
+                    scale_factor: primary_window.scale_factor() as f32,
                 },
                 max_chars: CosmicMaxChars(15),
                 max_lines: CosmicMaxLines(1),
