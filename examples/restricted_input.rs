@@ -29,12 +29,13 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                     ..Default::default()
                 },
                 max_chars: CosmicMaxChars(15),
-                max_lines: CosmicMaxLines(3),
+                max_lines: CosmicMaxLines(1),
                 ..default()
             }
             .set_text(
                 CosmicText::OneStyle(
-                    "This text\n is longer\n than is\n allowed by\n the limits.\n".into(),
+                    "1 line 15 chars! But this\n is longer\n than is\n allowed by\n the limits.\n"
+                        .into(),
                 ),
                 attrs,
                 &mut font_system.0,
