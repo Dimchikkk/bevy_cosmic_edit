@@ -272,8 +272,90 @@ impl CosmicEditUiBundle {
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
     ) -> Self {
+        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
         self.editor.set_text(text, attrs, font_system);
         self
+    }
+}
+
+fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
+    if max_chars == 0 && max_lines == 0 {
+        // no limits, no work to do
+        return text;
+    }
+
+    match text {
+        CosmicText::OneStyle(mut string) => {
+            string.truncate(max_chars);
+
+            if max_lines == 0 {
+                return CosmicText::OneStyle(string);
+            }
+
+            let mut line_acc = 0;
+            let mut char_pos = 0;
+            for c in string.chars() {
+                char_pos += 1;
+                if c == 0xA as char {
+                    line_acc += 1;
+                    if line_acc >= max_lines {
+                        // break text to pos
+                        string.truncate(char_pos);
+                        break;
+                    }
+                }
+            }
+
+            CosmicText::OneStyle(string)
+        }
+        CosmicText::MultiStyle(lines) => {
+            let mut char_acc = 0;
+            let mut line_acc = 0;
+
+            let mut trimmed_styles = vec![];
+
+            for line in lines.iter() {
+                line_acc += 1;
+                char_acc += 1; // count newlines for consistent behaviour
+
+                if (line_acc >= max_lines && max_lines > 0)
+                    || (char_acc >= max_chars && max_chars > 0)
+                {
+                    break;
+                }
+
+                let mut strs = vec![];
+
+                for (string, attrs) in line.iter() {
+                    if char_acc >= max_chars && max_chars > 0 {
+                        break;
+                    }
+
+                    let mut string = string.clone();
+
+                    if max_chars > 0 {
+                        string.truncate(max_chars - char_acc);
+                        char_acc += string.len();
+                    }
+
+                    if max_lines > 0 {
+                        for c in string.chars() {
+                            if c == 0xA as char {
+                                line_acc += 1;
+                                char_acc += 1; // count newlines for consistent behaviour
+                                if line_acc >= max_lines {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    strs.push((string, attrs.clone()));
+                }
+                trimmed_styles.push(strs);
+            }
+            CosmicText::MultiStyle(trimmed_styles)
+        }
     }
 }
 
@@ -344,6 +426,7 @@ impl CosmicEditSpriteBundle {
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
     ) -> Self {
+        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
         self.editor.set_text(text, attrs, font_system);
         self
     }
