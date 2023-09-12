@@ -78,7 +78,6 @@ impl CosmicEditor {
         editor.buffer_mut().lines.clear();
         match text {
             CosmicText::OneStyle(text) => {
-                // TODO get access to max_chars and max_lines here, implement limits
                 editor.buffer_mut().set_text(
                     font_system,
                     text.as_str(),
