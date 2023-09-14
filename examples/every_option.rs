@@ -1,10 +1,10 @@
 use bevy::{prelude::*, ui::FocusPolicy, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    change_active_editor_sprite, change_active_editor_ui, ActiveEditor, CosmicAttrs,
-    CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, CosmicMaxChars, CosmicMaxLines,
-    CosmicMetrics, CosmicText, CosmicTextPosition,
+    change_active_editor_sprite, change_active_editor_ui, get_x_offset, ActiveEditor, CosmicAttrs,
+    CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor, CosmicMaxChars,
+    CosmicMaxLines, CosmicMetrics, CosmicText, CosmicTextPosition,
 };
-use cosmic_text::{Attrs, AttrsOwned};
+use cosmic_text::{Attrs, AttrsOwned, Edit};
 
 #[derive(Resource)]
 struct TextChangeTimer(pub Timer);
@@ -25,7 +25,6 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             image: UiImage::default(),
             transform: Transform::default(),
             interaction: Interaction::default(),
-            cosmic_edit_history: bevy_cosmic_edit::CosmicEditHistory::default(),
             focus_policy: FocusPolicy::default(),
             text_position: CosmicTextPosition::default(),
             background_color: BackgroundColor::default(),
@@ -69,6 +68,7 @@ fn text_swapper(
     time: Res<Time>,
     mut cosmic_q: Query<&mut CosmicText>,
     mut count: Local<usize>,
+    editor_q: Query<&CosmicEditor>,
 ) {
     timer.0.tick(time.delta());
     if !timer.0.just_finished() {
@@ -79,6 +79,9 @@ fn text_swapper(
     for mut text in cosmic_q.iter_mut() {
         text.set_if_neq(CosmicText::OneStyle(format!("TIMER {}", *count)));
     }
+
+    let editor = editor_q.single();
+    println!("X OFFSET: {}", get_x_offset(editor.0.buffer()));
 }
 
 fn main() {

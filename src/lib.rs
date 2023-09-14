@@ -187,6 +187,9 @@ fn cosmic_editor_builder(
         editor_component.set_text(text, attrs.0.clone(), &mut font_system.0);
 
         commands.entity(entity).insert(editor_component);
+
+        // Add edit history
+        commands.entity(entity).insert(CosmicEditHistory::default());
     }
 }
 
@@ -269,8 +272,6 @@ pub struct CosmicEditUiBundle {
     pub text_position: CosmicTextPosition,
     /// text metrics
     pub cosmic_metrics: CosmicMetrics,
-    /// edit history
-    pub cosmic_edit_history: CosmicEditHistory,
     /// text attributes
     pub cosmic_attrs: CosmicAttrs,
     /// bg img
@@ -282,6 +283,160 @@ pub struct CosmicEditUiBundle {
     /// Setting this will update the buffer's text
     // TODO sync this with the buffer to allow getting from here as well as setting
     pub set_text: CosmicText,
+}
+
+impl Default for CosmicEditUiBundle {
+    fn default() -> Self {
+        Self {
+            focus_policy: FocusPolicy::Block,
+            node: Default::default(),
+            button: Default::default(),
+            style: Default::default(),
+            border_color: BorderColor(Color::NONE),
+            interaction: Default::default(),
+            background_color: Default::default(),
+            image: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+            visibility: Default::default(),
+            computed_visibility: Default::default(),
+            z_index: Default::default(),
+            text_position: Default::default(),
+            cosmic_metrics: Default::default(),
+            cosmic_attrs: Default::default(),
+            background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
+            set_text: Default::default(),
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct CosmicEditSpriteBundle {
+    // Bevy Sprite Bits
+    pub sprite: Sprite,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub texture: Handle<Image>,
+    /// User indication of whether an entity is visible
+    pub visibility: Visibility,
+    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
+    pub computed_visibility: ComputedVisibility,
+    //
+    pub background_color: BackgroundColor,
+    // cosmic bits
+    /// text positioning enum
+    pub text_position: CosmicTextPosition,
+    /// text metrics
+    pub cosmic_metrics: CosmicMetrics,
+    /// text attributes
+    pub cosmic_attrs: CosmicAttrs,
+    /// bg img
+    pub background_image: CosmicBackground,
+    /// How many lines are allowed in buffer, 0 for no limit
+    pub max_lines: CosmicMaxLines,
+    /// How many characters are allowed in buffer, 0 for no limit
+    pub max_chars: CosmicMaxChars,
+    pub text: CosmicText,
+}
+
+impl Default for CosmicEditSpriteBundle {
+    fn default() -> Self {
+        Self {
+            sprite: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+            texture: DEFAULT_IMAGE_HANDLE.typed(),
+            visibility: Visibility::Hidden,
+            computed_visibility: Default::default(),
+            background_color: Default::default(),
+            text_position: Default::default(),
+            cosmic_metrics: Default::default(),
+            cosmic_attrs: Default::default(),
+            background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
+            text: Default::default(),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct EditHistoryItem {
+    pub cursor: Cursor,
+    pub lines: Vec<Vec<(String, AttrsOwned)>>,
+}
+
+#[derive(Component, Default)]
+struct CosmicEditHistory {
+    pub edits: VecDeque<EditHistoryItem>,
+    pub current_edit: usize,
+}
+
+/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
+#[derive(Default)]
+pub struct CosmicEditPlugin {
+    pub font_config: CosmicFontConfig,
+}
+
+impl Plugin for CosmicEditPlugin {
+    fn build(&self, app: &mut App) {
+        let font_system = create_cosmic_font_system(self.font_config.clone());
+
+        app.add_systems(PreUpdate, (cosmic_editor_builder, update_buffer_text))
+            .add_systems(
+                Update,
+                (
+                    cosmic_edit_bevy_events,
+                    cosmic_edit_set_redraw,
+                    on_scale_factor_change,
+                    cosmic_edit_redraw_buffer_ui
+                        .before(cosmic_edit_set_redraw)
+                        .before(on_scale_factor_change),
+                    cosmic_edit_redraw_buffer.before(on_scale_factor_change),
+                    blink_cursor,
+                    hide_inactive_cursor,
+                    clear_inactive_selection,
+                ),
+            )
+            .init_resource::<ActiveEditor>()
+            // .add_asset::<CosmicFont>()
+            .insert_resource(SwashCacheState {
+                swash_cache: SwashCache::new(),
+            })
+            .insert_resource(CosmicFontSystem(font_system));
+    }
+}
+
+/// Resource struct that keeps track of the currently active editor entity.
+#[derive(Resource, Default)]
+pub struct ActiveEditor {
+    pub entity: Option<Entity>,
+}
+
+/// Resource struct that holds configuration options for cosmic fonts.
+#[derive(Resource, Clone)]
+pub struct CosmicFontConfig {
+    pub fonts_dir_path: Option<PathBuf>,
+    pub font_bytes: Option<Vec<&'static [u8]>>,
+    pub load_system_fonts: bool, // caution: this can be relatively slow
+}
+
+impl Default for CosmicFontConfig {
+    fn default() -> Self {
+        let fallback_font = include_bytes!("./font/FiraMono-Regular-subset.ttf");
+        Self {
+            load_system_fonts: false,
+            font_bytes: Some(vec![fallback_font]),
+            fonts_dir_path: None,
+        }
+    }
+}
+
+#[derive(Resource)]
+struct SwashCacheState {
+    swash_cache: SwashCache,
 }
 
 fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
@@ -363,164 +518,6 @@ fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText
             CosmicText::MultiStyle(trimmed_styles)
         }
     }
-}
-
-impl Default for CosmicEditUiBundle {
-    fn default() -> Self {
-        Self {
-            focus_policy: FocusPolicy::Block,
-            node: Default::default(),
-            button: Default::default(),
-            style: Default::default(),
-            border_color: BorderColor(Color::NONE),
-            interaction: Default::default(),
-            background_color: Default::default(),
-            image: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            visibility: Default::default(),
-            computed_visibility: Default::default(),
-            z_index: Default::default(),
-            text_position: Default::default(),
-            cosmic_metrics: Default::default(),
-            cosmic_edit_history: Default::default(),
-            cosmic_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            set_text: Default::default(),
-        }
-    }
-}
-
-#[derive(Bundle)]
-pub struct CosmicEditSpriteBundle {
-    // Bevy Sprite Bits
-    pub sprite: Sprite,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub texture: Handle<Image>,
-    /// User indication of whether an entity is visible
-    pub visibility: Visibility,
-    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-    pub computed_visibility: ComputedVisibility,
-    //
-    pub background_color: BackgroundColor,
-    // cosmic bits
-    /// text positioning enum
-    pub text_position: CosmicTextPosition,
-    /// text metrics
-    pub cosmic_metrics: CosmicMetrics,
-    /// edit history
-    pub cosmic_edit_history: CosmicEditHistory,
-    /// text attributes
-    pub cosmic_attrs: CosmicAttrs,
-    /// bg img
-    pub background_image: CosmicBackground,
-    /// How many lines are allowed in buffer, 0 for no limit
-    pub max_lines: CosmicMaxLines,
-    /// How many characters are allowed in buffer, 0 for no limit
-    pub max_chars: CosmicMaxChars,
-    pub text: CosmicText,
-}
-
-impl Default for CosmicEditSpriteBundle {
-    fn default() -> Self {
-        Self {
-            sprite: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            texture: DEFAULT_IMAGE_HANDLE.typed(),
-            visibility: Visibility::Hidden,
-            computed_visibility: Default::default(),
-            background_color: Default::default(),
-            text_position: Default::default(),
-            cosmic_metrics: Default::default(),
-            cosmic_edit_history: Default::default(),
-            cosmic_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            text: Default::default(),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct EditHistoryItem {
-    pub cursor: Cursor,
-    pub lines: Vec<Vec<(String, AttrsOwned)>>,
-}
-
-#[derive(Component, Default)]
-pub struct CosmicEditHistory {
-    pub edits: VecDeque<EditHistoryItem>,
-    pub current_edit: usize,
-}
-
-/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
-#[derive(Default)]
-pub struct CosmicEditPlugin {
-    pub font_config: CosmicFontConfig,
-}
-
-impl Plugin for CosmicEditPlugin {
-    fn build(&self, app: &mut App) {
-        let font_system = create_cosmic_font_system(self.font_config.clone());
-
-        app.add_systems(PreUpdate, (cosmic_editor_builder, update_buffer_text))
-            .add_systems(
-                Update,
-                (
-                    cosmic_edit_bevy_events,
-                    cosmic_edit_set_redraw,
-                    on_scale_factor_change,
-                    cosmic_edit_redraw_buffer_ui
-                        .before(cosmic_edit_set_redraw)
-                        .before(on_scale_factor_change),
-                    cosmic_edit_redraw_buffer.before(on_scale_factor_change),
-                    blink_cursor,
-                    hide_inactive_cursor,
-                    clear_inactive_selection,
-                ),
-            )
-            .init_resource::<ActiveEditor>()
-            // .add_asset::<CosmicFont>()
-            .insert_resource(SwashCacheState {
-                swash_cache: SwashCache::new(),
-            })
-            .insert_resource(CosmicFontSystem(font_system));
-    }
-}
-
-/// Resource struct that keeps track of the currently active editor entity.
-#[derive(Resource, Default)]
-pub struct ActiveEditor {
-    pub entity: Option<Entity>,
-}
-
-/// Resource struct that holds configuration options for cosmic fonts.
-#[derive(Resource, Clone)]
-pub struct CosmicFontConfig {
-    pub fonts_dir_path: Option<PathBuf>,
-    pub font_bytes: Option<Vec<&'static [u8]>>,
-    pub load_system_fonts: bool, // caution: this can be relatively slow
-}
-
-impl Default for CosmicFontConfig {
-    fn default() -> Self {
-        let fallback_font = include_bytes!("./font/FiraMono-Regular-subset.ttf");
-        Self {
-            load_system_fonts: false,
-            font_bytes: Some(vec![fallback_font]),
-            fonts_dir_path: None,
-        }
-    }
-}
-
-#[derive(Resource)]
-struct SwashCacheState {
-    swash_cache: SwashCache,
 }
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
@@ -688,7 +685,7 @@ pub fn get_x_offset(buffer: &Buffer) -> i32 {
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 // the meat of the input management
-pub fn cosmic_edit_bevy_events(
+fn cosmic_edit_bevy_events(
     windows: Query<&Window, With<PrimaryWindow>>,
     active_editor: Res<ActiveEditor>,
     keys: Res<Input<KeyCode>>,
