@@ -5,15 +5,11 @@ use bevy_cosmic_edit::change_active_editor_sprite;
 use bevy_cosmic_edit::change_active_editor_ui;
 use bevy_cosmic_edit::{
     ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
-    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
+    CosmicMetrics, CosmicText, CosmicTextPosition,
 };
 use cosmic_text::{Attrs, AttrsOwned, Family};
 
-fn setup(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
+fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.spawn(Camera2dBundle::default());
     let root = commands
         .spawn(NodeBundle {
@@ -239,13 +235,9 @@ fn setup(
             ..default()
         },
         background_color: BackgroundColor(Color::WHITE),
+        set_text: CosmicText::MultiStyle(lines),
         ..default()
-    }
-    .set_text(
-        CosmicText::MultiStyle(lines),
-        AttrsOwned::new(attrs),
-        &mut font_system.0,
-    );
+    };
 
     let mut attrs_2 = cosmic_text::Attrs::new();
     attrs_2 = attrs_2.family(cosmic_text::Family::Name("Times New Roman"));
@@ -265,13 +257,9 @@ fn setup(
             height: Val::Percent(100.),
             ..default()
         },
+        set_text: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
         ..default()
-    }
-    .set_text(
-        CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
-        AttrsOwned::new(attrs_2),
-        &mut font_system.0,
-    );
+    };
 
     let mut id = None;
     // Spawn the CosmicEditUiBundles as children of root

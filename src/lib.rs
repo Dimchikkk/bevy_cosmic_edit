@@ -19,10 +19,16 @@ use cosmic_text::{
 };
 use image::{imageops::FilterType, GenericImageView};
 
-#[derive(Clone)]
+#[derive(Clone, Component, PartialEq)]
 pub enum CosmicText {
     OneStyle(String),
     MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
+}
+
+impl Default for CosmicText {
+    fn default() -> Self {
+        Self::OneStyle(String::new())
+    }
 }
 
 /// Enum representing the position of the cosmic text.
@@ -60,20 +66,14 @@ pub struct ReadOnly; // tag component
 #[derive(Component)]
 pub struct CosmicEditor(pub Editor);
 
-impl Default for CosmicEditor {
-    fn default() -> Self {
-        Self(Editor::new(Buffer::new_empty(Metrics::new(12., 14.))))
-    }
-}
-
 impl CosmicEditor {
-    pub fn set_text(
+    fn set_text(
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
-        // i'd like to get the font system + attrs automagically but i'm too 3head -bytemunch
         font_system: &mut FontSystem,
     ) -> &mut Self {
+        // TODO invoke trim_text here
         let editor = &mut self.0;
         editor.buffer_mut().lines.clear();
         match text {
@@ -136,39 +136,31 @@ impl CosmicEditor {
 fn cosmic_editor_builder(
     mut added_editors: Query<
         (
-            &mut CosmicEditor,
+            Entity,
+            &mut CosmicText,
             &CosmicAttrs,
             &CosmicMetrics,
+            &CosmicMaxChars,
+            &CosmicMaxLines,
             Option<&ReadOnly>,
             Option<&Node>,
             Option<&Sprite>,
         ),
-        Added<CosmicEditor>,
+        Added<CosmicText>,
     >,
     mut font_system: ResMut<CosmicFontSystem>,
+    mut commands: Commands,
 ) {
-    for (mut editor, attrs, metrics, readonly, node, sprite) in added_editors.iter_mut() {
-        // keep old text if set
-        let mut text = editor.get_text();
-
-        if text.is_empty() {
-            text = "".into();
-            editor.0.buffer_mut().set_text(
-                &mut font_system.0,
-                text.as_str(),
-                attrs.0.as_attrs(),
-                Shaping::Advanced,
-            );
-        }
-
-        editor.0.buffer_mut().set_metrics(
+    for (entity, text, attrs, metrics, max_chars, max_lines, readonly, node, sprite) in
+        added_editors.iter_mut()
+    {
+        let mut editor = Editor::new(Buffer::new(
             &mut font_system.0,
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
-        );
+        ));
 
         if let Some(node) = node {
             editor
-                .0
                 .buffer_mut()
                 .set_size(&mut font_system.0, node.size().x, node.size().y)
         }
@@ -176,18 +168,45 @@ fn cosmic_editor_builder(
         if let Some(sprite) = sprite {
             if let Some(size) = sprite.custom_size {
                 editor
-                    .0
                     .buffer_mut()
                     .set_size(&mut font_system.0, size.x, size.y)
             }
         }
 
         // hide cursor on readonly buffers
-        let mut cursor = editor.0.cursor();
+        // TODO do this seperately, allow for readonly to be toggled
+        let mut cursor = editor.cursor();
         if readonly.is_some() {
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
         }
-        editor.0.set_cursor(cursor);
+        editor.set_cursor(cursor);
+
+        let mut editor_component = CosmicEditor(editor);
+
+        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
+        editor_component.set_text(text, attrs.0.clone(), &mut font_system.0);
+
+        commands.entity(entity).insert(editor_component);
+    }
+}
+
+/// Updates editor buffer when text component changes
+fn update_buffer_text(
+    mut editor_q: Query<
+        (
+            &mut CosmicEditor,
+            &mut CosmicText,
+            &CosmicAttrs,
+            &CosmicMaxChars,
+            &CosmicMaxLines,
+        ),
+        Changed<CosmicText>,
+    >,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
+        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
+        editor.set_text(text, attrs.0.clone(), &mut font_system.0);
     }
 }
 
@@ -246,8 +265,6 @@ pub struct CosmicEditUiBundle {
     /// Indicates the depth at which the node should appear in the UI
     pub z_index: ZIndex,
     // cosmic bits
-    /// cosmic-text Editor, holds the text buffer + font system
-    pub editor: CosmicEditor,
     /// text positioning enum
     pub text_position: CosmicTextPosition,
     /// text metrics
@@ -262,19 +279,9 @@ pub struct CosmicEditUiBundle {
     pub max_lines: CosmicMaxLines,
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
-}
-
-impl CosmicEditUiBundle {
-    pub fn set_text(
-        mut self,
-        text: CosmicText,
-        attrs: AttrsOwned,
-        font_system: &mut FontSystem,
-    ) -> Self {
-        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
-        self.editor.set_text(text, attrs, font_system);
-        self
-    }
+    /// Setting this will update the buffer's text
+    // TODO sync this with the buffer to allow getting from here as well as setting
+    pub set_text: CosmicText,
 }
 
 fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
@@ -374,7 +381,6 @@ impl Default for CosmicEditUiBundle {
             visibility: Default::default(),
             computed_visibility: Default::default(),
             z_index: Default::default(),
-            editor: Default::default(),
             text_position: Default::default(),
             cosmic_metrics: Default::default(),
             cosmic_edit_history: Default::default(),
@@ -382,6 +388,7 @@ impl Default for CosmicEditUiBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
+            set_text: Default::default(),
         }
     }
 }
@@ -400,8 +407,6 @@ pub struct CosmicEditSpriteBundle {
     //
     pub background_color: BackgroundColor,
     // cosmic bits
-    /// cosmic-text Editor, holds the text buffer + font system
-    pub editor: CosmicEditor,
     /// text positioning enum
     pub text_position: CosmicTextPosition,
     /// text metrics
@@ -416,19 +421,7 @@ pub struct CosmicEditSpriteBundle {
     pub max_lines: CosmicMaxLines,
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
-}
-
-impl CosmicEditSpriteBundle {
-    pub fn set_text(
-        mut self,
-        text: CosmicText,
-        attrs: AttrsOwned,
-        font_system: &mut FontSystem,
-    ) -> Self {
-        let text = trim_text(text, self.max_chars.0, self.max_lines.0);
-        self.editor.set_text(text, attrs, font_system);
-        self
-    }
+    pub text: CosmicText,
 }
 
 impl Default for CosmicEditSpriteBundle {
@@ -441,7 +434,6 @@ impl Default for CosmicEditSpriteBundle {
             visibility: Visibility::Hidden,
             computed_visibility: Default::default(),
             background_color: Default::default(),
-            editor: Default::default(),
             text_position: Default::default(),
             cosmic_metrics: Default::default(),
             cosmic_edit_history: Default::default(),
@@ -449,6 +441,7 @@ impl Default for CosmicEditSpriteBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
+            text: Default::default(),
         }
     }
 }
@@ -475,7 +468,7 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        app.add_systems(PreUpdate, cosmic_editor_builder)
+        app.add_systems(PreUpdate, (cosmic_editor_builder, update_buffer_text))
             .add_systems(
                 Update,
                 (
@@ -1490,15 +1483,11 @@ fn draw_pixel(
 mod tests {
     use crate::*;
 
-    fn test_spawn_cosmic_edit_system(
-        mut commands: Commands,
-        mut font_system: ResMut<CosmicFontSystem>,
-    ) {
-        commands.spawn(CosmicEditUiBundle::default().set_text(
-            CosmicText::OneStyle("Blah".into()),
-            AttrsOwned::new(Attrs::new()),
-            &mut font_system.0,
-        ));
+    fn test_spawn_cosmic_edit_system(mut commands: Commands) {
+        commands.spawn(CosmicEditUiBundle {
+            set_text: CosmicText::OneStyle("Blah".into()),
+            ..Default::default()
+        });
     }
 
     #[test]

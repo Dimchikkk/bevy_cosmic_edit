@@ -3,15 +3,11 @@ use bevy_cosmic_edit::change_active_editor_sprite;
 use bevy_cosmic_edit::change_active_editor_ui;
 use bevy_cosmic_edit::{
     ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig,
-    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition,
+    CosmicMetrics, CosmicText, CosmicTextPosition,
 };
 use cosmic_text::AttrsOwned;
 
-fn setup(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
+fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
     let camera_bundle = Camera2dBundle {
         camera_2d: Camera2d {
@@ -43,13 +39,9 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
         text_position: CosmicTextPosition::Center,
         background_color: BackgroundColor(Color::ALICE_BLUE),
+        text: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
         ..default()
-    }
-    .set_text(
-        CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-        AttrsOwned::new(attrs),
-        &mut font_system.0,
-    );
+    };
 
     let cosmic_edit_2 = CosmicEditSpriteBundle {
         cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
@@ -68,13 +60,9 @@ fn setup(
         )),
         text_position: CosmicTextPosition::Center,
         background_color: BackgroundColor(Color::GRAY.with_a(0.5)),
+        text: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
         ..default()
-    }
-    .set_text(
-        CosmicText::OneStyle("Widget_2. Click on me".to_string()),
-        AttrsOwned::new(attrs),
-        &mut font_system.0,
-    );
+    };
 
     let id = commands.spawn(cosmic_edit_1).id();
 

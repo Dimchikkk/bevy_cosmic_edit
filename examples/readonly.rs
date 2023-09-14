@@ -1,15 +1,11 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
-    CosmicFontSystem, CosmicMetrics, CosmicText, CosmicTextPosition, ReadOnly,
+    CosmicMetrics, CosmicText, CosmicTextPosition, ReadOnly,
 };
 use cosmic_text::AttrsOwned;
 
-fn setup(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
+fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
     commands.spawn(Camera2dBundle::default());
     let root = commands
@@ -42,13 +38,9 @@ fn setup(
             line_height: 18.,
             scale_factor: primary_window.scale_factor() as f32,
         },
+        set_text: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
         ..default()
-    }
-    .set_text(
-        CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
-        AttrsOwned::new(attrs),
-        &mut font_system.0,
-    );
+    };
 
     let mut id = None;
     // Spawn the CosmicEditUiBundle as a child of root
