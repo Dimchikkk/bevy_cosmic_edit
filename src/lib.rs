@@ -365,13 +365,13 @@ impl Default for CosmicEditSpriteBundle {
 }
 
 #[derive(Clone)]
-struct EditHistoryItem {
+pub struct EditHistoryItem {
     pub cursor: Cursor,
     pub lines: Vec<Vec<(String, AttrsOwned)>>,
 }
 
 #[derive(Component, Default)]
-struct CosmicEditHistory {
+pub struct CosmicEditHistory {
     pub edits: VecDeque<EditHistoryItem>,
     pub current_edit: usize,
 }
