@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    change_active_editor_sprite, change_active_editor_ui, ActiveEditor, CosmicAttrs,
-    CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle,
+    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, ActiveEditor,
+    Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle,
 };
-use cosmic_text::{Attrs, AttrsOwned};
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
@@ -21,7 +20,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             cosmic_attrs: CosmicAttrs(AttrsOwned::new(
-                Attrs::new().color(cosmic_text::Color::rgb(0, 255, 0)),
+                Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             background_image: CosmicBackground(Some(bg_image_handle)),
             ..default()

@@ -13,9 +13,11 @@ use bevy::{
     ui::FocusPolicy,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
+pub use cosmic_text::{
+    Action, Attrs, AttrsOwned, Cursor, Edit, Family, Style as FontStyle, Weight as FontWeight,
+};
 use cosmic_text::{
-    Action, Attrs, AttrsList, AttrsOwned, Buffer, BufferLine, Cursor, Edit, Editor, FontSystem,
-    Metrics, Shaping, SwashCache,
+    AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
 };
 use image::{imageops::FilterType, GenericImageView};
 

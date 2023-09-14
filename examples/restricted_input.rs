@@ -1,15 +1,15 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    change_active_editor_sprite, change_active_editor_ui, ActiveEditor, CosmicAttrs,
-    CosmicEditPlugin, CosmicEditUiBundle, CosmicMaxChars, CosmicMaxLines, CosmicMetrics,
-    CosmicText,
+    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, ActiveEditor,
+    Attrs, AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicMaxChars,
+    CosmicMaxLines, CosmicMetrics, CosmicText,
 };
-use cosmic_text::{Attrs, AttrsOwned};
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs = AttrsOwned::new(Attrs::new().color(cosmic_text::Color::rgb(69, 69, 69)));
+    let attrs =
+        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::rgb(0.27, 0.27, 0.27))));
     let primary_window = windows.single();
 
     let editor = commands

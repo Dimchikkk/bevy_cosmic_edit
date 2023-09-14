@@ -1,11 +1,9 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::change_active_editor_sprite;
-use bevy_cosmic_edit::change_active_editor_ui;
 use bevy_cosmic_edit::{
-    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig,
-    CosmicMetrics, CosmicText, CosmicTextPosition,
+    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, ActiveEditor,
+    Attrs, AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig,
+    CosmicMetrics, CosmicText, CosmicTextPosition, Family,
 };
-use cosmic_text::AttrsOwned;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
@@ -17,9 +15,9 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     };
     commands.spawn(camera_bundle);
 
-    let mut attrs = cosmic_text::Attrs::new();
-    attrs = attrs.family(cosmic_text::Family::Name("Victor Mono"));
-    attrs = attrs.color(cosmic_text::Color::rgb(0x94, 0x00, 0xD3));
+    let mut attrs = Attrs::new();
+    attrs = attrs.family(Family::Name("Victor Mono"));
+    attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
     let metrics = CosmicMetrics {
         font_size: 14.,
         line_height: 18.,

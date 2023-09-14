@@ -1,10 +1,10 @@
 use bevy::{prelude::*, ui::FocusPolicy, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    change_active_editor_sprite, change_active_editor_ui, get_x_offset, ActiveEditor, CosmicAttrs,
-    CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor, CosmicMaxChars,
-    CosmicMaxLines, CosmicMetrics, CosmicText, CosmicTextPosition,
+    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, get_x_offset,
+    ActiveEditor, Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin,
+    CosmicEditUiBundle, CosmicEditor, CosmicMaxChars, CosmicMaxLines, CosmicMetrics, CosmicText,
+    CosmicTextPosition, Edit,
 };
-use cosmic_text::{Attrs, AttrsOwned, Edit};
 
 #[derive(Resource)]
 struct TextChangeTimer(pub Timer);
@@ -12,7 +12,8 @@ struct TextChangeTimer(pub Timer);
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs = AttrsOwned::new(Attrs::new().color(cosmic_text::Color::rgb(69, 69, 69)));
+    let attrs =
+        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::rgb(0.27, 0.27, 0.27))));
     let primary_window = windows.single();
 
     let editor = commands

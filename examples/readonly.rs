@@ -1,9 +1,9 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig,
-    CosmicMetrics, CosmicText, CosmicTextPosition, ReadOnly,
+    bevy_color_to_cosmic, ActiveEditor, Attrs, AttrsOwned, CosmicAttrs, CosmicEditPlugin,
+    CosmicEditUiBundle, CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition, Family,
+    ReadOnly,
 };
-use cosmic_text::AttrsOwned;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
@@ -20,9 +20,9 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         })
         .id();
 
-    let mut attrs = cosmic_text::Attrs::new();
-    attrs = attrs.family(cosmic_text::Family::Name("Victor Mono"));
-    attrs = attrs.color(cosmic_text::Color::rgb(0x94, 0x00, 0xD3));
+    let mut attrs = Attrs::new();
+    attrs = attrs.family(Family::Name("Victor Mono"));
+    attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
 
     let cosmic_edit = CosmicEditUiBundle {
         style: Style {

@@ -1,9 +1,8 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    ActiveEditor, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig,
-    CosmicMetrics, CosmicText, CosmicTextPosition,
+    ActiveEditor, AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle,
+    CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition,
 };
-use cosmic_text::AttrsOwned;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
