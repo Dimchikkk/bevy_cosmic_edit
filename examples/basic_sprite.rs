@@ -32,7 +32,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         },
         text_position: CosmicTextPosition::Center,
         cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        text: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
+        set_text: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
         ..default()
     };
 

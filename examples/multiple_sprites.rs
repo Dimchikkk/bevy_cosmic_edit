@@ -37,7 +37,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         transform: Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
         text_position: CosmicTextPosition::Center,
         background_color: BackgroundColor(Color::ALICE_BLUE),
-        text: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
+        set_text: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
         ..default()
     };
 
@@ -58,7 +58,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         )),
         text_position: CosmicTextPosition::Center,
         background_color: BackgroundColor(Color::GRAY.with_a(0.5)),
-        text: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
+        set_text: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
         ..default()
     };
 

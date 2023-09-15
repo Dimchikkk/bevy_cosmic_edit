@@ -340,7 +340,7 @@ pub struct CosmicEditSpriteBundle {
     pub max_lines: CosmicMaxLines,
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
-    pub text: CosmicText,
+    pub set_text: CosmicText,
 }
 
 impl Default for CosmicEditSpriteBundle {
@@ -359,7 +359,7 @@ impl Default for CosmicEditSpriteBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            text: Default::default(),
+            set_text: Default::default(),
         }
     }
 }
