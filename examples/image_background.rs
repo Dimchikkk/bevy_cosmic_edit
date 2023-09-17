@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui,
-    Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, Focus,
+    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, Attrs, AttrsOwned,
+    CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, Focus,
 };
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
