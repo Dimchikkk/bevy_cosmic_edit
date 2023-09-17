@@ -11,7 +11,7 @@ pub fn get_timestamp() -> f64 {
     duration.as_millis() as f64
 }
 
-use crate::{ActiveEditor, CosmicEditor, ReadOnly};
+use crate::{CosmicEditor, Focus, ReadOnly};
 use bevy::{prelude::*, ui::Interaction, window::PrimaryWindow};
 
 // util fns for examples
@@ -28,9 +28,7 @@ pub fn change_active_editor_ui(
 ) {
     for (interaction, entity) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(ActiveEditor {
-                entity: Some(entity),
-            });
+            commands.insert_resource(Focus(Some(entity)));
         }
     }
 }
@@ -57,9 +55,7 @@ pub fn change_active_editor_sprite(
             if let Some(pos) = window.cursor_position() {
                 if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                     if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        commands.insert_resource(ActiveEditor {
-                            entity: Some(entity),
-                        });
+                        commands.insert_resource(Focus(Some(entity)))
                     };
                 }
             };

@@ -14,7 +14,8 @@ use bevy::{
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
 pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Cursor, Edit, Family, Style as FontStyle, Weight as FontWeight,
+    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
+    Weight as FontWeight,
 };
 use cosmic_text::{
     AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
@@ -402,8 +403,7 @@ impl Plugin for CosmicEditPlugin {
                     clear_inactive_selection,
                 ),
             )
-            .init_resource::<ActiveEditor>()
-            // .add_asset::<CosmicFont>()
+            .init_resource::<Focus>()
             .insert_resource(SwashCacheState {
                 swash_cache: SwashCache::new(),
             })
@@ -412,10 +412,8 @@ impl Plugin for CosmicEditPlugin {
 }
 
 /// Resource struct that keeps track of the currently active editor entity.
-#[derive(Resource, Default)]
-pub struct ActiveEditor {
-    pub entity: Option<Entity>,
-}
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct Focus(pub Option<Entity>);
 
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
@@ -689,7 +687,7 @@ pub fn get_x_offset(buffer: &Buffer) -> i32 {
 // the meat of the input management
 fn cosmic_edit_bevy_events(
     windows: Query<&Window, With<PrimaryWindow>>,
-    active_editor: Res<ActiveEditor>,
+    active_editor: Res<Focus>,
     keys: Res<Input<KeyCode>>,
     mut char_evr: EventReader<ReceivedCharacter>,
     buttons: Res<Input<MouseButton>>,
@@ -743,7 +741,7 @@ fn cosmic_edit_bevy_events(
 
         let attrs = &attrs.0;
 
-        if active_editor.entity == Some(entity) {
+        if active_editor.0 == Some(entity) {
             let now_ms = get_timestamp();
 
             #[cfg(target_os = "macos")]
@@ -1308,10 +1306,10 @@ fn blink_cursor(
     mut visible: Local<bool>,
     mut timer: Local<Option<Timer>>,
     time: Res<Time>,
-    active_editor: ResMut<ActiveEditor>,
+    active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
-    if let Some(e) = active_editor.entity {
+    if let Some(e) = active_editor.0 {
         if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
             let timer =
                 timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
@@ -1343,14 +1341,14 @@ fn blink_cursor(
 
 fn hide_inactive_cursor(
     mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
-    active_editor: Res<ActiveEditor>,
+    active_editor: Res<Focus>,
 ) {
-    if !active_editor.is_changed() || active_editor.entity.is_none() {
+    if !active_editor.is_changed() || active_editor.0.is_none() {
         return;
     }
 
     for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.entity.unwrap() {
+        if e != active_editor.0.unwrap() {
             let mut cursor = editor.0.cursor();
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
@@ -1361,14 +1359,14 @@ fn hide_inactive_cursor(
 
 fn clear_inactive_selection(
     mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
-    active_editor: Res<ActiveEditor>,
+    active_editor: Res<Focus>,
 ) {
-    if !active_editor.is_changed() || active_editor.entity.is_none() {
+    if !active_editor.is_changed() || active_editor.0.is_none() {
         return;
     }
 
     for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.entity.unwrap() {
+        if e != active_editor.0.unwrap() {
             editor.0.set_select_opt(None);
         }
     }

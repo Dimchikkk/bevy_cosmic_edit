@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    ActiveEditor, AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle,
-    CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition,
+    AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig,
+    CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
 };
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -38,9 +38,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let cosmic_edit = commands.spawn(cosmic_edit).id();
 
-    commands.insert_resource(ActiveEditor {
-        entity: Some(cosmic_edit),
-    });
+    commands.insert_resource(Focus(Some(cosmic_edit)));
 }
 
 fn main() {

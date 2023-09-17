@@ -1,9 +1,9 @@
 use bevy::{prelude::*, ui::FocusPolicy, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, get_x_offset,
-    ActiveEditor, Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin,
-    CosmicEditUiBundle, CosmicEditor, CosmicMaxChars, CosmicMaxLines, CosmicMetrics, CosmicText,
-    CosmicTextPosition, Edit,
+    Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle,
+    CosmicEditor, CosmicMaxChars, CosmicMaxLines, CosmicMetrics, CosmicText, CosmicTextPosition,
+    Edit, Focus,
 };
 
 #[derive(Resource)]
@@ -53,9 +53,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         })
         .id();
 
-    commands.insert_resource(ActiveEditor {
-        entity: Some(editor),
-    });
+    commands.insert_resource(Focus(Some(editor)));
 
     commands.insert_resource(TextChangeTimer(Timer::from_seconds(
         1.,
