@@ -4,8 +4,7 @@ use bevy_cosmic_edit::*;
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs =
-        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::rgb(0.27, 0.27, 0.27))));
+    let attrs = AttrsOwned::new(Attrs::new().color(CosmicColor::rgb(0, 0, 0)));
     let primary_window = windows.single();
 
     let editor = commands
@@ -37,15 +36,6 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         .id();
 
     commands.insert_resource(Focus(Some(editor)));
-}
-
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
-    cosmic_text::Color::rgba(
-        (color.r() * 255.) as u8,
-        (color.g() * 255.) as u8,
-        (color.b() * 255.) as u8,
-        (color.a() * 255.) as u8,
-    )
 }
 
 fn main() {
