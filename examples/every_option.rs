@@ -49,7 +49,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             },
             max_chars: CosmicMaxChars(15),
             max_lines: CosmicMaxLines(1),
-            set_text: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
+            text: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
         })
         .id();
 

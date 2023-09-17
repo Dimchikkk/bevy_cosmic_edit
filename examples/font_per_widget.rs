@@ -225,7 +225,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             ..default()
         },
         background_color: BackgroundColor(Color::WHITE),
-        set_text: CosmicText::MultiStyle(lines),
+        text: CosmicText::MultiStyle(lines),
         ..default()
     };
 
@@ -247,7 +247,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             height: Val::Percent(100.),
             ..default()
         },
-        set_text: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
+        text: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
         ..default()
     };
 

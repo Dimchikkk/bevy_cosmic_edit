@@ -284,8 +284,7 @@ pub struct CosmicEditUiBundle {
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
     /// Setting this will update the buffer's text
-    // TODO sync this with the buffer to allow getting from here as well as setting
-    pub set_text: CosmicText,
+    pub text: CosmicText,
 }
 
 impl Default for CosmicEditUiBundle {
@@ -310,7 +309,7 @@ impl Default for CosmicEditUiBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            set_text: Default::default(),
+            text: Default::default(),
         }
     }
 }
@@ -341,7 +340,8 @@ pub struct CosmicEditSpriteBundle {
     pub max_lines: CosmicMaxLines,
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
-    pub set_text: CosmicText,
+    /// Setting this will update the buffer's text
+    pub text: CosmicText,
 }
 
 impl Default for CosmicEditSpriteBundle {
@@ -360,7 +360,7 @@ impl Default for CosmicEditSpriteBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            set_text: Default::default(),
+            text: Default::default(),
         }
     }
 }
@@ -1482,7 +1482,7 @@ mod tests {
 
     fn test_spawn_cosmic_edit_system(mut commands: Commands) {
         commands.spawn(CosmicEditUiBundle {
-            set_text: CosmicText::OneStyle("Blah".into()),
+            text: CosmicText::OneStyle("Blah".into()),
             ..Default::default()
         });
     }
