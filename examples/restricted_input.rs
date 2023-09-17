@@ -32,7 +32,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             },
             max_chars: CosmicMaxChars(15),
             max_lines: CosmicMaxLines(1),
-            set_text: CosmicText::OneStyle(
+            text: CosmicText::OneStyle(
                 "1 line 15 chars! But this\n is longer\n than is\n allowed by\n the limits.\n"
                     .into(),
             ),
