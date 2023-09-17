@@ -1,8 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, ActiveEditor, Attrs, AttrsOwned, CosmicAttrs, CosmicEditPlugin,
-    CosmicEditUiBundle, CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition, Family,
-    ReadOnly,
+    bevy_color_to_cosmic, Attrs, AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle,
+    CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition, Family, Focus, ReadOnly,
 };
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -49,7 +48,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     });
 
     // Set active editor
-    commands.insert_resource(ActiveEditor { entity: id });
+    commands.insert_resource(Focus(id));
 }
 
 fn main() {
