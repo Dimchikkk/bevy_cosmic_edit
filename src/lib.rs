@@ -655,15 +655,6 @@ fn save_edit_history(
     };
 }
 
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> cosmic_text::Color {
-    cosmic_text::Color::rgba(
-        (color.r() * 255.) as u8,
-        (color.g() * 255.) as u8,
-        (color.b() * 255.) as u8,
-        (color.a() * 255.) as u8,
-    )
-}
-
 fn get_text_size(buffer: &Buffer) -> (f32, f32) {
     let width = buffer.layout_runs().map(|run| run.line_w).reduce(f32::max);
     let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;

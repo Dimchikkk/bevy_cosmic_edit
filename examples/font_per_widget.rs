@@ -1,11 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, Attrs, AttrsOwned,
-    CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicFontConfig, CosmicMetrics, CosmicText,
-    CosmicTextPosition, Family, Focus, FontStyle, FontWeight,
-};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.spawn(Camera2dBundle::default());
@@ -260,6 +256,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     // Set active editor
     commands.insert_resource(Focus(id));
+}
+
+pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+    cosmic_text::Color::rgba(
+        (color.r() * 255.) as u8,
+        (color.g() * 255.) as u8,
+        (color.b() * 255.) as u8,
+        (color.a() * 255.) as u8,
+    )
 }
 
 fn main() {

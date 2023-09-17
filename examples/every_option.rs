@@ -1,10 +1,5 @@
 use bevy::{prelude::*, ui::FocusPolicy, window::PrimaryWindow};
-use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, get_x_offset,
-    Attrs, AttrsOwned, CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle,
-    CosmicEditor, CosmicMaxChars, CosmicMaxLines, CosmicMetrics, CosmicText, CosmicTextPosition,
-    Edit, Focus,
-};
+use bevy_cosmic_edit::*;
 
 #[derive(Resource)]
 struct TextChangeTimer(pub Timer);
@@ -59,6 +54,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         1.,
         TimerMode::Repeating,
     )));
+}
+
+pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+    cosmic_text::Color::rgba(
+        (color.r() * 255.) as u8,
+        (color.g() * 255.) as u8,
+        (color.b() * 255.) as u8,
+        (color.a() * 255.) as u8,
+    )
 }
 
 // Test for update_buffer_text
