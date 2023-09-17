@@ -1,9 +1,5 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, Attrs, AttrsOwned,
-    CosmicAttrs, CosmicEditPlugin, CosmicEditSpriteBundle, CosmicFontConfig, CosmicMetrics,
-    CosmicText, CosmicTextPosition, Family, Focus,
-};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
@@ -67,6 +63,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.insert_resource(Focus(Some(id)));
 
     commands.spawn(cosmic_edit_2);
+}
+
+pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+    cosmic_text::Color::rgba(
+        (color.r() * 255.) as u8,
+        (color.g() * 255.) as u8,
+        (color.b() * 255.) as u8,
+        (color.a() * 255.) as u8,
+    )
 }
 
 fn main() {

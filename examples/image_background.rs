@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{
-    bevy_color_to_cosmic, change_active_editor_sprite, change_active_editor_ui, Attrs, AttrsOwned,
-    CosmicAttrs, CosmicBackground, CosmicEditPlugin, CosmicEditUiBundle, Focus,
-};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
@@ -27,6 +24,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .id();
     commands.insert_resource(Focus(Some(editor)));
+}
+
+pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+    cosmic_text::Color::rgba(
+        (color.r() * 255.) as u8,
+        (color.g() * 255.) as u8,
+        (color.b() * 255.) as u8,
+        (color.a() * 255.) as u8,
+    )
 }
 
 fn main() {
