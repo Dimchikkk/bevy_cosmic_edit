@@ -258,13 +258,30 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     commands.insert_resource(Focus(id));
 }
 
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
     cosmic_text::Color::rgba(
         (color.r() * 255.) as u8,
         (color.g() * 255.) as u8,
         (color.b() * 255.) as u8,
         (color.a() * 255.) as u8,
     )
+}
+
+fn change_active_editor_ui(
+    mut commands: Commands,
+    mut interaction_query: Query<
+        (&Interaction, Entity),
+        (
+            Changed<Interaction>,
+            (With<CosmicEditor>, Without<ReadOnly>),
+        ),
+    >,
+) {
+    for (interaction, entity) in interaction_query.iter_mut() {
+        if let Interaction::Pressed = interaction {
+            commands.insert_resource(Focus(Some(entity)));
+        }
+    }
 }
 
 fn main() {
@@ -279,6 +296,5 @@ fn main() {
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
         .add_systems(Update, change_active_editor_ui)
-        .add_systems(Update, change_active_editor_sprite)
         .run();
 }

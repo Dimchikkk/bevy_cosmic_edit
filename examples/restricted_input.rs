@@ -43,7 +43,5 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, change_active_editor_ui)
-        .add_systems(Update, change_active_editor_sprite)
         .run();
 }
