@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands) {
@@ -36,13 +36,60 @@ fn setup(mut commands: Commands) {
     commands.insert_resource(Focus(Some(sprite_editor)));
 }
 
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
     cosmic_text::Color::rgba(
         (color.r() * 255.) as u8,
         (color.g() * 255.) as u8,
         (color.b() * 255.) as u8,
         (color.a() * 255.) as u8,
     )
+}
+
+fn change_active_editor_ui(
+    mut commands: Commands,
+    mut interaction_query: Query<
+        (&Interaction, Entity),
+        (
+            Changed<Interaction>,
+            (With<CosmicEditor>, Without<ReadOnly>),
+        ),
+    >,
+) {
+    for (interaction, entity) in interaction_query.iter_mut() {
+        if let Interaction::Pressed = interaction {
+            commands.insert_resource(Focus(Some(entity)));
+        }
+    }
+}
+
+fn change_active_editor_sprite(
+    mut commands: Commands,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    buttons: Res<Input<MouseButton>>,
+    mut cosmic_edit_query: Query<
+        (&mut Sprite, &GlobalTransform, Entity),
+        (With<CosmicEditor>, Without<ReadOnly>),
+    >,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+) {
+    let window = windows.single();
+    let (camera, camera_transform) = camera_q.single();
+    if buttons.just_pressed(MouseButton::Left) {
+        for (sprite, node_transform, entity) in &mut cosmic_edit_query.iter_mut() {
+            let size = sprite.custom_size.unwrap_or(Vec2::new(1., 1.));
+            let x_min = node_transform.affine().translation.x - size.x / 2.;
+            let y_min = node_transform.affine().translation.y - size.y / 2.;
+            let x_max = node_transform.affine().translation.x + size.x / 2.;
+            let y_max = node_transform.affine().translation.y + size.y / 2.;
+            if let Some(pos) = window.cursor_position() {
+                if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
+                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                        commands.insert_resource(Focus(Some(entity)))
+                    };
+                }
+            };
+        }
+    }
 }
 
 fn main() {
