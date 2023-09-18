@@ -399,11 +399,17 @@ impl Plugin for CosmicEditPlugin {
                         .before(on_scale_factor_change),
                     cosmic_edit_redraw_buffer.before(on_scale_factor_change),
                     blink_cursor,
+                    freeze_cursor_blink,
                     hide_inactive_cursor,
                     clear_inactive_selection,
                 ),
             )
             .init_resource::<Focus>()
+            .insert_resource(CursorBlinkTimer(Timer::from_seconds(
+                0.53,
+                TimerMode::Repeating,
+            )))
+            .insert_resource(CursorVisibility(true))
             .insert_resource(SwashCacheState {
                 swash_cache: SwashCache::new(),
             })
@@ -1293,37 +1299,72 @@ fn cosmic_edit_redraw_buffer_ui(
     }
 }
 
+#[derive(Resource)]
+struct CursorBlinkTimer(pub Timer);
+
+#[derive(Resource)]
+struct CursorVisibility(pub bool);
+
 fn blink_cursor(
-    mut visible: Local<bool>,
-    mut timer: Local<Option<Timer>>,
+    mut visibility: ResMut<CursorVisibility>,
+    mut timer: ResMut<CursorBlinkTimer>,
     time: Res<Time>,
     active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.0 {
         if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
-            let timer =
-                timer.get_or_insert_with(|| Timer::from_seconds(0.53, TimerMode::Repeating));
-
-            timer.tick(time.delta());
-            if !timer.just_finished() && !active_editor.is_changed() {
+            timer.0.tick(time.delta());
+            if !timer.0.just_finished() && !active_editor.is_changed() {
                 return;
             }
-            *visible = !*visible;
+            visibility.0 = !visibility.0;
 
             // always start cursor visible on focus
             if active_editor.is_changed() {
-                *visible = true;
-                timer.set_elapsed(Duration::from_secs(0));
+                visibility.0 = true;
+                timer.0.set_elapsed(Duration::ZERO);
             }
 
             let mut cursor = editor.0.cursor();
-            let new_color = if *visible {
+            let new_color = if visibility.0 {
                 None
             } else {
                 Some(cosmic_text::Color::rgba(0, 0, 0, 0))
             };
             cursor.color = new_color;
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn freeze_cursor_blink(
+    mut visibility: ResMut<CursorVisibility>,
+    mut timer: ResMut<CursorBlinkTimer>,
+    active_editor: Res<Focus>,
+    keys: Res<Input<KeyCode>>,
+    char_evr: EventReader<ReceivedCharacter>,
+    mut editor_q: Query<&mut CosmicEditor>,
+) {
+    let inputs = [
+        KeyCode::Left,
+        KeyCode::Right,
+        KeyCode::Up,
+        KeyCode::Down,
+        KeyCode::Back,
+        KeyCode::Return,
+    ];
+    if !keys.any_pressed(inputs) && char_evr.is_empty() {
+        return;
+    }
+
+    if let Some(e) = active_editor.0 {
+        if let Ok(mut editor) = editor_q.get_mut(e) {
+            timer.0.set_elapsed(Duration::ZERO);
+            visibility.0 = true;
+            let mut cursor = editor.0.cursor();
+            cursor.color = None;
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);
         }
