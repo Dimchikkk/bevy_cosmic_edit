@@ -44,7 +44,6 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         id = Some(parent.spawn(cosmic_edit).insert(ReadOnly).id());
     });
 
-    // Set active editor
     commands.insert_resource(Focus(id));
 }
 
