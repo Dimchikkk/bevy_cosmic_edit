@@ -19,6 +19,8 @@ jobs:
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
+      - name: Update
+        run: sudo apt-get update
       - name: Deps
         run: sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev
       - name: Cache
