@@ -39,6 +39,9 @@ pub enum CosmicTextPosition {
     TopLeft,
 }
 
+#[derive(Event, Debug)]
+pub struct CosmicTextChanged(pub (Entity, String));
+
 // TODO docs
 #[derive(Clone, Component)]
 pub struct CosmicMetrics {
@@ -67,7 +70,7 @@ pub struct ReadOnly; // tag component
 pub struct CosmicEditor(pub Editor);
 
 impl CosmicEditor {
-    fn set_text(
+    pub fn set_text(
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
@@ -410,7 +413,8 @@ impl Plugin for CosmicEditPlugin {
             .insert_resource(SwashCacheState {
                 swash_cache: SwashCache::new(),
             })
-            .insert_resource(CosmicFontSystem(font_system));
+            .insert_resource(CosmicFontSystem(font_system))
+            .add_event::<CosmicTextChanged>();
     }
 }
 
@@ -698,6 +702,7 @@ fn cosmic_edit_bevy_events(
         ),
         With<CosmicEditor>,
     >,
+    mut evw_changed: EventWriter<CosmicTextChanged>,
     readonly_query: Query<&ReadOnly>,
     node_query: Query<&mut Node>,
     sprite_query: Query<&mut Sprite>,
@@ -916,6 +921,7 @@ fn cosmic_edit_bevy_events(
                     edit_history.current_edit += 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
+                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
                 return;
             }
             // undo
@@ -952,6 +958,7 @@ fn cosmic_edit_bevy_events(
                     edit_history.current_edit -= 1;
                 }
                 *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
+                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
                 return;
             }
 
@@ -1105,6 +1112,8 @@ fn cosmic_edit_bevy_events(
             if !is_edit {
                 return;
             }
+
+            evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
 
             if let Some(last_edit_duration) = *edits_duration {
                 if Duration::from_millis(now_ms as u64) - last_edit_duration
