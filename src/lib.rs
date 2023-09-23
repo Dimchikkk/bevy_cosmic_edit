@@ -70,7 +70,7 @@ pub struct ReadOnly; // tag component
 pub struct CosmicEditor(pub Editor);
 
 impl CosmicEditor {
-    pub fn set_text(
+    fn set_text(
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
