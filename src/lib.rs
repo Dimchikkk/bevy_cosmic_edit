@@ -85,7 +85,7 @@ impl CosmicEditor {
                 // if `set_text` called with text length smaller than the current buffer cosmic-text panics
                 // due to cursor being out of bounds.
                 // Should be removed once https://github.com/StaffEngineer/bevy_cosmic_edit/issues/52 fixed.
-                if text == "".to_string() {
+                if text == *"" {
                     let mut current_cursor = editor.cursor();
                     current_cursor.line = 0;
                     current_cursor.index = 0;
