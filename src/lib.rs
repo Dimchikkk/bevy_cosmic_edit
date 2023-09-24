@@ -81,6 +81,16 @@ impl CosmicEditor {
         editor.buffer_mut().lines.clear();
         match text {
             CosmicText::OneStyle(text) => {
+                // TODO: this is a workaround
+                // if `set_text` called with text length smaller than the current buffer cosmic-text panics
+                // due to cursor being out of bounds.
+                // Should be removed once https://github.com/StaffEngineer/bevy_cosmic_edit/issues/52 fixed.
+                if text == "".to_string() {
+                    let mut current_cursor = editor.cursor();
+                    current_cursor.line = 0;
+                    current_cursor.index = 0;
+                    editor.set_cursor(current_cursor);
+                }
                 editor.buffer_mut().set_text(
                     font_system,
                     text.as_str(),
@@ -1087,11 +1097,11 @@ fn cosmic_edit_bevy_events(
             let mut is_return = false;
             if keys.just_pressed(KeyCode::Return) {
                 is_return = true;
-                is_edit = true;
                 if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
                     && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
                 {
                     // to have new line on wasm rather than E
+                    is_edit = true;
                     editor.0.action(&mut font_system.0, Action::Insert('\n'));
                 }
             }
