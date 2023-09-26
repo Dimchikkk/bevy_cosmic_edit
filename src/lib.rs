@@ -36,7 +36,12 @@ impl Default for CosmicText {
 pub enum CosmicTextPosition {
     #[default]
     Center,
-    TopLeft,
+    TopLeft {
+        padding: i32,
+    },
+    Left {
+        padding: i32,
+    },
 }
 
 #[derive(Event, Debug)]
@@ -1014,7 +1019,8 @@ fn cosmic_edit_bevy_events(
                     get_x_offset(editor.0.buffer()),
                     get_y_offset(editor.0.buffer()),
                 ),
-                CosmicTextPosition::TopLeft => (0, 0),
+                CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
+                CosmicTextPosition::Left { padding } => (*padding, get_y_offset(editor.0.buffer())),
             };
             let point = |node_cursor_pos: (f32, f32)| {
                 (
@@ -1209,7 +1215,8 @@ fn redraw_buffer_common(
             CosmicTextPosition::Center => {
                 (get_y_offset(editor.buffer()), get_x_offset(editor.buffer()))
             }
-            CosmicTextPosition::TopLeft => (0, 0),
+            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
+            CosmicTextPosition::Left { padding } => (get_y_offset(editor.buffer()), *padding),
         };
 
         editor.draw(
