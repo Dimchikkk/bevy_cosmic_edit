@@ -15,7 +15,7 @@ Explore examples folder for basic usage.
 Native:
 
 ```rust
-cargo r --example restricted_input
+cargo r --example text_input
 ```
 
 Wasm:
