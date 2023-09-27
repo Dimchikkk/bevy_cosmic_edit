@@ -30,7 +30,7 @@ pub enum CosmicMode {
     InfiniteLine,
     AutoHeight,
     #[default]
-    Default,
+    Wrap,
 }
 
 impl Default for CosmicText {
@@ -1243,7 +1243,7 @@ fn redraw_buffer_common(
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, widget_height),
             CosmicMode::AutoHeight => (widget_width, f32::MAX),
-            CosmicMode::Default => (widget_width, widget_height),
+            CosmicMode::Wrap => (widget_width, widget_height),
         };
         editor
             .buffer_mut()
