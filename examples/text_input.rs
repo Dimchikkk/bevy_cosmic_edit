@@ -25,13 +25,10 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
                 line_height: 16.,
                 scale_factor: primary_window.scale_factor() as f32,
             },
-            max_chars: CosmicMaxChars(23),
             max_lines: CosmicMaxLines(1),
-            text: CosmicText::OneStyle(
-                "1 line 25 chars! But this a b c d e f g\n is longer\n than is\n allowed by\n the limits.\n"
-                    .into(),
-            ),
+            text: CosmicText::OneStyle("".into()),
             text_position: CosmicTextPosition::Left { padding: 20 },
+            mode: CosmicMode::InfiniteLine,
             ..default()
         })
         .id();
