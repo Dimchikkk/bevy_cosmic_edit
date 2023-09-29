@@ -34,7 +34,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             line_height: 18.,
             scale_factor: primary_window.scale_factor() as f32,
         },
-        text: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
+        text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
         ..default()
     };
 
