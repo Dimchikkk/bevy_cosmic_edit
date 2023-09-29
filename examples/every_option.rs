@@ -44,7 +44,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             },
             max_chars: CosmicMaxChars(15),
             max_lines: CosmicMaxLines(1),
-            text: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
+            text_setter: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
             mode: CosmicMode::Wrap,
         })
         .id();
@@ -85,7 +85,7 @@ fn text_swapper(
     }
 
     let editor = editor_q.single();
-    println!("X OFFSET: {}", get_x_offset_center(editor.0.buffer()));
+    println!("X OFFSET: {}", get_x_offset_center(50., editor.0.buffer()));
 }
 
 fn main() {

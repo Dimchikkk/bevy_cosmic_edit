@@ -7,6 +7,7 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
     render::{render_resource::Extent3d, texture::DEFAULT_IMAGE_HANDLE},
+    transform::TransformSystem,
     ui::FocusPolicy,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
@@ -19,7 +20,7 @@ use cosmic_text::{
 };
 use image::{imageops::FilterType, GenericImageView};
 
-#[derive(Clone, Component, PartialEq)]
+#[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
     OneStyle(String),
     MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
@@ -92,21 +93,11 @@ impl CosmicEditor {
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
     ) -> &mut Self {
-        // TODO invoke trim_text here
+        // TODO: invoke trim_text here
         let editor = &mut self.0;
         editor.buffer_mut().lines.clear();
         match text {
             CosmicText::OneStyle(text) => {
-                // TODO: this is a workaround
-                // if `set_text` called with text length smaller than the current buffer cosmic-text panics
-                // due to cursor being out of bounds.
-                // Should be removed once https://github.com/StaffEngineer/bevy_cosmic_edit/issues/52 fixed.
-                if text == *"" {
-                    let mut current_cursor = editor.cursor();
-                    current_cursor.line = 0;
-                    current_cursor.index = 0;
-                    editor.set_cursor(current_cursor);
-                }
                 editor.buffer_mut().set_text(
                     font_system,
                     text.as_str(),
@@ -163,63 +154,19 @@ impl CosmicEditor {
 
 /// Adds the font system to each editor when added
 fn cosmic_editor_builder(
-    mut added_editors: Query<
-        (
-            Entity,
-            &mut CosmicText,
-            &CosmicAttrs,
-            &CosmicMetrics,
-            &CosmicMaxChars,
-            &CosmicMaxLines,
-            Option<&ReadOnly>,
-            Option<&Node>,
-            Option<&Sprite>,
-        ),
-        Added<CosmicText>,
-    >,
+    mut added_editors: Query<(Entity, &CosmicMetrics), Added<CosmicText>>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut commands: Commands,
 ) {
-    for (entity, text, attrs, metrics, max_chars, max_lines, readonly, node, sprite) in
-        added_editors.iter_mut()
-    {
+    for (entity, metrics) in added_editors.iter_mut() {
         let buffer = Buffer::new(
             &mut font_system.0,
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
         // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        let mut editor = Editor::new(buffer);
+        let editor = Editor::new(buffer);
 
-        if let Some(node) = node {
-            editor
-                .buffer_mut()
-                .set_size(&mut font_system.0, node.size().x, node.size().y)
-        }
-
-        if let Some(sprite) = sprite {
-            if let Some(size) = sprite.custom_size {
-                editor
-                    .buffer_mut()
-                    .set_size(&mut font_system.0, size.x, size.y)
-            }
-        }
-
-        // hide cursor on readonly buffers
-        // TODO do this seperately, allow for readonly to be toggled
-        let mut cursor = editor.cursor();
-        if readonly.is_some() {
-            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
-        }
-        editor.set_cursor(cursor);
-
-        let mut editor_component = CosmicEditor(editor);
-
-        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
-        editor_component.set_text(text, attrs.0.clone(), &mut font_system.0);
-
-        commands.entity(entity).insert(editor_component);
-
-        // Add edit history
+        commands.entity(entity).insert(CosmicEditor(editor));
         commands.entity(entity).insert(CosmicEditHistory::default());
         commands.entity(entity).insert(XOffset(None));
     }
@@ -242,6 +189,15 @@ fn update_buffer_text(
     for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
         let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
         editor.set_text(text, attrs.0.clone(), &mut font_system.0);
+    }
+}
+
+fn update_cursor_position(
+    mut editor_q: Query<&mut CosmicEditor, Added<CosmicText>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for mut editor in editor_q.iter_mut() {
+        editor.0.action(&mut font_system.0, Action::BufferEnd);
     }
 }
 
@@ -313,7 +269,7 @@ pub struct CosmicEditUiBundle {
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
     /// Setting this will update the buffer's text
-    pub text: CosmicText,
+    pub text_setter: CosmicText,
     /// Text input mode
     pub mode: CosmicMode,
 }
@@ -340,7 +296,7 @@ impl Default for CosmicEditUiBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            text: Default::default(),
+            text_setter: Default::default(),
             mode: Default::default(),
         }
     }
@@ -373,7 +329,7 @@ pub struct CosmicEditSpriteBundle {
     /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
     /// Setting this will update the buffer's text
-    pub text: CosmicText,
+    pub text_setter: CosmicText,
     /// Text input mode
     pub mode: CosmicMode,
 }
@@ -385,7 +341,7 @@ impl Default for CosmicEditSpriteBundle {
             transform: Default::default(),
             global_transform: Default::default(),
             texture: DEFAULT_IMAGE_HANDLE.typed(),
-            visibility: Visibility::Hidden,
+            visibility: Visibility::Visible,
             computed_visibility: Default::default(),
             background_color: Default::default(),
             text_position: Default::default(),
@@ -394,7 +350,7 @@ impl Default for CosmicEditSpriteBundle {
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            text: Default::default(),
+            text_setter: Default::default(),
             mode: Default::default(),
         }
     }
@@ -422,23 +378,24 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        app.add_systems(PreUpdate, (cosmic_editor_builder, update_buffer_text))
+        app.add_systems(First, cosmic_editor_builder)
             .add_systems(
-                Update,
+                PreUpdate,
                 (
+                    (update_buffer_text, update_cursor_position).chain(),
                     cosmic_edit_bevy_events,
-                    cosmic_edit_set_redraw,
-                    on_scale_factor_change,
-                    cosmic_edit_redraw_buffer_ui
-                        .before(cosmic_edit_set_redraw)
-                        .before(on_scale_factor_change),
-                    cosmic_edit_redraw_buffer.before(on_scale_factor_change),
                     blink_cursor,
                     freeze_cursor_blink,
-                    hide_inactive_cursor,
+                    hide_inactive_or_readonly_cursor,
                     clear_inactive_selection,
                 ),
             )
+            .add_systems(
+                PostUpdate,
+                (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
+                    .after(TransformSystem::TransformPropagate),
+            )
+            .add_systems(Last, on_scale_factor_change)
             .init_resource::<Focus>()
             .insert_resource(CursorBlinkTimer(Timer::from_seconds(
                 0.53,
@@ -700,22 +657,26 @@ fn save_edit_history(
 }
 
 fn get_text_size(buffer: &Buffer) -> (f32, f32) {
-    let width = buffer.layout_runs().map(|run| run.line_w).reduce(f32::max);
-    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    if width.is_none() || height == 0. {
-        return (1., 1.);
+    if buffer.layout_runs().count() == 0 {
+        return (0., buffer.metrics().line_height);
     }
-    (width.unwrap(), height)
+    let width = buffer
+        .layout_runs()
+        .map(|run| run.line_w)
+        .reduce(f32::max)
+        .unwrap();
+    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
+    (width, height)
 }
 
-pub fn get_y_offset_center(buffer: &Buffer) -> i32 {
+pub fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
     let (_, text_height) = get_text_size(buffer);
-    ((buffer.size().1 - text_height) / 2.0) as i32
+    ((widget_height - text_height) / 2.0) as i32
 }
 
-pub fn get_x_offset_center(buffer: &Buffer) -> i32 {
+pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
     let (text_width, _) = get_text_size(buffer);
-    ((buffer.size().0 - text_width) / 2.0) as i32
+    ((widget_width - text_width) / 2.0) as i32
 }
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -1040,13 +1001,14 @@ fn cosmic_edit_bevy_events(
             }
             let (padding_x, padding_y) = match text_position {
                 CosmicTextPosition::Center => (
-                    get_x_offset_center(editor.0.buffer()),
-                    get_y_offset_center(editor.0.buffer()),
+                    get_x_offset_center(width * scale_factor, editor.0.buffer()),
+                    get_y_offset_center(height * scale_factor, editor.0.buffer()),
                 ),
                 CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-                CosmicTextPosition::Left { padding } => {
-                    (*padding, get_y_offset_center(editor.0.buffer()))
-                }
+                CosmicTextPosition::Left { padding } => (
+                    *padding,
+                    get_y_offset_center(height * scale_factor, editor.0.buffer()),
+                ),
             };
             let point = |node_cursor_pos: (f32, f32)| {
                 (
@@ -1174,12 +1136,6 @@ fn cosmic_edit_bevy_events(
     }
 }
 
-fn cosmic_edit_set_redraw(mut cosmic_edit_query: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
-    for mut editor in cosmic_edit_query.iter_mut() {
-        editor.0.buffer_mut().set_redraw(true);
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 fn redraw_buffer_common(
     mode: &CosmicMode,
@@ -1200,146 +1156,136 @@ fn redraw_buffer_common(
     let widget_width = original_width * scale_factor;
     let widget_height = original_height * scale_factor;
     let swash_cache = &mut swash_cache_state.swash_cache;
-    editor.shape_as_needed(&mut font_system.0);
-    if editor.buffer().redraw() {
-        let mut cursor_x = 0.;
 
-        if mode == &CosmicMode::InfiniteLine {
-            if let Some(line) = editor.buffer().layout_runs().next() {
-                for (idx, glyph) in line.glyphs.iter().enumerate() {
-                    if editor.cursor().affinity == Affinity::Before {
-                        if idx <= editor.cursor().index {
-                            cursor_x += glyph.w;
-                        }
-                    } else if idx < editor.cursor().index {
+    let mut cursor_x = 0.;
+    if mode == &CosmicMode::InfiniteLine {
+        if let Some(line) = editor.buffer().layout_runs().next() {
+            for (idx, glyph) in line.glyphs.iter().enumerate() {
+                if editor.cursor().affinity == Affinity::Before {
+                    if idx <= editor.cursor().index {
                         cursor_x += glyph.w;
-                    } else {
-                        break;
                     }
+                } else if idx < editor.cursor().index {
+                    cursor_x += glyph.w;
+                } else {
+                    break;
                 }
-            }
-        }
-
-        if mode == &CosmicMode::InfiniteLine && x_offset.0.is_none() && original_width > 1. {
-            let padding_x = match text_position {
-                CosmicTextPosition::Center => get_x_offset_center(editor.buffer()),
-                CosmicTextPosition::TopLeft { padding } => *padding,
-                CosmicTextPosition::Left { padding } => *padding,
-            };
-            *x_offset = XOffset(Some((0., widget_width - 2. * padding_x as f32)));
-        }
-
-        if let Some((x_min, x_max)) = x_offset.0 {
-            if cursor_x > x_max {
-                let diff = cursor_x - x_max;
-                *x_offset = XOffset(Some((x_min + diff, cursor_x)));
-            }
-            if cursor_x < x_min {
-                let diff = x_min - cursor_x;
-                *x_offset = XOffset(Some((cursor_x, x_max - diff)));
-            }
-        }
-
-        let (buffer_width, buffer_height) = match mode {
-            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
-            CosmicMode::AutoHeight => (widget_width, f32::MAX),
-            CosmicMode::Wrap => (widget_width, widget_height),
-        };
-        editor
-            .buffer_mut()
-            .set_size(&mut font_system.0, buffer_width, buffer_height);
-
-        let font_color = attrs
-            .0
-            .color_opt
-            .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
-
-        let mut pixels = vec![0; widget_width as usize * widget_height as usize * 4];
-        if let Some(bg_image) = background_image {
-            if let Some(image) = images.get(&bg_image) {
-                let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
-                if image.size().x != widget_width || image.size().y != widget_height {
-                    dynamic_image = dynamic_image.resize_to_fill(
-                        widget_width as u32,
-                        widget_height as u32,
-                        FilterType::Triangle,
-                    );
-                }
-                for (i, (_, _, rgba)) in dynamic_image.pixels().enumerate() {
-                    if let Some(p) = pixels.get_mut(i * 4..(i + 1) * 4) {
-                        p[0] = rgba[0];
-                        p[1] = rgba[1];
-                        p[2] = rgba[2];
-                        p[3] = rgba[3];
-                    }
-                }
-            }
-        } else {
-            let bg = background_color;
-            for pixel in pixels.chunks_exact_mut(4) {
-                pixel[0] = (bg.r() * 255.) as u8; // Red component
-                pixel[1] = (bg.g() * 255.) as u8; // Green component
-                pixel[2] = (bg.b() * 255.) as u8; // Blue component
-                pixel[3] = (bg.a() * 255.) as u8; // Alpha component
-            }
-        }
-        let (padding_y, padding_x) = match text_position {
-            CosmicTextPosition::Center => (
-                get_y_offset_center(editor.buffer()),
-                get_x_offset_center(editor.buffer()),
-            ),
-            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => {
-                (get_y_offset_center(editor.buffer()), *padding)
-            }
-        };
-
-        editor.draw(
-            &mut font_system.0,
-            swash_cache,
-            font_color,
-            |x, y, w, h, color| {
-                for row in 0..h as i32 {
-                    for col in 0..w as i32 {
-                        draw_pixel(
-                            &mut pixels,
-                            widget_width as i32,
-                            widget_height as i32,
-                            x + col + padding_x - x_offset.0.unwrap_or((0., 0.)).0 as i32,
-                            y + row + padding_y,
-                            color,
-                        );
-                    }
-                }
-            },
-        );
-        editor.buffer_mut().set_redraw(false);
-
-        if let Some(prev_image) = images.get_mut(cosmic_canvas_img_handle) {
-            if *cosmic_canvas_img_handle == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
-                let mut prev_image = prev_image.clone();
-                prev_image.data.clear();
-                prev_image.data.extend_from_slice(pixels.as_slice());
-                prev_image.resize(Extent3d {
-                    width: widget_width as u32,
-                    height: widget_height as u32,
-                    depth_or_array_layers: 1,
-                });
-                let handle_id: HandleId = HandleId::random::<Image>();
-                let new_handle: Handle<Image> = Handle::weak(handle_id);
-                let new_handle = images.set(new_handle, prev_image);
-                *cosmic_canvas_img_handle = new_handle;
-            } else {
-                prev_image.data.clear();
-                prev_image.data.extend_from_slice(pixels.as_slice());
-                prev_image.resize(Extent3d {
-                    width: widget_width as u32,
-                    height: widget_height as u32,
-                    depth_or_array_layers: 1,
-                });
             }
         }
     }
+
+    if mode == &CosmicMode::InfiniteLine && x_offset.0.is_none() {
+        let padding_x = match text_position {
+            CosmicTextPosition::Center => get_x_offset_center(widget_width, editor.buffer()),
+            CosmicTextPosition::TopLeft { padding } => *padding,
+            CosmicTextPosition::Left { padding } => *padding,
+        };
+        *x_offset = XOffset(Some((0., widget_width - 2. * padding_x as f32)));
+    }
+
+    if let Some((x_min, x_max)) = x_offset.0 {
+        if cursor_x > x_max {
+            let diff = cursor_x - x_max;
+            *x_offset = XOffset(Some((x_min + diff, cursor_x)));
+        }
+        if cursor_x < x_min {
+            let diff = x_min - cursor_x;
+            *x_offset = XOffset(Some((cursor_x, x_max - diff)));
+        }
+    }
+
+    let font_color = attrs
+        .0
+        .color_opt
+        .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
+
+    let mut pixels = vec![0; widget_width as usize * widget_height as usize * 4];
+    if let Some(bg_image) = background_image {
+        if let Some(image) = images.get(&bg_image) {
+            let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
+            if image.size().x != widget_width || image.size().y != widget_height {
+                dynamic_image = dynamic_image.resize_to_fill(
+                    widget_width as u32,
+                    widget_height as u32,
+                    FilterType::Triangle,
+                );
+            }
+            for (i, (_, _, rgba)) in dynamic_image.pixels().enumerate() {
+                if let Some(p) = pixels.get_mut(i * 4..(i + 1) * 4) {
+                    p[0] = rgba[0];
+                    p[1] = rgba[1];
+                    p[2] = rgba[2];
+                    p[3] = rgba[3];
+                }
+            }
+        }
+    } else {
+        let bg = background_color;
+        for pixel in pixels.chunks_exact_mut(4) {
+            pixel[0] = (bg.r() * 255.) as u8; // Red component
+            pixel[1] = (bg.g() * 255.) as u8; // Green component
+            pixel[2] = (bg.b() * 255.) as u8; // Blue component
+            pixel[3] = (bg.a() * 255.) as u8; // Alpha component
+        }
+    }
+    let (padding_x, padding_y) = match text_position {
+        CosmicTextPosition::Center => (
+            get_x_offset_center(widget_width, editor.buffer()),
+            get_y_offset_center(widget_height, editor.buffer()),
+        ),
+        CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
+        CosmicTextPosition::Left { padding } => (
+            *padding,
+            get_y_offset_center(widget_height, editor.buffer()),
+        ),
+    };
+
+    editor.draw(
+        &mut font_system.0,
+        swash_cache,
+        font_color,
+        |x, y, w, h, color| {
+            for row in 0..h as i32 {
+                for col in 0..w as i32 {
+                    draw_pixel(
+                        &mut pixels,
+                        widget_width as i32,
+                        widget_height as i32,
+                        x + col + padding_x - x_offset.0.unwrap_or((0., 0.)).0 as i32,
+                        y + row + padding_y,
+                        color,
+                    );
+                }
+            }
+        },
+    );
+
+    if let Some(prev_image) = images.get_mut(cosmic_canvas_img_handle) {
+        if *cosmic_canvas_img_handle == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
+            let mut prev_image = prev_image.clone();
+            prev_image.data.clear();
+            prev_image.data.extend_from_slice(pixels.as_slice());
+            prev_image.resize(Extent3d {
+                width: widget_width as u32,
+                height: widget_height as u32,
+                depth_or_array_layers: 1,
+            });
+            let handle_id: HandleId = HandleId::random::<Image>();
+            let new_handle: Handle<Image> = Handle::weak(handle_id);
+            let new_handle = images.set(new_handle, prev_image);
+            *cosmic_canvas_img_handle = new_handle;
+        } else {
+            prev_image.data.clear();
+            prev_image.data.extend_from_slice(pixels.as_slice());
+            prev_image.resize(Extent3d {
+                width: widget_width as u32,
+                height: widget_height as u32,
+                depth_or_array_layers: 1,
+            });
+        }
+    }
+
+    editor.buffer_mut().set_redraw(false);
 }
 
 fn cosmic_edit_redraw_buffer_ui(
@@ -1354,13 +1300,15 @@ fn cosmic_edit_redraw_buffer_ui(
         &CosmicTextPosition,
         &mut UiImage,
         &Node,
-        &mut Visibility,
         &mut XOffset,
+        &mut Style,
         &CosmicMode,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let primary_window = windows.single();
+    let scale = primary_window.scale_factor() as f32;
+
     for (
         mut editor,
         attrs,
@@ -1369,14 +1317,39 @@ fn cosmic_edit_redraw_buffer_ui(
         text_position,
         mut img,
         node,
-        mut visibility,
         mut x_offset,
+        mut style,
         mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        // provide min sizes to prevent render panic
-        let width = node.size().x.max(1.);
-        let height = node.size().y.max(1.);
+        editor.0.shape_as_needed(&mut font_system.0);
+        if !editor.0.buffer().redraw() {
+            continue;
+        }
+
+        let width = node.size().x;
+        let mut height = node.size().y;
+        let widget_height = height * scale;
+        let widget_width = width * scale;
+
+        let (buffer_width, buffer_height) = match mode {
+            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
+            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32),
+            CosmicMode::Wrap => (widget_width, widget_height),
+        };
+        editor
+            .0
+            .buffer_mut()
+            .set_size(&mut font_system.0, buffer_width, buffer_height);
+
+        if mode == &CosmicMode::AutoHeight {
+            let text_size = get_text_size(editor.0.buffer());
+            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            if text_height > height {
+                height = text_height;
+                style.height = Val::Px(height);
+            }
+        }
 
         redraw_buffer_common(
             mode,
@@ -1390,16 +1363,10 @@ fn cosmic_edit_redraw_buffer_ui(
             &mut img.texture,
             text_position,
             &mut font_system,
-            primary_window.scale_factor() as f32,
+            scale,
             width,
             height,
         );
-
-        if *visibility == Visibility::Hidden
-            && img.texture.clone() != bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed()
-        {
-            *visibility = Visibility::Visible;
-        }
     }
 }
 
@@ -1449,7 +1416,7 @@ fn freeze_cursor_blink(
     active_editor: Res<Focus>,
     keys: Res<Input<KeyCode>>,
     char_evr: EventReader<ReceivedCharacter>,
-    mut editor_q: Query<&mut CosmicEditor>,
+    mut editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
     let inputs = [
         KeyCode::Left,
@@ -1475,16 +1442,17 @@ fn freeze_cursor_blink(
     }
 }
 
-fn hide_inactive_cursor(
-    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
+fn hide_inactive_or_readonly_cursor(
+    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor, Option<&ReadOnly>)>,
     active_editor: Res<Focus>,
 ) {
     if !active_editor.is_changed() || active_editor.0.is_none() {
         return;
     }
 
-    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.0.unwrap() {
+    for (e, mut editor, readonly_maybe) in &mut cosmic_editor_q.iter_mut() {
+        let readonly = readonly_maybe.is_some();
+        if e != active_editor.0.unwrap() || readonly {
             let mut cursor = editor.0.cursor();
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
@@ -1515,18 +1483,19 @@ fn cosmic_edit_redraw_buffer(
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &CosmicAttrs,
-        &Sprite,
+        &mut Sprite,
         &CosmicBackground,
         &BackgroundColor,
         &CosmicTextPosition,
         &mut Handle<Image>,
-        &mut Visibility,
         &mut XOffset,
         &CosmicMode,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let primary_window = windows.single();
+    let scale = primary_window.scale_factor() as f32;
+
     for (
         mut editor,
         attrs,
@@ -1535,14 +1504,37 @@ fn cosmic_edit_redraw_buffer(
         background_color,
         text_position,
         mut handle,
-        mut visibility,
         mut x_offset,
         mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        // provide min sizes to prevent render panic
-        let width = sprite.custom_size.unwrap().x.max(1.);
-        let height = sprite.custom_size.unwrap().y.max(1.);
+        editor.0.shape_as_needed(&mut font_system.0);
+        if !editor.0.buffer().redraw() {
+            continue;
+        }
+        let width = sprite.custom_size.unwrap().x;
+        let mut height = sprite.custom_size.unwrap().y;
+        let widget_height = height * scale;
+        let widget_width = width * scale;
+
+        let (buffer_width, buffer_height) = match mode {
+            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
+            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32), // TODO: workaround
+            CosmicMode::Wrap => (widget_width, widget_height),
+        };
+        editor
+            .0
+            .buffer_mut()
+            .set_size(&mut font_system.0, buffer_width, buffer_height);
+
+        if mode == &CosmicMode::AutoHeight {
+            let text_size = get_text_size(editor.0.buffer());
+            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            if text_height > height {
+                height = text_height;
+                sprite.custom_size.unwrap().y = height;
+            }
+        }
 
         redraw_buffer_common(
             mode,
@@ -1556,16 +1548,10 @@ fn cosmic_edit_redraw_buffer(
             &mut handle,
             text_position,
             &mut font_system,
-            primary_window.scale_factor() as f32,
+            scale,
             width,
             height,
         );
-
-        if *visibility == Visibility::Hidden
-            && handle.clone() != bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed()
-        {
-            *visibility = Visibility::Visible;
-        }
     }
 }
 
@@ -1637,7 +1623,7 @@ mod tests {
 
     fn test_spawn_cosmic_edit_system(mut commands: Commands) {
         commands.spawn(CosmicEditUiBundle {
-            text: CosmicText::OneStyle("Blah".into()),
+            text_setter: CosmicText::OneStyle("Blah".into()),
             ..Default::default()
         });
     }
