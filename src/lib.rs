@@ -1343,7 +1343,7 @@ fn cosmic_edit_redraw_buffer_ui(
             .set_size(&mut font_system.0, buffer_width, buffer_height);
 
         if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(&editor.0.buffer());
+            let text_size = get_text_size(editor.0.buffer());
             let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
             if text_height > height {
                 height = text_height;
@@ -1528,7 +1528,7 @@ fn cosmic_edit_redraw_buffer(
             .set_size(&mut font_system.0, buffer_width, buffer_height);
 
         if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(&editor.0.buffer());
+            let text_size = get_text_size(editor.0.buffer());
             let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
             if text_height > height {
                 height = text_height;
