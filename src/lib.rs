@@ -104,6 +104,7 @@ impl CosmicEditor {
                     attrs.as_attrs(),
                     Shaping::Advanced,
                 );
+                editor.action(font_system, Action::BufferEnd);
             }
             CosmicText::MultiStyle(lines) => {
                 for line in lines {
@@ -189,15 +190,6 @@ fn update_buffer_text(
     for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
         let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
         editor.set_text(text, attrs.0.clone(), &mut font_system.0);
-    }
-}
-
-fn update_cursor_position(
-    mut editor_q: Query<&mut CosmicEditor, Added<CosmicText>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    for mut editor in editor_q.iter_mut() {
-        editor.0.action(&mut font_system.0, Action::BufferEnd);
     }
 }
 
@@ -382,7 +374,7 @@ impl Plugin for CosmicEditPlugin {
             .add_systems(
                 PreUpdate,
                 (
-                    (update_buffer_text, update_cursor_position).chain(),
+                    update_buffer_text,
                     cosmic_edit_bevy_events,
                     blink_cursor,
                     freeze_cursor_blink,
@@ -1443,16 +1435,23 @@ fn freeze_cursor_blink(
 }
 
 fn hide_inactive_or_readonly_cursor(
-    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor, Option<&ReadOnly>)>,
+    mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
+    mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
     active_editor: Res<Focus>,
 ) {
-    if !active_editor.is_changed() || active_editor.0.is_none() {
+    for mut editor in &mut cosmic_editor_q_readonly.iter_mut() {
+        let mut cursor = editor.0.cursor();
+        cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+        editor.0.set_cursor(cursor);
+        editor.0.buffer_mut().set_redraw(true);
+    }
+
+    if active_editor.is_changed() || active_editor.0.is_none() {
         return;
     }
 
-    for (e, mut editor, readonly_maybe) in &mut cosmic_editor_q.iter_mut() {
-        let readonly = readonly_maybe.is_some();
-        if e != active_editor.0.unwrap() || readonly {
+    for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
+        if e != active_editor.0.unwrap() {
             let mut cursor = editor.0.cursor();
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
