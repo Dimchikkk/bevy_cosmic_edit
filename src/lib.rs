@@ -1604,7 +1604,7 @@ fn draw_pixel(
 
     buffer[offset + 2] = (out.b() * 255.0) as u8;
     buffer[offset + 1] = (out.g() * 255.0) as u8;
-    buffer[offset + 0] = (out.r() * 255.0) as u8;
+    buffer[offset] = (out.r() * 255.0) as u8;
     buffer[offset + 3] = (bg.a() * 255.0) as u8;
 }
 
