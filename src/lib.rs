@@ -211,6 +211,9 @@ pub struct CosmicMaxLines(pub usize);
 #[derive(Component, Default)]
 pub struct CosmicMaxChars(pub usize);
 
+#[derive(Component, Default)]
+pub struct FillColor(pub Color);
+
 #[derive(Bundle)]
 pub struct CosmicEditUiBundle {
     // Bevy UI bits
@@ -225,8 +228,10 @@ pub struct CosmicEditUiBundle {
     pub interaction: Interaction,
     /// Whether this node should block interaction with lower nodes
     pub focus_policy: FocusPolicy,
-    /// The background color, which serves as a "fill" for this node
+    /// UiNode Background Color, works as a tint.
     pub background_color: BackgroundColor,
+    /// The background color, which serves as a "fill" for this node
+    pub fill_color: FillColor,
     /// The color of the Node's border
     pub border_color: BorderColor,
     /// This is used as the cosmic text canvas
@@ -275,7 +280,7 @@ impl Default for CosmicEditUiBundle {
             style: Default::default(),
             border_color: BorderColor(Color::NONE),
             interaction: Default::default(),
-            background_color: Default::default(),
+            fill_color: Default::default(),
             image: Default::default(),
             transform: Default::default(),
             global_transform: Default::default(),
@@ -290,6 +295,7 @@ impl Default for CosmicEditUiBundle {
             max_chars: Default::default(),
             text_setter: Default::default(),
             mode: Default::default(),
+            background_color: BackgroundColor(Color::WHITE),
         }
     }
 }
@@ -305,8 +311,8 @@ pub struct CosmicEditSpriteBundle {
     pub visibility: Visibility,
     /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
     pub computed_visibility: ComputedVisibility,
-    //
-    pub background_color: BackgroundColor,
+    /// Widget background color
+    pub fill_color: FillColor,
     // cosmic bits
     /// text positioning enum
     pub text_position: CosmicTextPosition,
@@ -335,7 +341,7 @@ impl Default for CosmicEditSpriteBundle {
             texture: DEFAULT_IMAGE_HANDLE.typed(),
             visibility: Visibility::Visible,
             computed_visibility: Default::default(),
-            background_color: Default::default(),
+            fill_color: Default::default(),
             text_position: Default::default(),
             cosmic_metrics: Default::default(),
             cosmic_attrs: Default::default(),
@@ -1137,7 +1143,7 @@ fn redraw_buffer_common(
     editor: &mut Editor,
     attrs: &CosmicAttrs,
     background_image: Option<Handle<Image>>,
-    background_color: Color,
+    fill_color: Color,
     cosmic_canvas_img_handle: &mut Handle<Image>,
     text_position: &CosmicTextPosition,
     font_system: &mut ResMut<CosmicFontSystem>,
@@ -1212,7 +1218,7 @@ fn redraw_buffer_common(
             }
         }
     } else {
-        let bg = background_color;
+        let bg = fill_color;
         for pixel in pixels.chunks_exact_mut(4) {
             pixel[0] = (bg.r() * 255.) as u8; // Red component
             pixel[1] = (bg.g() * 255.) as u8; // Green component
@@ -1288,7 +1294,7 @@ fn cosmic_edit_redraw_buffer_ui(
         &mut CosmicEditor,
         &CosmicAttrs,
         &CosmicBackground,
-        &BackgroundColor,
+        &FillColor,
         &CosmicTextPosition,
         &mut UiImage,
         &Node,
@@ -1305,7 +1311,7 @@ fn cosmic_edit_redraw_buffer_ui(
         mut editor,
         attrs,
         background_image,
-        background_color,
+        fill_color,
         text_position,
         mut img,
         node,
@@ -1351,7 +1357,7 @@ fn cosmic_edit_redraw_buffer_ui(
             &mut editor.0,
             attrs,
             background_image.0.clone(),
-            background_color.0,
+            fill_color.0,
             &mut img.texture,
             text_position,
             &mut font_system,
@@ -1484,7 +1490,7 @@ fn cosmic_edit_redraw_buffer(
         &CosmicAttrs,
         &mut Sprite,
         &CosmicBackground,
-        &BackgroundColor,
+        &FillColor,
         &CosmicTextPosition,
         &mut Handle<Image>,
         &mut XOffset,
@@ -1500,7 +1506,7 @@ fn cosmic_edit_redraw_buffer(
         attrs,
         sprite,
         background_image,
-        background_color,
+        fill_color,
         text_position,
         mut handle,
         mut x_offset,
@@ -1543,7 +1549,7 @@ fn cosmic_edit_redraw_buffer(
             &mut editor.0,
             attrs,
             background_image.0.clone(),
-            background_color.0,
+            fill_color.0,
             &mut handle,
             text_position,
             &mut font_system,
@@ -1562,8 +1568,9 @@ fn draw_pixel(
     y: i32,
     color: cosmic_text::Color,
 ) {
-    let alpha = (color.0 >> 24) & 0xFF;
-    if alpha == 0 {
+    // TODO: perftest this fn against previous iteration
+    let a_a = color.a() as u32;
+    if a_a == 0 {
         // Do not draw if alpha is zero
         return;
     }
@@ -1580,27 +1587,25 @@ fn draw_pixel(
 
     let offset = (y as usize * width as usize + x as usize) * 4;
 
-    let mut current = buffer[offset + 2] as u32
-        | (buffer[offset + 1] as u32) << 8
-        | (buffer[offset] as u32) << 16
-        | (buffer[offset + 3] as u32) << 24;
+    let bg = Color::rgba_u8(
+        buffer[offset],
+        buffer[offset + 1],
+        buffer[offset + 2],
+        buffer[offset + 3],
+    );
 
-    if alpha >= 255 || current == 0 {
-        // Alpha is 100% or current is null, replace with no blending
-        current = color.0;
-    } else {
-        // Alpha blend with current value
-        let n_alpha = 255 - alpha;
-        let rb = ((n_alpha * (current & 0x00FF00FF)) + (alpha * (color.0 & 0x00FF00FF))) >> 8;
-        let ag = (n_alpha * ((current & 0xFF00FF00) >> 8))
-            + (alpha * (0x01000000 | ((color.0 & 0x0000FF00) >> 8)));
-        current = (rb & 0x00FF00FF) | (ag & 0xFF00FF00);
-    }
+    // TODO: if alpha is 100% or bg is empty skip blending
 
-    buffer[offset + 2] = current as u8;
-    buffer[offset + 1] = (current >> 8) as u8;
-    buffer[offset] = (current >> 16) as u8;
-    buffer[offset + 3] = (current >> 24) as u8;
+    let fg = Color::rgba_u8(color.r(), color.g(), color.b(), color.a());
+
+    let premul = fg * Vec3::splat(color.a() as f32 / 255.0);
+
+    let out = premul + bg * (1.0 - fg.a());
+
+    buffer[offset + 2] = (out.b() * 255.0) as u8;
+    buffer[offset + 1] = (out.g() * 255.0) as u8;
+    buffer[offset + 0] = (out.r() * 255.0) as u8;
+    buffer[offset + 3] = (bg.a() * 255.0) as u8;
 }
 
 #[cfg(target_arch = "wasm32")]

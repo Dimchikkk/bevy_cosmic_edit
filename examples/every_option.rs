@@ -23,6 +23,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             interaction: Interaction::default(),
             focus_policy: FocusPolicy::default(),
             text_position: CosmicTextPosition::default(),
+            fill_color: FillColor::default(),
             background_color: BackgroundColor::default(),
             global_transform: GlobalTransform::default(),
             background_image: CosmicBackground::default(),
