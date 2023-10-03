@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicEditor, CosmicTextChanged, Focus, ReadOnly};
+use crate::{CosmicEditor, CosmicTextChanged, ReadOnly};
 
 /// For use with custom cursor control; Event is emitted when cursor enters a text widget
 #[derive(Event)]
@@ -74,9 +74,8 @@ pub fn hover_sprites(
 }
 
 pub fn hover_ui(
-    mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, Entity),
+        &Interaction,
         (
             Changed<Interaction>,
             (With<CosmicEditor>, Without<ReadOnly>),
@@ -85,7 +84,7 @@ pub fn hover_ui(
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
-    for (interaction, entity) in interaction_query.iter_mut() {
+    for interaction in interaction_query.iter_mut() {
         match interaction {
             Interaction::None => {
                 evw_hover_out.send(TextHoverOut);
@@ -94,8 +93,6 @@ pub fn hover_ui(
                 evw_hover_in.send(TextHoverIn);
             }
             _ => {}
-        }
-        if let Interaction::Pressed = interaction {
         }
     }
 }
