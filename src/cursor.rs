@@ -64,10 +64,12 @@ pub fn hover_sprites(
         }
     }
 
-    if *hovered {
-        evw_hover_in.send(TextHoverIn);
-    } else if *last_hovered != *hovered {
-        evw_hover_out.send(TextHoverOut);
+    if *last_hovered != *hovered {
+        if *hovered {
+            evw_hover_in.send(TextHoverIn);
+        } else {
+            evw_hover_out.send(TextHoverOut);
+        }
     }
 
     *last_hovered = *hovered;
