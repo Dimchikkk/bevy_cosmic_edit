@@ -20,7 +20,8 @@ pub use cosmic_text::{
 use cosmic_text::{
     Affinity, AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
 };
-use cursor::{change_cursor, hover_sprites, hover_ui, TextHoverIn, TextHoverOut};
+use cursor::{change_cursor, hover_sprites, hover_ui};
+pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
 
 #[derive(Clone, Component, PartialEq, Debug)]
@@ -372,19 +373,19 @@ pub struct CosmicEditHistory {
     pub current_edit: usize,
 }
 
-/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
-pub struct CosmicEditPlugin {
-    pub font_config: CosmicFontConfig,
-    pub change_cursor: bool,
+#[derive(Default)]
+pub enum CursorConfig {
+    #[default]
+    Default,
+    Events,
+    None,
 }
 
-impl Default for CosmicEditPlugin {
-    fn default() -> Self {
-        CosmicEditPlugin {
-            font_config: Default::default(),
-            change_cursor: true,
-        }
-    }
+/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
+#[derive(Default)]
+pub struct CosmicEditPlugin {
+    pub font_config: CosmicFontConfig,
+    pub change_cursor: CursorConfig,
 }
 
 impl Plugin for CosmicEditPlugin {
@@ -419,16 +420,20 @@ impl Plugin for CosmicEditPlugin {
                 swash_cache: SwashCache::new(),
             })
             .insert_resource(CosmicFontSystem(font_system))
-       
             .add_event::<CosmicTextChanged>();
 
-        // Cursor Bits
-        app.add_systems(Update, (hover_sprites, hover_ui))
-            .add_event::<TextHoverIn>()
-            .add_event::<TextHoverOut>();
-
-        if self.change_cursor {
-            app.add_systems(Update, change_cursor);
+        match self.change_cursor {
+            CursorConfig::Default => {
+                app.add_systems(Update, (hover_sprites, hover_ui, change_cursor))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::Events => {
+                app.add_systems(Update, (hover_sprites, hover_ui))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::None => {}
         }
     }
 }
