@@ -18,7 +18,10 @@ pub use cosmic_text::{
 use cosmic_text::{
     Affinity, AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
 };
+use cursor::{hide_cursor_when_typing, hover_sprites, hover_ui, show_cursor_on_use};
 use image::{imageops::FilterType, GenericImageView};
+
+mod cursor;
 
 #[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
@@ -407,6 +410,16 @@ impl Plugin for CosmicEditPlugin {
                 swash_cache: SwashCache::new(),
             })
             .insert_resource(CosmicFontSystem(font_system))
+            // Cursor Bits
+            .add_systems(
+                Update,
+                (
+                    hover_sprites,
+                    hover_ui,
+                    hide_cursor_when_typing,
+                    show_cursor_on_use,
+                ),
+            )
             .add_event::<CosmicTextChanged>();
     }
 }
