@@ -96,7 +96,10 @@ fn change_active_editor_sprite(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin::default())
+        .add_plugins(CosmicEditPlugin {
+            change_cursor: true,
+            ..default()
+        })
         .add_systems(Startup, setup)
         .add_systems(Update, change_active_editor_ui)
         .add_systems(Update, change_active_editor_sprite)
