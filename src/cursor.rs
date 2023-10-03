@@ -96,7 +96,6 @@ pub fn hover_ui(
             _ => {}
         }
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(entity)));
         }
     }
 }
