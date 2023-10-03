@@ -93,15 +93,32 @@ fn change_active_editor_sprite(
     }
 }
 
+fn ev_test(
+    mut evr_on: EventReader<TextHoverIn>,
+    mut evr_out: EventReader<TextHoverOut>,
+    mut evr_type: EventReader<CosmicTextChanged>,
+) {
+    for _ev in evr_on.iter() {
+        println!("IN");
+    }
+    for _ev in evr_out.iter() {
+        println!("OUT");
+    }
+    for _ev in evr_type.iter() {
+        println!("TYPE");
+    }
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin {
-            change_cursor: true,
+            change_cursor: CursorConfig::Default,
             ..default()
         })
         .add_systems(Startup, setup)
         .add_systems(Update, change_active_editor_ui)
         .add_systems(Update, change_active_editor_sprite)
+        .add_systems(Update, ev_test)
         .run();
 }
