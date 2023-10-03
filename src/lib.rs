@@ -419,7 +419,7 @@ impl Plugin for CosmicEditPlugin {
                 swash_cache: SwashCache::new(),
             })
             .insert_resource(CosmicFontSystem(font_system))
-            // Cursor Bits
+       
             .add_event::<CosmicTextChanged>();
 
         // Cursor Bits
