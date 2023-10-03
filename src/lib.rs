@@ -104,7 +104,10 @@ impl CosmicEditor {
                     attrs.as_attrs(),
                     Shaping::Advanced,
                 );
-                editor.action(font_system, Action::BufferEnd);
+                let mut cursor = editor.cursor();
+                cursor.line = editor.buffer_mut().lines.len() - 1;
+                cursor.index = editor.buffer_mut().lines[cursor.line].text().len();
+                editor.set_cursor(cursor);
             }
             CosmicText::MultiStyle(lines) => {
                 for line in lines {
