@@ -393,10 +393,10 @@ impl Plugin for CosmicEditPlugin {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
         app.add_systems(First, cosmic_editor_builder)
+            .add_systems(PreUpdate, update_buffer_text)
             .add_systems(
-                PreUpdate,
+                Update,
                 (
-                    update_buffer_text,
                     cosmic_edit_bevy_events,
                     blink_cursor,
                     freeze_cursor_blink,
