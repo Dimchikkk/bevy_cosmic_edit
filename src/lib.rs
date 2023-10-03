@@ -1,5 +1,7 @@
 #![allow(clippy::type_complexity)]
 
+mod cursor;
+
 use std::{collections::VecDeque, path::PathBuf, time::Duration};
 
 use bevy::{
@@ -18,6 +20,8 @@ pub use cosmic_text::{
 use cosmic_text::{
     Affinity, AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
 };
+use cursor::{change_cursor, hover_sprites, hover_ui};
+pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
 
 #[derive(Clone, Component, PartialEq, Debug)]
@@ -369,10 +373,19 @@ pub struct CosmicEditHistory {
     pub current_edit: usize,
 }
 
+#[derive(Default)]
+pub enum CursorConfig {
+    #[default]
+    Default,
+    Events,
+    None,
+}
+
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
     pub font_config: CosmicFontConfig,
+    pub change_cursor: CursorConfig,
 }
 
 impl Plugin for CosmicEditPlugin {
@@ -408,6 +421,20 @@ impl Plugin for CosmicEditPlugin {
             })
             .insert_resource(CosmicFontSystem(font_system))
             .add_event::<CosmicTextChanged>();
+
+        match self.change_cursor {
+            CursorConfig::Default => {
+                app.add_systems(Update, (hover_sprites, hover_ui, change_cursor))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::Events => {
+                app.add_systems(Update, (hover_sprites, hover_ui))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::None => {}
+        }
     }
 }
 

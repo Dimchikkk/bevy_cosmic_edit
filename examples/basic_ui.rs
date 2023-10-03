@@ -66,7 +66,10 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin { font_config })
+        .add_plugins(CosmicEditPlugin {
+            font_config,
+            ..default()
+        })
         .add_systems(Startup, setup)
         .add_systems(Update, print_text)
         .run();
