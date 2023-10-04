@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicEditor, CosmicTextChanged, ReadOnly};
+use crate::{CosmicEditor, CosmicTextChanged};
 
 /// For use with custom cursor control; Event is emitted when cursor enters a text widget
 #[derive(Event)]
@@ -33,13 +33,9 @@ pub fn change_cursor(
     }
 }
 
-// TODO: Only emit events; If configured to, have a fn to act on the events
 pub fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_edit_query: Query<
-        (&mut Sprite, &GlobalTransform),
-        (With<CosmicEditor>, Without<ReadOnly>),
-    >,
+    mut cosmic_edit_query: Query<(&mut Sprite, &GlobalTransform), With<CosmicEditor>>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
@@ -76,13 +72,7 @@ pub fn hover_sprites(
 }
 
 pub fn hover_ui(
-    mut interaction_query: Query<
-        &Interaction,
-        (
-            Changed<Interaction>,
-            (With<CosmicEditor>, Without<ReadOnly>),
-        ),
-    >,
+    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicEditor>)>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
