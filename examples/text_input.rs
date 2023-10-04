@@ -25,6 +25,7 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
             text_setter: CosmicText::OneStyle(text),
             text_position: CosmicTextPosition::Left { padding: 20 },
             mode: CosmicMode::InfiniteLine,
+            placeholder_setter: PlaceholderText(CosmicText::OneStyle("place hold er".into())),
             ..default()
         })
         .id()

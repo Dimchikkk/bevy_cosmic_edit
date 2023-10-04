@@ -199,6 +199,11 @@ pub struct PlaceholderText(pub CosmicText);
 #[derive(Component)]
 pub struct PlaceholderAttrs(pub AttrsOwned);
 
+impl Default for PlaceholderAttrs {
+    fn default() -> Self {
+        Self(AttrsOwned::new(Attrs::new()))
+    }
+}
 #[derive(Bundle)]
 pub struct CosmicEditUiBundle {
     // Bevy UI bits
@@ -256,6 +261,7 @@ pub struct CosmicEditUiBundle {
     pub mode: CosmicMode,
     /// Setting this will update the placeholder text
     pub placeholder_setter: PlaceholderText,
+    pub placeholder_attrs: PlaceholderAttrs,
 }
 
 impl Default for CosmicEditUiBundle {
@@ -284,6 +290,7 @@ impl Default for CosmicEditUiBundle {
             mode: Default::default(),
             background_color: BackgroundColor(Color::WHITE),
             placeholder_setter: Default::default(),
+            placeholder_attrs: Default::default(),
         }
     }
 }
@@ -493,21 +500,24 @@ fn cosmic_editor_builder(
 }
 
 fn placeholder_builder(
-    mut added_editors: Query<(Entity, &CosmicMetrics), Added<PlaceholderText>>,
+    mut added_editors: Query<
+        (Entity, &CosmicMetrics, &PlaceholderText, &PlaceholderAttrs),
+        Added<PlaceholderText>,
+    >,
     mut font_system: ResMut<CosmicFontSystem>,
     mut commands: Commands,
 ) {
-    for (entity, metrics) in added_editors.iter_mut() {
+    for (entity, metrics, text, attrs) in added_editors.iter_mut() {
         let buffer = Buffer::new(
             &mut font_system.0,
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
         // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        let editor = Editor::new(buffer);
+        let mut editor = CosmicEditor(Editor::new(buffer));
 
-        commands
-            .entity(entity)
-            .insert(Placeholder(CosmicEditor(editor)));
+        editor.set_text(text.0.clone(), attrs.0.clone(), &mut font_system.0);
+
+        commands.entity(entity).insert(Placeholder(editor));
         commands.entity(entity).insert(CosmicEditHistory::default());
         commands.entity(entity).insert(XOffset(None));
     }
@@ -769,30 +779,41 @@ fn blink_cursor(
     time: Res<Time>,
     active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
+    mut placeholder_editor_q: Query<&mut Placeholder>,
 ) {
     if let Some(e) = active_editor.0 {
+        timer.0.tick(time.delta());
+        if !timer.0.just_finished() && !active_editor.is_changed() {
+            return;
+        }
+        visibility.0 = !visibility.0;
+
+        // always start cursor visible on focus
+        if active_editor.is_changed() {
+            visibility.0 = true;
+            timer.0.set_elapsed(Duration::ZERO);
+        }
+
+        let new_color = if visibility.0 {
+            None
+        } else {
+            Some(cosmic_text::Color::rgba(0, 0, 0, 0))
+        };
+
         if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
-            timer.0.tick(time.delta());
-            if !timer.0.just_finished() && !active_editor.is_changed() {
-                return;
-            }
-            visibility.0 = !visibility.0;
-
-            // always start cursor visible on focus
-            if active_editor.is_changed() {
-                visibility.0 = true;
-                timer.0.set_elapsed(Duration::ZERO);
-            }
-
-            let mut cursor = editor.0.cursor();
-            let new_color = if visibility.0 {
-                None
-            } else {
-                Some(cosmic_text::Color::rgba(0, 0, 0, 0))
-            };
+            let editor = &mut editor.0;
+            let mut cursor = editor.cursor();
             cursor.color = new_color;
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
+            editor.set_cursor(cursor);
+            editor.buffer_mut().set_redraw(true);
+        }
+
+        if let Ok(mut placeholder) = placeholder_editor_q.get_mut(e) {
+            let placeholder = &mut placeholder.0 .0;
+            let mut cursor_p = placeholder.cursor();
+            cursor_p.color = new_color;
+            placeholder.set_cursor(cursor_p);
+            placeholder.buffer_mut().set_redraw(true);
         }
     }
 }
@@ -831,6 +852,7 @@ fn freeze_cursor_blink(
 
 fn hide_inactive_or_readonly_cursor(
     mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
+    mut cosmic_editor_q_placeholder: Query<(Entity, &mut Placeholder)>,
     mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
     active_editor: Res<Focus>,
 ) {
@@ -843,6 +865,16 @@ fn hide_inactive_or_readonly_cursor(
 
     if active_editor.is_changed() || active_editor.0.is_none() {
         return;
+    }
+
+    for (e, mut editor) in &mut cosmic_editor_q_placeholder.iter_mut() {
+        if e != active_editor.0.unwrap() {
+            let editor = &mut editor.0;
+            let mut cursor = editor.0.cursor();
+            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
     }
 
     for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
@@ -876,7 +908,7 @@ fn cosmic_edit_redraw_buffer_ui(
     mut swash_cache_state: ResMut<SwashCacheState>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut Placeholder,
+        Option<&mut Placeholder>,
         &CosmicAttrs,
         &CosmicBackground,
         &FillColor,
@@ -894,7 +926,7 @@ fn cosmic_edit_redraw_buffer_ui(
 
     for (
         mut editor,
-        mut placeholder,
+        mut placeholder_opt,
         attrs,
         background_image,
         fill_color,
@@ -906,19 +938,12 @@ fn cosmic_edit_redraw_buffer_ui(
         mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        let editor = if editor.get_text().is_empty() {
-            //&mut placeholder.0 .0 // TODO: this ugly
-            //
-            let attrs = Attrs::new().color(CosmicColor::rgb(0, 0, 0));
-            placeholder.0 .0.buffer_mut().set_text(
-                &mut font_system.0,
-                "PLACEHOLDER".into(),
-                attrs,
-                Shaping::Advanced,
-            );
-
-            placeholder.0 .0.buffer_mut().set_redraw(true);
-            &mut placeholder.0 .0
+        let editor = if editor.get_text().is_empty() && placeholder_opt.is_some() {
+            let placeholder = &mut placeholder_opt.as_mut().unwrap().0 .0;
+            let mut cursor = placeholder.cursor();
+            cursor.index = 0;
+            placeholder.set_cursor(cursor);
+            placeholder
         } else {
             &mut editor.0
         };
