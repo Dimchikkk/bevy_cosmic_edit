@@ -456,7 +456,7 @@ pub(crate) fn input_kb(
             }
         }
 
-        if !(is_clipboard || is_return) && !readonly {
+        if !(is_clipboard || is_return || readonly) {
             for char_ev in char_evr.iter() {
                 is_edit = true;
                 if *is_deleting {
