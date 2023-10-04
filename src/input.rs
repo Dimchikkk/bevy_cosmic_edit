@@ -43,6 +43,10 @@ pub(crate) fn input_mouse(
 ) {
     click_timer.0.tick(time.delta());
 
+    if active_editor.0.is_none() {
+        return;
+    }
+
     if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
         *click_count = 0;
     }
@@ -54,28 +58,6 @@ pub(crate) fn input_mouse(
 
     if *click_count > 3 {
         *click_count = 0;
-    }
-
-    if buttons.just_pressed(MouseButton::Left) {
-        match *click_count {
-            0 => {}
-            1 => {
-                println!("single")
-            }
-            2 => {
-                println!("double")
-            }
-            3 => {
-                println!("triple")
-            }
-            _ => {
-                println!("oob")
-            }
-        }
-    }
-
-    if active_editor.0.is_none() {
-        return;
     }
 
     let primary_window = windows.single();
@@ -138,12 +120,32 @@ pub(crate) fn input_mouse(
                 if shift {
                     editor.0.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
-                    editor.0.action(&mut font_system.0, Action::Click { x, y });
+                    match *click_count {
+                        1 => {
+                            editor.0.action(&mut font_system.0, Action::Click { x, y });
+                        }
+                        2 => {
+                            // select word
+                            editor.0.action(&mut font_system.0, Action::LeftWord);
+                            let cursor = editor.0.cursor();
+                            editor.0.set_select_opt(Some(cursor));
+                            editor.0.action(&mut font_system.0, Action::RightWord);
+                        }
+                        3 => {
+                            // select paragraph
+                            editor.0.action(&mut font_system.0, Action::ParagraphStart);
+                            let cursor = editor.0.cursor();
+                            editor.0.set_select_opt(Some(cursor));
+                            editor.0.action(&mut font_system.0, Action::ParagraphEnd);
+                        }
+                        _ => {}
+                    }
                 }
             }
             return;
         }
-        if buttons.pressed(MouseButton::Left) {
+
+        if buttons.pressed(MouseButton::Left) && *click_count == 0 {
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
                 node_transform,
@@ -162,6 +164,7 @@ pub(crate) fn input_mouse(
             }
             return;
         }
+
         for ev in scroll_evr.iter() {
             match ev.unit {
                 MouseScrollUnit::Line => {
@@ -476,13 +479,6 @@ pub(crate) fn input_kb(
             }
         }
 
-        // fix for issue #8
-        if let Some(select) = editor.0.select_opt() {
-            if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index {
-                editor.0.set_select_opt(None);
-            }
-        }
-
         let mut is_edit = is_clipboard;
         let mut is_return = false;
         if keys.just_pressed(KeyCode::Return) && !readonly {
@@ -500,6 +496,14 @@ pub(crate) fn input_kb(
             for char_ev in char_evr.iter() {
                 is_edit = true;
                 if *is_deleting {
+                    // fix for issue #8
+                    if let Some(select) = editor.0.select_opt() {
+                        if editor.0.cursor().line == select.line
+                            && editor.0.cursor().index == select.index
+                        {
+                            editor.0.set_select_opt(None);
+                        }
+                    }
                     editor.0.action(&mut font_system.0, Action::Backspace);
                 } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
                     editor
