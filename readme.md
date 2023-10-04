@@ -22,7 +22,7 @@ Wasm:
 
 ```rust
 cargo install wasm-server-runner
-RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example restricted_input
+RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example text_input
 ```
 
 ## Compatibility
