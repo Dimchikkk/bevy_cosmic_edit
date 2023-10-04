@@ -1,12 +1,12 @@
 #![allow(clippy::type_complexity)]
 
 mod cursor;
+mod input;
 
 use std::{collections::VecDeque, path::PathBuf, time::Duration};
 
 use bevy::{
     asset::HandleId,
-    input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
     render::{render_resource::Extent3d, texture::DEFAULT_IMAGE_HANDLE},
     transform::TransformSystem,
@@ -23,11 +23,18 @@ use cosmic_text::{
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
+use input::{input_kb, input_mouse};
 
 #[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
     OneStyle(String),
     MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
+}
+
+impl Default for CosmicText {
+    fn default() -> Self {
+        Self::OneStyle(String::new())
+    }
 }
 
 #[derive(Clone, Component, PartialEq, Default)]
@@ -38,10 +45,12 @@ pub enum CosmicMode {
     Wrap,
 }
 
-impl Default for CosmicText {
-    fn default() -> Self {
-        Self::OneStyle(String::new())
-    }
+#[derive(Default)]
+pub enum CursorConfig {
+    #[default]
+    Default,
+    Events,
+    None,
 }
 
 /// Enum representing the position of the cosmic text.
@@ -157,46 +166,6 @@ impl CosmicEditor {
         }
 
         text
-    }
-}
-
-/// Adds the font system to each editor when added
-fn cosmic_editor_builder(
-    mut added_editors: Query<(Entity, &CosmicMetrics), Added<CosmicText>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-    mut commands: Commands,
-) {
-    for (entity, metrics) in added_editors.iter_mut() {
-        let buffer = Buffer::new(
-            &mut font_system.0,
-            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
-        );
-        // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        let editor = Editor::new(buffer);
-
-        commands.entity(entity).insert(CosmicEditor(editor));
-        commands.entity(entity).insert(CosmicEditHistory::default());
-        commands.entity(entity).insert(XOffset(None));
-    }
-}
-
-/// Updates editor buffer when text component changes
-fn update_buffer_text(
-    mut editor_q: Query<
-        (
-            &mut CosmicEditor,
-            &mut CosmicText,
-            &CosmicAttrs,
-            &CosmicMaxChars,
-            &CosmicMaxLines,
-        ),
-        Changed<CosmicText>,
-    >,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
-        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
-        editor.set_text(text, attrs.0.clone(), &mut font_system.0);
     }
 }
 
@@ -373,13 +342,39 @@ pub struct CosmicEditHistory {
     pub current_edit: usize,
 }
 
-#[derive(Default)]
-pub enum CursorConfig {
-    #[default]
-    Default,
-    Events,
-    None,
+/// Resource struct that keeps track of the currently active editor entity.
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct Focus(pub Option<Entity>);
+
+/// Resource struct that holds configuration options for cosmic fonts.
+#[derive(Resource, Clone)]
+pub struct CosmicFontConfig {
+    pub fonts_dir_path: Option<PathBuf>,
+    pub font_bytes: Option<Vec<&'static [u8]>>,
+    pub load_system_fonts: bool, // caution: this can be relatively slow
 }
+
+impl Default for CosmicFontConfig {
+    fn default() -> Self {
+        let fallback_font = include_bytes!("./font/FiraMono-Regular-subset.ttf");
+        Self {
+            load_system_fonts: false,
+            font_bytes: Some(vec![fallback_font]),
+            fonts_dir_path: None,
+        }
+    }
+}
+
+#[derive(Resource)]
+struct SwashCacheState {
+    swash_cache: SwashCache,
+}
+
+#[derive(Resource)]
+struct CursorBlinkTimer(pub Timer);
+
+#[derive(Resource)]
+struct CursorVisibility(pub bool);
 
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
@@ -397,7 +392,8 @@ impl Plugin for CosmicEditPlugin {
             .add_systems(
                 Update,
                 (
-                    cosmic_edit_bevy_events,
+                    input_kb,
+                    input_mouse,
                     blink_cursor,
                     freeze_cursor_blink,
                     hide_inactive_or_readonly_cursor,
@@ -438,32 +434,140 @@ impl Plugin for CosmicEditPlugin {
     }
 }
 
-/// Resource struct that keeps track of the currently active editor entity.
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct Focus(pub Option<Entity>);
-
-/// Resource struct that holds configuration options for cosmic fonts.
-#[derive(Resource, Clone)]
-pub struct CosmicFontConfig {
-    pub fonts_dir_path: Option<PathBuf>,
-    pub font_bytes: Option<Vec<&'static [u8]>>,
-    pub load_system_fonts: bool, // caution: this can be relatively slow
+fn save_edit_history(
+    editor: &mut Editor,
+    attrs: &AttrsOwned,
+    edit_history: &mut CosmicEditHistory,
+) {
+    let edits = &edit_history.edits;
+    let current_lines = get_text_spans(editor.buffer(), attrs.clone());
+    let current_edit = edit_history.current_edit;
+    let mut new_edits = VecDeque::new();
+    new_edits.extend(edits.iter().take(current_edit + 1).cloned());
+    // remove old edits
+    if new_edits.len() > 1000 {
+        new_edits.drain(0..100);
+    }
+    new_edits.push_back(EditHistoryItem {
+        cursor: editor.cursor(),
+        lines: current_lines,
+    });
+    let len = new_edits.len();
+    *edit_history = CosmicEditHistory {
+        edits: new_edits,
+        current_edit: len - 1,
+    };
 }
 
-impl Default for CosmicFontConfig {
-    fn default() -> Self {
-        let fallback_font = include_bytes!("./font/FiraMono-Regular-subset.ttf");
-        Self {
-            load_system_fonts: false,
-            font_bytes: Some(vec![fallback_font]),
-            fonts_dir_path: None,
+/// Adds the font system to each editor when added
+fn cosmic_editor_builder(
+    mut added_editors: Query<(Entity, &CosmicMetrics), Added<CosmicText>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut commands: Commands,
+) {
+    for (entity, metrics) in added_editors.iter_mut() {
+        let buffer = Buffer::new(
+            &mut font_system.0,
+            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
+        );
+        // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
+        let editor = Editor::new(buffer);
+
+        commands.entity(entity).insert(CosmicEditor(editor));
+        commands.entity(entity).insert(CosmicEditHistory::default());
+        commands.entity(entity).insert(XOffset(None));
+    }
+}
+
+fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
+    let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
+    let mut db = cosmic_text::fontdb::Database::new();
+    if let Some(dir_path) = cosmic_font_config.fonts_dir_path.clone() {
+        db.load_fonts_dir(dir_path);
+    }
+    if let Some(custom_font_data) = &cosmic_font_config.font_bytes {
+        for elem in custom_font_data {
+            db.load_font_data(elem.to_vec());
+        }
+    }
+    if cosmic_font_config.load_system_fonts {
+        db.load_system_fonts();
+    }
+    cosmic_text::FontSystem::new_with_locale_and_db(locale, db)
+}
+
+fn on_scale_factor_change(
+    mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
+    mut cosmic_query: Query<(&mut CosmicEditor, &mut CosmicMetrics)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    if !scale_factor_changed.is_empty() {
+        let new_scale_factor = scale_factor_changed.iter().last().unwrap().scale_factor as f32;
+        for (mut editor, metrics) in &mut cosmic_query.iter_mut() {
+            let font_system = &mut font_system.0;
+            let metrics =
+                Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
+
+            editor.0.buffer_mut().set_metrics(font_system, metrics);
+            editor.0.buffer_mut().set_redraw(true);
         }
     }
 }
 
-#[derive(Resource)]
-struct SwashCacheState {
-    swash_cache: SwashCache,
+pub fn get_node_cursor_pos(
+    window: &Window,
+    node_transform: &GlobalTransform,
+    size: (f32, f32),
+    is_ui_node: bool,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+) -> Option<(f32, f32)> {
+    let (x_min, y_min, x_max, y_max) = (
+        node_transform.affine().translation.x - size.0 / 2.,
+        node_transform.affine().translation.y - size.1 / 2.,
+        node_transform.affine().translation.x + size.0 / 2.,
+        node_transform.affine().translation.y + size.1 / 2.,
+    );
+
+    window.cursor_position().and_then(|pos| {
+        if is_ui_node {
+            if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                Some((pos.x - x_min, pos.y - y_min))
+            } else {
+                None
+            }
+        } else {
+            camera
+                .viewport_to_world_2d(camera_transform, pos)
+                .and_then(|pos| {
+                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                        Some((pos.x - x_min, y_max - pos.y))
+                    } else {
+                        None
+                    }
+                })
+        }
+    })
+}
+
+/// Updates editor buffer when text component changes
+fn update_buffer_text(
+    mut editor_q: Query<
+        (
+            &mut CosmicEditor,
+            &mut CosmicText,
+            &CosmicAttrs,
+            &CosmicMaxChars,
+            &CosmicMaxLines,
+        ),
+        Changed<CosmicText>,
+    >,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
+        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
+        editor.set_text(text, attrs.0.clone(), &mut font_system.0);
+    }
 }
 
 fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
@@ -548,78 +652,6 @@ fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText
         }
     }
 }
-
-fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
-    let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
-    let mut db = cosmic_text::fontdb::Database::new();
-    if let Some(dir_path) = cosmic_font_config.fonts_dir_path.clone() {
-        db.load_fonts_dir(dir_path);
-    }
-    if let Some(custom_font_data) = &cosmic_font_config.font_bytes {
-        for elem in custom_font_data {
-            db.load_font_data(elem.to_vec());
-        }
-    }
-    if cosmic_font_config.load_system_fonts {
-        db.load_system_fonts();
-    }
-    cosmic_text::FontSystem::new_with_locale_and_db(locale, db)
-}
-
-fn on_scale_factor_change(
-    mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
-    mut cosmic_query: Query<(&mut CosmicEditor, &mut CosmicMetrics)>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    if !scale_factor_changed.is_empty() {
-        let new_scale_factor = scale_factor_changed.iter().last().unwrap().scale_factor as f32;
-        for (mut editor, metrics) in &mut cosmic_query.iter_mut() {
-            let font_system = &mut font_system.0;
-            let metrics =
-                Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
-
-            editor.0.buffer_mut().set_metrics(font_system, metrics);
-            editor.0.buffer_mut().set_redraw(true);
-        }
-    }
-}
-
-pub fn get_node_cursor_pos(
-    window: &Window,
-    node_transform: &GlobalTransform,
-    size: (f32, f32),
-    is_ui_node: bool,
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-) -> Option<(f32, f32)> {
-    let (x_min, y_min, x_max, y_max) = (
-        node_transform.affine().translation.x - size.0 / 2.,
-        node_transform.affine().translation.y - size.1 / 2.,
-        node_transform.affine().translation.x + size.0 / 2.,
-        node_transform.affine().translation.y + size.1 / 2.,
-    );
-
-    window.cursor_position().and_then(|pos| {
-        if is_ui_node {
-            if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                Some((pos.x - x_min, pos.y - y_min))
-            } else {
-                None
-            }
-        } else {
-            camera
-                .viewport_to_world_2d(camera_transform, pos)
-                .and_then(|pos| {
-                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        Some((pos.x - x_min, y_max - pos.y))
-                    } else {
-                        None
-                    }
-                })
-        }
-    })
-}
-
 /// Returns texts from a MultiStyle buffer
 pub fn get_text_spans(
     buffer: &Buffer,
@@ -659,31 +691,6 @@ pub fn get_text_spans(
     spans
 }
 
-fn save_edit_history(
-    editor: &mut Editor,
-    attrs: &AttrsOwned,
-    edit_history: &mut CosmicEditHistory,
-) {
-    let edits = &edit_history.edits;
-    let current_lines = get_text_spans(editor.buffer(), attrs.clone());
-    let current_edit = edit_history.current_edit;
-    let mut new_edits = VecDeque::new();
-    new_edits.extend(edits.iter().take(current_edit + 1).cloned());
-    // remove old edits
-    if new_edits.len() > 1000 {
-        new_edits.drain(0..100);
-    }
-    new_edits.push_back(EditHistoryItem {
-        cursor: editor.cursor(),
-        lines: current_lines,
-    });
-    let len = new_edits.len();
-    *edit_history = CosmicEditHistory {
-        edits: new_edits,
-        current_edit: len - 1,
-    };
-}
-
 fn get_text_size(buffer: &Buffer) -> (f32, f32) {
     if buffer.layout_runs().count() == 0 {
         return (0., buffer.metrics().line_height);
@@ -707,460 +714,271 @@ pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
     ((widget_width - text_width) / 2.0) as i32
 }
 
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
-// the meat of the input management
-fn cosmic_edit_bevy_events(
-    windows: Query<&Window, With<PrimaryWindow>>,
+fn blink_cursor(
+    mut visibility: ResMut<CursorVisibility>,
+    mut timer: ResMut<CursorBlinkTimer>,
+    time: Res<Time>,
+    active_editor: ResMut<Focus>,
+    mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
+) {
+    if let Some(e) = active_editor.0 {
+        if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
+            timer.0.tick(time.delta());
+            if !timer.0.just_finished() && !active_editor.is_changed() {
+                return;
+            }
+            visibility.0 = !visibility.0;
+
+            // always start cursor visible on focus
+            if active_editor.is_changed() {
+                visibility.0 = true;
+                timer.0.set_elapsed(Duration::ZERO);
+            }
+
+            let mut cursor = editor.0.cursor();
+            let new_color = if visibility.0 {
+                None
+            } else {
+                Some(cosmic_text::Color::rgba(0, 0, 0, 0))
+            };
+            cursor.color = new_color;
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn freeze_cursor_blink(
+    mut visibility: ResMut<CursorVisibility>,
+    mut timer: ResMut<CursorBlinkTimer>,
     active_editor: Res<Focus>,
     keys: Res<Input<KeyCode>>,
-    mut char_evr: EventReader<ReceivedCharacter>,
-    buttons: Res<Input<MouseButton>>,
-    mut cosmic_edit_query: Query<
-        (
-            &mut CosmicEditor,
-            &mut CosmicEditHistory,
-            &GlobalTransform,
-            &CosmicAttrs,
-            &CosmicTextPosition,
-            &CosmicMaxLines,
-            &CosmicMaxChars,
-            Entity,
-            &XOffset,
-        ),
-        With<CosmicEditor>,
-    >,
-    mut evw_changed: EventWriter<CosmicTextChanged>,
-    readonly_query: Query<&ReadOnly>,
-    node_query: Query<&mut Node>,
-    sprite_query: Query<&mut Sprite>,
+    char_evr: EventReader<ReceivedCharacter>,
+    mut editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
+) {
+    let inputs = [
+        KeyCode::Left,
+        KeyCode::Right,
+        KeyCode::Up,
+        KeyCode::Down,
+        KeyCode::Back,
+        KeyCode::Return,
+    ];
+    if !keys.any_pressed(inputs) && char_evr.is_empty() {
+        return;
+    }
+
+    if let Some(e) = active_editor.0 {
+        if let Ok(mut editor) = editor_q.get_mut(e) {
+            timer.0.set_elapsed(Duration::ZERO);
+            visibility.0 = true;
+            let mut cursor = editor.0.cursor();
+            cursor.color = None;
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn hide_inactive_or_readonly_cursor(
+    mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
+    mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
+    active_editor: Res<Focus>,
+) {
+    for mut editor in &mut cosmic_editor_q_readonly.iter_mut() {
+        let mut cursor = editor.0.cursor();
+        cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+        editor.0.set_cursor(cursor);
+        editor.0.buffer_mut().set_redraw(true);
+    }
+
+    if active_editor.is_changed() || active_editor.0.is_none() {
+        return;
+    }
+
+    for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
+        if e != active_editor.0.unwrap() {
+            let mut cursor = editor.0.cursor();
+            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+fn clear_inactive_selection(
+    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
+    active_editor: Res<Focus>,
+) {
+    if !active_editor.is_changed() || active_editor.0.is_none() {
+        return;
+    }
+
+    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
+        if e != active_editor.0.unwrap() {
+            editor.0.set_select_opt(None);
+        }
+    }
+}
+
+fn cosmic_edit_redraw_buffer_ui(
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut images: ResMut<Assets<Image>>,
+    mut swash_cache_state: ResMut<SwashCacheState>,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,
+        &CosmicAttrs,
+        &CosmicBackground,
+        &FillColor,
+        &CosmicTextPosition,
+        &mut UiImage,
+        &Node,
+        &mut XOffset,
+        &mut Style,
+        &CosmicMode,
+    )>,
     mut font_system: ResMut<CosmicFontSystem>,
-    mut is_deleting: Local<bool>,
-    mut scroll_evr: EventReader<MouseWheel>,
-    mut edits_duration: Local<Option<Duration>>,
-    mut undoredo_duration: Local<Option<Duration>>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
     let primary_window = windows.single();
-    let scale_factor = primary_window.scale_factor() as f32;
-    let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
+    let scale = primary_window.scale_factor() as f32;
+
     for (
         mut editor,
-        mut edit_history,
-        node_transform,
         attrs,
+        background_image,
+        fill_color,
         text_position,
-        max_lines,
-        max_chars,
-        entity,
-        x_offset,
+        mut img,
+        node,
+        mut x_offset,
+        mut style,
+        mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        let readonly = readonly_query.get(entity).is_ok();
+        editor.0.shape_as_needed(&mut font_system.0);
+        if !editor.0.buffer().redraw() {
+            continue;
+        }
 
-        let (width, height, is_ui_node) = match node_query.get(entity) {
-            Ok(node) => (node.size().x, node.size().y, true),
-            Err(_) => {
-                let sprite = sprite_query.get(entity).unwrap();
-                let size = sprite.custom_size.unwrap();
-                (size.x, size.y, false)
-            }
+        let width = node.size().x;
+        let mut height = node.size().y;
+        let widget_height = height * scale;
+        let widget_width = width * scale;
+
+        let (buffer_width, buffer_height) = match mode {
+            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
+            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32),
+            CosmicMode::Wrap => (widget_width, widget_height),
         };
+        editor
+            .0
+            .buffer_mut()
+            .set_size(&mut font_system.0, buffer_width, buffer_height);
 
-        let attrs = &attrs.0;
-
-        if active_editor.0 == Some(entity) {
-            let now_ms = get_timestamp();
-
-            #[cfg(target_os = "macos")]
-            let command = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
-
-            #[cfg(not(target_os = "macos"))]
-            let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
-
-            let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-
-            #[cfg(target_os = "macos")]
-            let option = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
-
-            // if shift key is pressed
-            let already_has_selection = editor.0.select_opt().is_some();
-            if shift && !already_has_selection {
-                let cursor = editor.0.cursor();
-                editor.0.set_select_opt(Some(cursor));
-            }
-
-            #[cfg(target_os = "macos")]
-            let should_jump = command && option;
-            #[cfg(not(target_os = "macos"))]
-            let should_jump = command;
-
-            if should_jump && keys.just_pressed(KeyCode::Left) {
-                editor.0.action(&mut font_system.0, Action::PreviousWord);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if should_jump && keys.just_pressed(KeyCode::Right) {
-                editor.0.action(&mut font_system.0, Action::NextWord);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if should_jump && keys.just_pressed(KeyCode::Home) {
-                editor.0.action(&mut font_system.0, Action::BufferStart);
-                // there's a bug with cosmic text where it doesn't update the visual cursor for this action
-                // TODO: fix upstream
-                editor.0.buffer_mut().set_redraw(true);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if should_jump && keys.just_pressed(KeyCode::End) {
-                editor.0.action(&mut font_system.0, Action::BufferEnd);
-                // there's a bug with cosmic text where it doesn't update the visual cursor for this action
-                // TODO: fix upstream
-                editor.0.buffer_mut().set_redraw(true);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-
-            if keys.just_pressed(KeyCode::Left) {
-                editor.0.action(&mut font_system.0, Action::Left);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::Right) {
-                editor.0.action(&mut font_system.0, Action::Right);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::Up) {
-                editor.0.action(&mut font_system.0, Action::Up);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::Down) {
-                editor.0.action(&mut font_system.0, Action::Down);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-
-            if !readonly && keys.just_pressed(KeyCode::Back) {
-                #[cfg(target_arch = "wasm32")]
-                editor.0.action(&mut font_system.0, Action::Backspace);
-                *is_deleting = true;
-            }
-            if !readonly && keys.just_released(KeyCode::Back) {
-                *is_deleting = false;
-            }
-            if !readonly && keys.just_pressed(KeyCode::Delete) {
-                editor.0.action(&mut font_system.0, Action::Delete);
-            }
-            if keys.just_pressed(KeyCode::Escape) {
-                editor.0.action(&mut font_system.0, Action::Escape);
-            }
-            if command && keys.just_pressed(KeyCode::A) {
-                editor.0.action(&mut font_system.0, Action::BufferEnd);
-                let current_cursor = editor.0.cursor();
-                editor.0.set_select_opt(Some(Cursor {
-                    line: 0,
-                    index: 0,
-                    affinity: current_cursor.affinity,
-                    color: current_cursor.color,
-                }));
-                return;
-            }
-            if keys.just_pressed(KeyCode::Home) {
-                editor.0.action(&mut font_system.0, Action::Home);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::End) {
-                editor.0.action(&mut font_system.0, Action::End);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::PageUp) {
-                editor.0.action(&mut font_system.0, Action::PageUp);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-            if keys.just_pressed(KeyCode::PageDown) {
-                editor.0.action(&mut font_system.0, Action::PageDown);
-                if !shift {
-                    editor.0.set_select_opt(None);
-                }
-                return;
-            }
-
-            // redo
-            #[cfg(not(target_os = "windows"))]
-            let requested_redo = command && shift && keys.just_pressed(KeyCode::Z);
-            #[cfg(target_os = "windows")]
-            let requested_redo = command && keys.just_pressed(KeyCode::Y);
-
-            if !readonly && requested_redo {
-                let edits = &edit_history.edits;
-                if edits.is_empty() {
-                    return;
-                }
-                if edit_history.current_edit == edits.len() - 1 {
-                    return;
-                }
-                let idx = edit_history.current_edit + 1;
-                if let Some(current_edit) = edits.get(idx) {
-                    editor.0.buffer_mut().lines.clear();
-                    for line in current_edit.lines.iter() {
-                        let mut line_text = String::new();
-                        let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                        for (text, attrs) in line.iter() {
-                            let start = line_text.len();
-                            line_text.push_str(text);
-                            let end = line_text.len();
-                            attrs_list.add_span(start..end, attrs.as_attrs());
-                        }
-                        editor.0.buffer_mut().lines.push(BufferLine::new(
-                            line_text,
-                            attrs_list,
-                            Shaping::Advanced,
-                        ));
-                    }
-                    editor.0.set_cursor(current_edit.cursor);
-                    editor.0.buffer_mut().set_redraw(true);
-                    edit_history.current_edit += 1;
-                }
-                *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-                return;
-            }
-            // undo
-            let requested_undo = command && keys.just_pressed(KeyCode::Z);
-
-            if !readonly && requested_undo {
-                let edits = &edit_history.edits;
-                if edits.is_empty() {
-                    return;
-                }
-                if edit_history.current_edit <= 1 {
-                    return;
-                }
-                let idx = edit_history.current_edit - 1;
-                if let Some(current_edit) = edits.get(idx) {
-                    editor.0.buffer_mut().lines.clear();
-                    for line in current_edit.lines.iter() {
-                        let mut line_text = String::new();
-                        let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                        for (text, attrs) in line.iter() {
-                            let start = line_text.len();
-                            line_text.push_str(text);
-                            let end = line_text.len();
-                            attrs_list.add_span(start..end, attrs.as_attrs());
-                        }
-                        editor.0.buffer_mut().lines.push(BufferLine::new(
-                            line_text,
-                            attrs_list,
-                            Shaping::Advanced,
-                        ));
-                    }
-                    editor.0.set_cursor(current_edit.cursor);
-                    editor.0.buffer_mut().set_redraw(true);
-                    edit_history.current_edit -= 1;
-                }
-                *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-                return;
-            }
-
-            let mut is_clipboard = false;
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                if let Ok(mut clipboard) = arboard::Clipboard::new() {
-                    if command && keys.just_pressed(KeyCode::C) {
-                        if let Some(text) = editor.0.copy_selection() {
-                            clipboard.set_text(text).unwrap();
-                            return;
-                        }
-                    }
-                    if !readonly && command && keys.just_pressed(KeyCode::X) {
-                        if let Some(text) = editor.0.copy_selection() {
-                            clipboard.set_text(text).unwrap();
-                            editor.0.delete_selection();
-                        }
-                        is_clipboard = true;
-                    }
-                    if !readonly && command && keys.just_pressed(KeyCode::V) {
-                        if let Ok(text) = clipboard.get_text() {
-                            for c in text.chars() {
-                                if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
-                                    if c == 0xA as char {
-                                        if max_lines.0 == 0
-                                            || editor.0.buffer().lines.len() < max_lines.0
-                                        {
-                                            editor.0.action(&mut font_system.0, Action::Insert(c));
-                                        }
-                                    } else {
-                                        editor.0.action(&mut font_system.0, Action::Insert(c));
-                                    }
-                                }
-                            }
-                        }
-                        is_clipboard = true;
-                    }
-                }
-            }
-            let (padding_x, padding_y) = match text_position {
-                CosmicTextPosition::Center => (
-                    get_x_offset_center(width * scale_factor, editor.0.buffer()),
-                    get_y_offset_center(height * scale_factor, editor.0.buffer()),
-                ),
-                CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-                CosmicTextPosition::Left { padding } => (
-                    *padding,
-                    get_y_offset_center(height * scale_factor, editor.0.buffer()),
-                ),
-            };
-            let point = |node_cursor_pos: (f32, f32)| {
-                (
-                    (node_cursor_pos.0 * scale_factor) as i32 - padding_x,
-                    (node_cursor_pos.1 * scale_factor) as i32 - padding_y,
-                )
-            };
-
-            if buttons.just_pressed(MouseButton::Left) {
-                if let Some(node_cursor_pos) = get_node_cursor_pos(
-                    primary_window,
-                    node_transform,
-                    (width, height),
-                    is_ui_node,
-                    camera,
-                    camera_transform,
-                ) {
-                    let (mut x, y) = point(node_cursor_pos);
-                    x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
-                    if shift {
-                        editor.0.action(&mut font_system.0, Action::Drag { x, y });
-                    } else {
-                        editor.0.action(&mut font_system.0, Action::Click { x, y });
-                    }
-                }
-                return;
-            }
-            if buttons.pressed(MouseButton::Left) {
-                if let Some(node_cursor_pos) = get_node_cursor_pos(
-                    primary_window,
-                    node_transform,
-                    (width, height),
-                    is_ui_node,
-                    camera,
-                    camera_transform,
-                ) {
-                    let (mut x, y) = point(node_cursor_pos);
-                    x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
-                    if active_editor.is_changed() && !shift {
-                        editor.0.action(&mut font_system.0, Action::Click { x, y });
-                    } else {
-                        editor.0.action(&mut font_system.0, Action::Drag { x, y });
-                    }
-                }
-                return;
-            }
-            for ev in scroll_evr.iter() {
-                match ev.unit {
-                    MouseScrollUnit::Line => {
-                        editor.0.action(
-                            &mut font_system.0,
-                            Action::Scroll {
-                                lines: -ev.y as i32,
-                            },
-                        );
-                    }
-                    MouseScrollUnit::Pixel => {
-                        let line_height = editor.0.buffer().metrics().line_height;
-                        editor.0.action(
-                            &mut font_system.0,
-                            Action::Scroll {
-                                lines: -(ev.y / line_height) as i32,
-                            },
-                        );
-                    }
-                }
-            }
-
-            if readonly {
-                return;
-            }
-
-            // fix for issue #8
-            if let Some(select) = editor.0.select_opt() {
-                if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
-                {
-                    editor.0.set_select_opt(None);
-                }
-            }
-
-            let mut is_edit = is_clipboard;
-            let mut is_return = false;
-            if keys.just_pressed(KeyCode::Return) {
-                is_return = true;
-                if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
-                    && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
-                {
-                    // to have new line on wasm rather than E
-                    is_edit = true;
-                    editor.0.action(&mut font_system.0, Action::Insert('\n'));
-                }
-            }
-
-            if !(is_clipboard || is_return) {
-                for char_ev in char_evr.iter() {
-                    is_edit = true;
-                    if *is_deleting {
-                        editor.0.action(&mut font_system.0, Action::Backspace);
-                    } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
-                        editor
-                            .0
-                            .action(&mut font_system.0, Action::Insert(char_ev.char));
-                    }
-                }
-            }
-
-            if !is_edit {
-                return;
-            }
-
-            evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-
-            if let Some(last_edit_duration) = *edits_duration {
-                if Duration::from_millis(now_ms as u64) - last_edit_duration
-                    > Duration::from_millis(150)
-                {
-                    save_edit_history(&mut editor.0, attrs, &mut edit_history);
-                    *edits_duration = Some(Duration::from_millis(now_ms as u64));
-                }
-            } else {
-                save_edit_history(&mut editor.0, attrs, &mut edit_history);
-                *edits_duration = Some(Duration::from_millis(now_ms as u64));
+        if mode == &CosmicMode::AutoHeight {
+            let text_size = get_text_size(editor.0.buffer());
+            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            if text_height > height {
+                height = text_height;
+                style.height = Val::Px(height);
             }
         }
+
+        redraw_buffer_common(
+            mode,
+            &mut x_offset,
+            &mut images,
+            &mut swash_cache_state,
+            &mut editor.0,
+            attrs,
+            background_image.0.clone(),
+            fill_color.0,
+            &mut img.texture,
+            text_position,
+            &mut font_system,
+            scale,
+            width,
+            height,
+        );
+    }
+}
+
+fn cosmic_edit_redraw_buffer(
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut images: ResMut<Assets<Image>>,
+    mut swash_cache_state: ResMut<SwashCacheState>,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,
+        &CosmicAttrs,
+        &mut Sprite,
+        &CosmicBackground,
+        &FillColor,
+        &CosmicTextPosition,
+        &mut Handle<Image>,
+        &mut XOffset,
+        &CosmicMode,
+    )>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    let primary_window = windows.single();
+    let scale = primary_window.scale_factor() as f32;
+
+    for (
+        mut editor,
+        attrs,
+        sprite,
+        background_image,
+        fill_color,
+        text_position,
+        mut handle,
+        mut x_offset,
+        mode,
+    ) in &mut cosmic_edit_query.iter_mut()
+    {
+        editor.0.shape_as_needed(&mut font_system.0);
+        if !editor.0.buffer().redraw() {
+            continue;
+        }
+        let width = sprite.custom_size.unwrap().x;
+        let mut height = sprite.custom_size.unwrap().y;
+        let widget_height = height * scale;
+        let widget_width = width * scale;
+
+        let (buffer_width, buffer_height) = match mode {
+            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
+            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32), // TODO: workaround
+            CosmicMode::Wrap => (widget_width, widget_height),
+        };
+        editor
+            .0
+            .buffer_mut()
+            .set_size(&mut font_system.0, buffer_width, buffer_height);
+
+        if mode == &CosmicMode::AutoHeight {
+            let text_size = get_text_size(editor.0.buffer());
+            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            if text_height > height {
+                height = text_height;
+                sprite.custom_size.unwrap().y = height;
+            }
+        }
+
+        redraw_buffer_common(
+            mode,
+            &mut x_offset,
+            &mut images,
+            &mut swash_cache_state,
+            &mut editor.0,
+            attrs,
+            background_image.0.clone(),
+            fill_color.0,
+            &mut handle,
+            text_position,
+            &mut font_system,
+            scale,
+            width,
+            height,
+        );
     }
 }
 
@@ -1314,280 +1132,6 @@ fn redraw_buffer_common(
     }
 
     editor.buffer_mut().set_redraw(false);
-}
-
-fn cosmic_edit_redraw_buffer_ui(
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut images: ResMut<Assets<Image>>,
-    mut swash_cache_state: ResMut<SwashCacheState>,
-    mut cosmic_edit_query: Query<(
-        &mut CosmicEditor,
-        &CosmicAttrs,
-        &CosmicBackground,
-        &FillColor,
-        &CosmicTextPosition,
-        &mut UiImage,
-        &Node,
-        &mut XOffset,
-        &mut Style,
-        &CosmicMode,
-    )>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    let primary_window = windows.single();
-    let scale = primary_window.scale_factor() as f32;
-
-    for (
-        mut editor,
-        attrs,
-        background_image,
-        fill_color,
-        text_position,
-        mut img,
-        node,
-        mut x_offset,
-        mut style,
-        mode,
-    ) in &mut cosmic_edit_query.iter_mut()
-    {
-        editor.0.shape_as_needed(&mut font_system.0);
-        if !editor.0.buffer().redraw() {
-            continue;
-        }
-
-        let width = node.size().x;
-        let mut height = node.size().y;
-        let widget_height = height * scale;
-        let widget_width = width * scale;
-
-        let (buffer_width, buffer_height) = match mode {
-            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
-            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32),
-            CosmicMode::Wrap => (widget_width, widget_height),
-        };
-        editor
-            .0
-            .buffer_mut()
-            .set_size(&mut font_system.0, buffer_width, buffer_height);
-
-        if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(editor.0.buffer());
-            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
-            if text_height > height {
-                height = text_height;
-                style.height = Val::Px(height);
-            }
-        }
-
-        redraw_buffer_common(
-            mode,
-            &mut x_offset,
-            &mut images,
-            &mut swash_cache_state,
-            &mut editor.0,
-            attrs,
-            background_image.0.clone(),
-            fill_color.0,
-            &mut img.texture,
-            text_position,
-            &mut font_system,
-            scale,
-            width,
-            height,
-        );
-    }
-}
-
-#[derive(Resource)]
-struct CursorBlinkTimer(pub Timer);
-
-#[derive(Resource)]
-struct CursorVisibility(pub bool);
-
-fn blink_cursor(
-    mut visibility: ResMut<CursorVisibility>,
-    mut timer: ResMut<CursorBlinkTimer>,
-    time: Res<Time>,
-    active_editor: ResMut<Focus>,
-    mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
-) {
-    if let Some(e) = active_editor.0 {
-        if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
-            timer.0.tick(time.delta());
-            if !timer.0.just_finished() && !active_editor.is_changed() {
-                return;
-            }
-            visibility.0 = !visibility.0;
-
-            // always start cursor visible on focus
-            if active_editor.is_changed() {
-                visibility.0 = true;
-                timer.0.set_elapsed(Duration::ZERO);
-            }
-
-            let mut cursor = editor.0.cursor();
-            let new_color = if visibility.0 {
-                None
-            } else {
-                Some(cosmic_text::Color::rgba(0, 0, 0, 0))
-            };
-            cursor.color = new_color;
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
-        }
-    }
-}
-
-fn freeze_cursor_blink(
-    mut visibility: ResMut<CursorVisibility>,
-    mut timer: ResMut<CursorBlinkTimer>,
-    active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
-    char_evr: EventReader<ReceivedCharacter>,
-    mut editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
-) {
-    let inputs = [
-        KeyCode::Left,
-        KeyCode::Right,
-        KeyCode::Up,
-        KeyCode::Down,
-        KeyCode::Back,
-        KeyCode::Return,
-    ];
-    if !keys.any_pressed(inputs) && char_evr.is_empty() {
-        return;
-    }
-
-    if let Some(e) = active_editor.0 {
-        if let Ok(mut editor) = editor_q.get_mut(e) {
-            timer.0.set_elapsed(Duration::ZERO);
-            visibility.0 = true;
-            let mut cursor = editor.0.cursor();
-            cursor.color = None;
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
-        }
-    }
-}
-
-fn hide_inactive_or_readonly_cursor(
-    mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
-    mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
-    active_editor: Res<Focus>,
-) {
-    for mut editor in &mut cosmic_editor_q_readonly.iter_mut() {
-        let mut cursor = editor.0.cursor();
-        cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
-        editor.0.set_cursor(cursor);
-        editor.0.buffer_mut().set_redraw(true);
-    }
-
-    if active_editor.is_changed() || active_editor.0.is_none() {
-        return;
-    }
-
-    for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
-        if e != active_editor.0.unwrap() {
-            let mut cursor = editor.0.cursor();
-            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
-        }
-    }
-}
-
-fn clear_inactive_selection(
-    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
-    active_editor: Res<Focus>,
-) {
-    if !active_editor.is_changed() || active_editor.0.is_none() {
-        return;
-    }
-
-    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.0.unwrap() {
-            editor.0.set_select_opt(None);
-        }
-    }
-}
-
-fn cosmic_edit_redraw_buffer(
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut images: ResMut<Assets<Image>>,
-    mut swash_cache_state: ResMut<SwashCacheState>,
-    mut cosmic_edit_query: Query<(
-        &mut CosmicEditor,
-        &CosmicAttrs,
-        &mut Sprite,
-        &CosmicBackground,
-        &FillColor,
-        &CosmicTextPosition,
-        &mut Handle<Image>,
-        &mut XOffset,
-        &CosmicMode,
-    )>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    let primary_window = windows.single();
-    let scale = primary_window.scale_factor() as f32;
-
-    for (
-        mut editor,
-        attrs,
-        sprite,
-        background_image,
-        fill_color,
-        text_position,
-        mut handle,
-        mut x_offset,
-        mode,
-    ) in &mut cosmic_edit_query.iter_mut()
-    {
-        editor.0.shape_as_needed(&mut font_system.0);
-        if !editor.0.buffer().redraw() {
-            continue;
-        }
-        let width = sprite.custom_size.unwrap().x;
-        let mut height = sprite.custom_size.unwrap().y;
-        let widget_height = height * scale;
-        let widget_width = width * scale;
-
-        let (buffer_width, buffer_height) = match mode {
-            CosmicMode::InfiniteLine => (f32::MAX, widget_height),
-            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32), // TODO: workaround
-            CosmicMode::Wrap => (widget_width, widget_height),
-        };
-        editor
-            .0
-            .buffer_mut()
-            .set_size(&mut font_system.0, buffer_width, buffer_height);
-
-        if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(editor.0.buffer());
-            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
-            if text_height > height {
-                height = text_height;
-                sprite.custom_size.unwrap().y = height;
-            }
-        }
-
-        redraw_buffer_common(
-            mode,
-            &mut x_offset,
-            &mut images,
-            &mut swash_cache_state,
-            &mut editor.0,
-            attrs,
-            background_image.0.clone(),
-            fill_color.0,
-            &mut handle,
-            text_position,
-            &mut font_system,
-            scale,
-            width,
-            height,
-        );
-    }
 }
 
 fn draw_pixel(
