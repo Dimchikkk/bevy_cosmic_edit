@@ -342,9 +342,6 @@ pub struct CosmicEditHistory {
     pub current_edit: usize,
 }
 
-#[derive(Resource)]
-struct ClickTimer(Timer);
-
 /// Resource struct that keeps track of the currently active editor entity.
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct Focus(pub Option<Entity>);
@@ -419,7 +416,6 @@ impl Plugin for CosmicEditPlugin {
                 swash_cache: SwashCache::new(),
             })
             .insert_resource(CosmicFontSystem(font_system))
-            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
             .add_event::<CosmicTextChanged>();
 
         match self.change_cursor {
