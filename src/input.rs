@@ -21,18 +21,15 @@ pub(crate) fn input_mouse(
     active_editor: Res<Focus>,                    // Both
     keys: Res<Input<KeyCode>>,                    // Both
     buttons: Res<Input<MouseButton>>,             // Mouse
-    mut cosmic_edit_query: Query<
-        (
-            &mut CosmicEditor,   // Both
-            &GlobalTransform,    // Mouse
-            &CosmicTextPosition, // Mouse, to determine point
-            Entity,              // Both
-            &XOffset,            // Mouse
-            Option<&mut Node>,
-            Option<&mut Sprite>,
-        ),
-        Without<ReadOnly>,
-    >,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,   // Both
+        &GlobalTransform,    // Mouse
+        &CosmicTextPosition, // Mouse, to determine point
+        Entity,              // Both
+        &XOffset,            // Mouse
+        Option<&mut Node>,
+        Option<&mut Sprite>,
+    )>,
     mut font_system: ResMut<CosmicFontSystem>,    // Both
     mut scroll_evr: EventReader<MouseWheel>,      // Mouse
     camera_q: Query<(&Camera, &GlobalTransform)>, // Mouse
@@ -149,33 +146,34 @@ pub(crate) fn input_mouse(
     }
 }
 
+/// Handles undo/redo, copy/paste and char input
 pub(crate) fn input_kb(
     active_editor: Res<Focus>,                    // Both
     keys: Res<Input<KeyCode>>,                    // Both
     mut char_evr: EventReader<ReceivedCharacter>, // Kb
-    mut cosmic_edit_query: Query<
-        (
-            &mut CosmicEditor,      // Both
-            &mut CosmicEditHistory, // Kb - Undo
-            &CosmicAttrs,           // Kb - Undo
-            &CosmicMaxLines,        // Kb
-            &CosmicMaxChars,        // Kb
-            Entity,                 // Both
-        ),
-        Without<ReadOnly>,
-    >,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,      // Both
+        &mut CosmicEditHistory, // Kb - Undo
+        &CosmicAttrs,           // Kb - Undo
+        &CosmicMaxLines,        // Kb
+        &CosmicMaxChars,        // Kb
+        Entity,                 // Both
+        Option<&ReadOnly>,
+    )>,
     mut evw_changed: EventWriter<CosmicTextChanged>, // Kb
     mut font_system: ResMut<CosmicFontSystem>,       // Both
     mut is_deleting: Local<bool>,                    // Kb
     mut edits_duration: Local<Option<Duration>>,     // Kb - Undo
     mut undoredo_duration: Local<Option<Duration>>,  // Kb - Undo
 ) {
-    for (mut editor, mut edit_history, attrs, max_lines, max_chars, entity) in
+    for (mut editor, mut edit_history, attrs, max_lines, max_chars, entity, readonly_opt) in
         &mut cosmic_edit_query.iter_mut()
     {
         if active_editor.0 != Some(entity) {
             continue;
         }
+
+        let readonly = readonly_opt.is_some();
 
         let attrs = &attrs.0;
 
@@ -324,7 +322,7 @@ pub(crate) fn input_kb(
 
         // redo
         #[cfg(not(target_os = "windows"))]
-        let requested_redo = command && shift && keys.just_pressed(KeyCode::Z);
+        let requested_redo = command && shift && keys.just_pressed(KeyCode::Z) && !readonly;
         #[cfg(target_os = "windows")]
         let requested_redo = command && keys.just_pressed(KeyCode::Y);
 
@@ -363,7 +361,7 @@ pub(crate) fn input_kb(
             return;
         }
         // undo
-        let requested_undo = command && keys.just_pressed(KeyCode::Z);
+        let requested_undo = command && keys.just_pressed(KeyCode::Z) && !readonly;
 
         if requested_undo {
             let edits = &edit_history.edits;
@@ -410,14 +408,14 @@ pub(crate) fn input_kb(
                         return;
                     }
                 }
-                if command && keys.just_pressed(KeyCode::X) {
+                if command && keys.just_pressed(KeyCode::X) && !readonly {
                     if let Some(text) = editor.0.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         editor.0.delete_selection();
                     }
                     is_clipboard = true;
                 }
-                if command && keys.just_pressed(KeyCode::V) {
+                if command && keys.just_pressed(KeyCode::V) && !readonly {
                     if let Ok(text) = clipboard.get_text() {
                         for c in text.chars() {
                             if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
@@ -447,7 +445,7 @@ pub(crate) fn input_kb(
 
         let mut is_edit = is_clipboard;
         let mut is_return = false;
-        if keys.just_pressed(KeyCode::Return) {
+        if keys.just_pressed(KeyCode::Return) && !readonly {
             is_return = true;
             if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
                 && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
@@ -458,7 +456,7 @@ pub(crate) fn input_kb(
             }
         }
 
-        if !(is_clipboard || is_return) {
+        if !(is_clipboard || is_return) && !readonly {
             for char_ev in char_evr.iter() {
                 is_edit = true;
                 if *is_deleting {
@@ -471,7 +469,7 @@ pub(crate) fn input_kb(
             }
         }
 
-        if !is_edit {
+        if !is_edit || readonly {
             return;
         }
 
