@@ -506,26 +506,19 @@ fn cosmic_editor_builder(
 }
 
 fn placeholder_builder(
-    mut added_editors: Query<
-        (Entity, &CosmicMetrics, &PlaceholderText, &PlaceholderAttrs),
-        Added<PlaceholderText>,
-    >,
+    mut added_editors: Query<(Entity, &CosmicMetrics), Added<PlaceholderText>>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut commands: Commands,
 ) {
-    for (entity, metrics, text, attrs) in added_editors.iter_mut() {
+    for (entity, metrics) in added_editors.iter_mut() {
         let buffer = Buffer::new(
             &mut font_system.0,
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
-        // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        let mut editor = CosmicEditor(Editor::new(buffer));
 
-        editor.set_text(text.0.clone(), attrs.0.clone(), &mut font_system.0);
+        let editor = CosmicEditor(Editor::new(buffer));
 
         commands.entity(entity).insert(Placeholder(editor));
-        commands.entity(entity).insert(CosmicEditHistory::default());
-        commands.entity(entity).insert(XOffset(None));
     }
 }
 
@@ -951,6 +944,8 @@ fn cosmic_edit_redraw_buffer_ui(
             let mut cursor = placeholder.cursor();
             cursor.index = 0;
             placeholder.set_cursor(cursor);
+            placeholder.buffer_mut().set_redraw(true);
+            *x_offset = XOffset(None);
             placeholder
         } else {
             &mut editor.0
