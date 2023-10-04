@@ -406,37 +406,43 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        app.add_systems(First, (cosmic_editor_builder, placeholder_builder))
-            .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
-            .add_systems(
-                Update,
-                (
-                    input_kb,
-                    input_mouse,
-                    blink_cursor,
-                    freeze_cursor_blink,
-                    hide_inactive_or_readonly_cursor,
-                    clear_inactive_selection,
-                ),
-            )
-            .add_systems(
-                PostUpdate,
-                (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
-                    .after(TransformSystem::TransformPropagate),
-            )
-            .add_systems(Last, on_scale_factor_change)
-            .init_resource::<Focus>()
-            .insert_resource(CursorBlinkTimer(Timer::from_seconds(
-                0.53,
-                TimerMode::Repeating,
-            )))
-            .insert_resource(CursorVisibility(true))
-            .insert_resource(SwashCacheState {
-                swash_cache: SwashCache::new(),
-            })
-            .insert_resource(CosmicFontSystem(font_system))
-            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
-            .add_event::<CosmicTextChanged>();
+        app.add_systems(
+            First,
+            (
+                cosmic_editor_builder,
+                placeholder_builder,
+                on_scale_factor_change,
+            ),
+        )
+        .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
+        .add_systems(
+            Update,
+            (
+                input_kb,
+                input_mouse,
+                blink_cursor,
+                freeze_cursor_blink,
+                hide_inactive_or_readonly_cursor,
+                clear_inactive_selection,
+            ),
+        )
+        .add_systems(
+            PostUpdate,
+            (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
+                .after(TransformSystem::TransformPropagate),
+        )
+        .init_resource::<Focus>()
+        .insert_resource(CursorBlinkTimer(Timer::from_seconds(
+            0.53,
+            TimerMode::Repeating,
+        )))
+        .insert_resource(CursorVisibility(true))
+        .insert_resource(SwashCacheState {
+            swash_cache: SwashCache::new(),
+        })
+        .insert_resource(CosmicFontSystem(font_system))
+        .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
+        .add_event::<CosmicTextChanged>();
 
         match self.change_cursor {
             CursorConfig::Default => {
