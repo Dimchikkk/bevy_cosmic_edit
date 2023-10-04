@@ -387,7 +387,7 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        app.add_systems(First, cosmic_editor_builder)
+        app.add_systems(First, (cosmic_editor_builder, on_scale_factor_change))
             .add_systems(PreUpdate, update_buffer_text)
             .add_systems(
                 Update,
@@ -405,7 +405,6 @@ impl Plugin for CosmicEditPlugin {
                 (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
                     .after(TransformSystem::TransformPropagate),
             )
-            .add_systems(Last, on_scale_factor_change)
             .init_resource::<Focus>()
             .insert_resource(CursorBlinkTimer(Timer::from_seconds(
                 0.53,
@@ -499,18 +498,20 @@ fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem
 
 fn on_scale_factor_change(
     mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
-    mut cosmic_query: Query<(&mut CosmicEditor, &mut CosmicMetrics)>,
+    mut cosmic_query: Query<(&mut CosmicEditor, &CosmicMetrics, &mut XOffset)>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     if !scale_factor_changed.is_empty() {
         let new_scale_factor = scale_factor_changed.iter().last().unwrap().scale_factor as f32;
-        for (mut editor, metrics) in &mut cosmic_query.iter_mut() {
+        for (mut editor, metrics, mut x_offset) in &mut cosmic_query.iter_mut() {
             let font_system = &mut font_system.0;
             let metrics =
                 Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
 
             editor.0.buffer_mut().set_metrics(font_system, metrics);
             editor.0.buffer_mut().set_redraw(true);
+
+            *x_offset = XOffset(None);
         }
     }
 }
@@ -861,15 +862,21 @@ fn cosmic_edit_redraw_buffer_ui(
             continue;
         }
 
-        let width = node.size().x;
-        let mut height = node.size().y;
+        let width = node.size().x.ceil();
+        let mut height = node.size().y.ceil();
         let widget_height = height * scale;
         let widget_width = width * scale;
 
+        let padding_x = match text_position {
+            CosmicTextPosition::Center => 0.,
+            CosmicTextPosition::TopLeft { padding } => *padding as f32,
+            CosmicTextPosition::Left { padding } => *padding as f32,
+        };
+
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, widget_height),
-            CosmicMode::AutoHeight => (widget_width, (i32::MAX / 2) as f32),
-            CosmicMode::Wrap => (widget_width, widget_height),
+            CosmicMode::AutoHeight => (widget_width - padding_x, (i32::MAX / 2) as f32),
+            CosmicMode::Wrap => (widget_width - padding_x, widget_height),
         };
         editor
             .0
@@ -878,9 +885,9 @@ fn cosmic_edit_redraw_buffer_ui(
 
         if mode == &CosmicMode::AutoHeight {
             let text_size = get_text_size(editor.0.buffer());
-            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            let text_height = (text_size.1 + 30.) / primary_window.scale_factor() as f32;
             if text_height > height {
-                height = text_height;
+                height = text_height.ceil();
                 style.height = Val::Px(height);
             }
         }
@@ -940,8 +947,8 @@ fn cosmic_edit_redraw_buffer(
         if !editor.0.buffer().redraw() {
             continue;
         }
-        let width = sprite.custom_size.unwrap().x;
-        let mut height = sprite.custom_size.unwrap().y;
+        let width = sprite.custom_size.unwrap().x.ceil();
+        let mut height = sprite.custom_size.unwrap().y.ceil();
         let widget_height = height * scale;
         let widget_width = width * scale;
 
@@ -957,9 +964,9 @@ fn cosmic_edit_redraw_buffer(
 
         if mode == &CosmicMode::AutoHeight {
             let text_size = get_text_size(editor.0.buffer());
-            let text_height = (text_size.1 / primary_window.scale_factor() as f32) + 30.;
+            let text_height = (text_size.1 + 30.) / primary_window.scale_factor() as f32;
             if text_height > height {
-                height = text_height;
+                height = text_height.ceil();
                 sprite.custom_size.unwrap().y = height;
             }
         }
