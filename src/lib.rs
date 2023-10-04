@@ -23,7 +23,7 @@ use cosmic_text::{
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
-use input::{input_kb, input_mouse};
+use input::{input_kb, input_mouse, ClickTimer};
 
 #[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
@@ -416,6 +416,7 @@ impl Plugin for CosmicEditPlugin {
                 swash_cache: SwashCache::new(),
             })
             .insert_resource(CosmicFontSystem(font_system))
+            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
             .add_event::<CosmicTextChanged>();
 
         match self.change_cursor {

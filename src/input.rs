@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use bevy::{
-    input::mouse::{MouseScrollUnit, MouseWheel},
+    input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
     window::PrimaryWindow,
 };
@@ -16,26 +16,48 @@ use crate::{
     XOffset,
 };
 
+#[derive(Resource)]
+pub struct ClickTimer(pub Timer);
+
 pub(crate) fn input_mouse(
-    windows: Query<&Window, With<PrimaryWindow>>, // Mouse
-    active_editor: Res<Focus>,                    // Both
-    keys: Res<Input<KeyCode>>,                    // Both
-    buttons: Res<Input<MouseButton>>,             // Mouse
+    windows: Query<&Window, With<PrimaryWindow>>,
+    active_editor: Res<Focus>,
+    keys: Res<Input<KeyCode>>,
+    buttons: Res<Input<MouseButton>>,
     mut cosmic_edit_query: Query<(
-        &mut CosmicEditor,   // Both
-        &GlobalTransform,    // Mouse
-        &CosmicTextPosition, // Mouse, to determine point
-        Entity,              // Both
-        &XOffset,            // Mouse
+        &mut CosmicEditor,
+        &GlobalTransform,
+        &CosmicTextPosition,
+        Entity,
+        &XOffset,
         Option<&mut Node>,
         Option<&mut Sprite>,
     )>,
-    mut font_system: ResMut<CosmicFontSystem>,    // Both
-    mut scroll_evr: EventReader<MouseWheel>,      // Mouse
-    camera_q: Query<(&Camera, &GlobalTransform)>, // Mouse
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut scroll_evr: EventReader<MouseWheel>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    mut click_timer: ResMut<ClickTimer>,
+    mut click_count: Local<usize>,
+    time: Res<Time>,
+    evr_mouse_motion: EventReader<MouseMotion>,
 ) {
+    click_timer.0.tick(time.delta());
+
     if active_editor.0.is_none() {
         return;
+    }
+
+    if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
+        *click_count = 0;
+    }
+
+    if buttons.just_pressed(MouseButton::Left) {
+        click_timer.0.reset();
+        *click_count += 1;
+    }
+
+    if *click_count > 3 {
+        *click_count = 0;
     }
 
     let primary_window = windows.single();
@@ -98,12 +120,32 @@ pub(crate) fn input_mouse(
                 if shift {
                     editor.0.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
-                    editor.0.action(&mut font_system.0, Action::Click { x, y });
+                    match *click_count {
+                        1 => {
+                            editor.0.action(&mut font_system.0, Action::Click { x, y });
+                        }
+                        2 => {
+                            // select word
+                            editor.0.action(&mut font_system.0, Action::LeftWord);
+                            let cursor = editor.0.cursor();
+                            editor.0.set_select_opt(Some(cursor));
+                            editor.0.action(&mut font_system.0, Action::RightWord);
+                        }
+                        3 => {
+                            // select paragraph
+                            editor.0.action(&mut font_system.0, Action::ParagraphStart);
+                            let cursor = editor.0.cursor();
+                            editor.0.set_select_opt(Some(cursor));
+                            editor.0.action(&mut font_system.0, Action::ParagraphEnd);
+                        }
+                        _ => {}
+                    }
                 }
             }
             return;
         }
-        if buttons.pressed(MouseButton::Left) {
+
+        if buttons.pressed(MouseButton::Left) && *click_count == 0 {
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
                 node_transform,
@@ -122,6 +164,7 @@ pub(crate) fn input_mouse(
             }
             return;
         }
+
         for ev in scroll_evr.iter() {
             match ev.unit {
                 MouseScrollUnit::Line => {
@@ -148,23 +191,23 @@ pub(crate) fn input_mouse(
 
 /// Handles undo/redo, copy/paste and char input
 pub(crate) fn input_kb(
-    active_editor: Res<Focus>,                    // Both
-    keys: Res<Input<KeyCode>>,                    // Both
-    mut char_evr: EventReader<ReceivedCharacter>, // Kb
+    active_editor: Res<Focus>,
+    keys: Res<Input<KeyCode>>,
+    mut char_evr: EventReader<ReceivedCharacter>,
     mut cosmic_edit_query: Query<(
-        &mut CosmicEditor,      // Both
-        &mut CosmicEditHistory, // Kb - Undo
-        &CosmicAttrs,           // Kb - Undo
-        &CosmicMaxLines,        // Kb
-        &CosmicMaxChars,        // Kb
-        Entity,                 // Both
+        &mut CosmicEditor,
+        &mut CosmicEditHistory,
+        &CosmicAttrs,
+        &CosmicMaxLines,
+        &CosmicMaxChars,
+        Entity,
         Option<&ReadOnly>,
     )>,
-    mut evw_changed: EventWriter<CosmicTextChanged>, // Kb
-    mut font_system: ResMut<CosmicFontSystem>,       // Both
-    mut is_deleting: Local<bool>,                    // Kb
-    mut edits_duration: Local<Option<Duration>>,     // Kb - Undo
-    mut undoredo_duration: Local<Option<Duration>>,  // Kb - Undo
+    mut evw_changed: EventWriter<CosmicTextChanged>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut is_deleting: Local<bool>,
+    mut edits_duration: Local<Option<Duration>>,
+    mut undoredo_duration: Local<Option<Duration>>,
 ) {
     for (mut editor, mut edit_history, attrs, max_lines, max_chars, entity, readonly_opt) in
         &mut cosmic_edit_query.iter_mut()
@@ -436,13 +479,6 @@ pub(crate) fn input_kb(
             }
         }
 
-        // fix for issue #8
-        if let Some(select) = editor.0.select_opt() {
-            if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index {
-                editor.0.set_select_opt(None);
-            }
-        }
-
         let mut is_edit = is_clipboard;
         let mut is_return = false;
         if keys.just_pressed(KeyCode::Return) && !readonly {
@@ -460,6 +496,14 @@ pub(crate) fn input_kb(
             for char_ev in char_evr.iter() {
                 is_edit = true;
                 if *is_deleting {
+                    // fix for issue #8
+                    if let Some(select) = editor.0.select_opt() {
+                        if editor.0.cursor().line == select.line
+                            && editor.0.cursor().index == select.index
+                        {
+                            editor.0.set_select_opt(None);
+                        }
+                    }
                     editor.0.action(&mut font_system.0, Action::Backspace);
                 } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
                     editor
