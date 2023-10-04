@@ -2,12 +2,13 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
 
 fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: String) -> Entity {
-    let attrs = AttrsOwned::new(Attrs::new().color(CosmicColor::rgb(0, 0, 0)));
+    let attrs =
+        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
     commands
         .spawn(CosmicEditUiBundle {
-            border_color: Color::LIME_GREEN.into(),
+            border_color: Color::hex("#ededed").unwrap().into(),
             style: Style {
-                border: UiRect::all(Val::Px(4.)),
+                border: UiRect::all(Val::Px(3.)),
                 width: Val::Percent(20.),
                 height: Val::Px(50.),
                 left: Val::Percent(40.),
@@ -16,8 +17,8 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
             },
             cosmic_attrs: CosmicAttrs(attrs.clone()),
             cosmic_metrics: CosmicMetrics {
-                font_size: 16.,
-                line_height: 16.,
+                font_size: 18.,
+                line_height: 18. * 1.2,
                 scale_factor,
             },
             max_lines: CosmicMaxLines(1),
@@ -30,13 +31,14 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
 }
 
 fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: String) -> Entity {
-    let attrs = AttrsOwned::new(Attrs::new().color(CosmicColor::rgb(0, 0, 0)));
+    let attrs =
+        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
     commands
         .spawn((
             CosmicEditUiBundle {
-                border_color: Color::LIME_GREEN.into(),
+                border_color: Color::hex("#ededed").unwrap().into(),
                 style: Style {
-                    border: UiRect::all(Val::Px(4.)),
+                    border: UiRect::all(Val::Px(3.)),
                     width: Val::Percent(20.),
                     height: Val::Px(50.),
                     left: Val::Percent(40.),
@@ -45,8 +47,8 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 },
                 cosmic_attrs: CosmicAttrs(attrs.clone()),
                 cosmic_metrics: CosmicMetrics {
-                    font_size: 16.,
-                    line_height: 16.,
+                    font_size: 18.,
+                    line_height: 18. * 1.2,
                     scale_factor,
                 },
                 text_setter: CosmicText::OneStyle(text),
@@ -90,6 +92,15 @@ fn handle_enter(
             };
         }
     }
+}
+
+fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
+    cosmic_text::Color::rgba(
+        (color.r() * 255.) as u8,
+        (color.g() * 255.) as u8,
+        (color.b() * 255.) as u8,
+        (color.a() * 255.) as u8,
+    )
 }
 
 fn main() {
