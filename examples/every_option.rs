@@ -47,6 +47,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             max_lines: CosmicMaxLines(1),
             text_setter: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
             mode: CosmicMode::Wrap,
+            placeholder_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
         })
         .id();
 
