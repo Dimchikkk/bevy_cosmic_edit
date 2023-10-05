@@ -780,7 +780,7 @@ fn blink_cursor(
     time: Res<Time>,
     active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
-    mut placeholder_editor_q: Query<&mut Placeholder>,
+    mut placeholder_editor_q: Query<&mut Placeholder, Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.0 {
         timer.0.tick(time.delta());
@@ -853,7 +853,7 @@ fn freeze_cursor_blink(
 
 fn hide_inactive_or_readonly_cursor(
     mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
-    mut cosmic_editor_q_placeholder: Query<(Entity, &mut Placeholder)>,
+    mut cosmic_editor_q_placeholder: Query<(Entity, &mut Placeholder, Option<&ReadOnly>)>,
     mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
     active_editor: Res<Focus>,
 ) {
@@ -868,8 +868,8 @@ fn hide_inactive_or_readonly_cursor(
         return;
     }
 
-    for (e, mut editor) in &mut cosmic_editor_q_placeholder.iter_mut() {
-        if e != active_editor.0.unwrap() {
+    for (e, mut editor, readonly_opt) in &mut cosmic_editor_q_placeholder.iter_mut() {
+        if e != active_editor.0.unwrap() || readonly_opt.is_some() {
             let editor = &mut editor.0;
             let mut cursor = editor.0.cursor();
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
