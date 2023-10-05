@@ -30,6 +30,7 @@ use crate::{
 pub struct ClickTimer(pub Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
+#[allow(dead_code)]
 pub struct WasmPaste {
     text: String,
     entity: Entity,
