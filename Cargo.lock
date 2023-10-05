@@ -393,10 +393,14 @@ dependencies = [
  "arboard",
  "bevy",
  "cosmic-text",
+ "crossbeam-channel",
  "image",
  "insta",
  "js-sys",
  "sys-locale",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
