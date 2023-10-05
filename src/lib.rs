@@ -192,6 +192,20 @@ pub struct CosmicMaxChars(pub usize);
 #[derive(Component, Default)]
 pub struct FillColor(pub Color);
 
+#[derive(Component)]
+pub struct Placeholder(pub CosmicEditor);
+
+#[derive(Component, Default)]
+pub struct PlaceholderText(pub CosmicText);
+
+#[derive(Component)]
+pub struct PlaceholderAttrs(pub AttrsOwned);
+
+impl Default for PlaceholderAttrs {
+    fn default() -> Self {
+        Self(AttrsOwned::new(Attrs::new()))
+    }
+}
 #[derive(Bundle)]
 pub struct CosmicEditUiBundle {
     // Bevy UI bits
@@ -247,6 +261,9 @@ pub struct CosmicEditUiBundle {
     pub text_setter: CosmicText,
     /// Text input mode
     pub mode: CosmicMode,
+    /// Setting this will update the placeholder text
+    pub placeholder_setter: PlaceholderText,
+    pub placeholder_attrs: PlaceholderAttrs,
 }
 
 impl Default for CosmicEditUiBundle {
@@ -274,6 +291,8 @@ impl Default for CosmicEditUiBundle {
             text_setter: Default::default(),
             mode: Default::default(),
             background_color: BackgroundColor(Color::WHITE),
+            placeholder_setter: Default::default(),
+            placeholder_attrs: Default::default(),
         }
     }
 }
@@ -389,36 +408,43 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        app.add_systems(First, (cosmic_editor_builder, on_scale_factor_change))
-            .add_systems(PreUpdate, update_buffer_text)
-            .add_systems(
-                Update,
-                (
-                    input_kb,
-                    input_mouse,
-                    blink_cursor,
-                    freeze_cursor_blink,
-                    hide_inactive_or_readonly_cursor,
-                    clear_inactive_selection,
-                ),
-            )
-            .add_systems(
-                PostUpdate,
-                (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
-                    .after(TransformSystem::TransformPropagate),
-            )
-            .init_resource::<Focus>()
-            .insert_resource(CursorBlinkTimer(Timer::from_seconds(
-                0.53,
-                TimerMode::Repeating,
-            )))
-            .insert_resource(CursorVisibility(true))
-            .insert_resource(SwashCacheState {
-                swash_cache: SwashCache::new(),
-            })
-            .insert_resource(CosmicFontSystem(font_system))
-            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
-            .add_event::<CosmicTextChanged>();
+        app.add_systems(
+            First,
+            (
+                cosmic_editor_builder,
+                placeholder_builder,
+                on_scale_factor_change,
+            ),
+        )
+        .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
+        .add_systems(
+            Update,
+            (
+                input_kb,
+                input_mouse,
+                blink_cursor,
+                freeze_cursor_blink,
+                hide_inactive_or_readonly_cursor,
+                clear_inactive_selection,
+            ),
+        )
+        .add_systems(
+            PostUpdate,
+            (cosmic_edit_redraw_buffer_ui, cosmic_edit_redraw_buffer)
+                .after(TransformSystem::TransformPropagate),
+        )
+        .init_resource::<Focus>()
+        .insert_resource(CursorBlinkTimer(Timer::from_seconds(
+            0.53,
+            TimerMode::Repeating,
+        )))
+        .insert_resource(CursorVisibility(true))
+        .insert_resource(SwashCacheState {
+            swash_cache: SwashCache::new(),
+        })
+        .insert_resource(CosmicFontSystem(font_system))
+        .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
+        .add_event::<CosmicTextChanged>();
 
         match self.change_cursor {
             CursorConfig::Default => {
@@ -485,6 +511,23 @@ fn cosmic_editor_builder(
         commands.entity(entity).insert(CosmicEditor(editor));
         commands.entity(entity).insert(CosmicEditHistory::default());
         commands.entity(entity).insert(XOffset(None));
+    }
+}
+
+fn placeholder_builder(
+    mut added_editors: Query<(Entity, &CosmicMetrics), Added<PlaceholderText>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut commands: Commands,
+) {
+    for (entity, metrics) in added_editors.iter_mut() {
+        let buffer = Buffer::new(
+            &mut font_system.0,
+            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
+        );
+
+        let editor = CosmicEditor(Editor::new(buffer));
+
+        commands.entity(entity).insert(Placeholder(editor));
     }
 }
 
@@ -578,6 +621,21 @@ fn update_buffer_text(
     for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
         let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
         editor.set_text(text, attrs.0.clone(), &mut font_system.0);
+    }
+}
+
+/// Updates editor buffer when text component changes
+fn update_placeholder_text(
+    mut editor_q: Query<
+        (&mut Placeholder, &mut PlaceholderText, &PlaceholderAttrs),
+        Changed<PlaceholderText>,
+    >,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut editor, text, attrs) in editor_q.iter_mut() {
+        editor
+            .0
+            .set_text(text.0.to_owned(), attrs.0.clone(), &mut font_system.0);
     }
 }
 
@@ -731,30 +789,41 @@ fn blink_cursor(
     time: Res<Time>,
     active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
+    mut placeholder_editor_q: Query<&mut Placeholder, Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.0 {
+        timer.0.tick(time.delta());
+        if !timer.0.just_finished() && !active_editor.is_changed() {
+            return;
+        }
+        visibility.0 = !visibility.0;
+
+        // always start cursor visible on focus
+        if active_editor.is_changed() {
+            visibility.0 = true;
+            timer.0.set_elapsed(Duration::ZERO);
+        }
+
+        let new_color = if visibility.0 {
+            None
+        } else {
+            Some(cosmic_text::Color::rgba(0, 0, 0, 0))
+        };
+
         if let Ok(mut editor) = cosmic_editor_q.get_mut(e) {
-            timer.0.tick(time.delta());
-            if !timer.0.just_finished() && !active_editor.is_changed() {
-                return;
-            }
-            visibility.0 = !visibility.0;
-
-            // always start cursor visible on focus
-            if active_editor.is_changed() {
-                visibility.0 = true;
-                timer.0.set_elapsed(Duration::ZERO);
-            }
-
-            let mut cursor = editor.0.cursor();
-            let new_color = if visibility.0 {
-                None
-            } else {
-                Some(cosmic_text::Color::rgba(0, 0, 0, 0))
-            };
+            let editor = &mut editor.0;
+            let mut cursor = editor.cursor();
             cursor.color = new_color;
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
+            editor.set_cursor(cursor);
+            editor.buffer_mut().set_redraw(true);
+        }
+
+        if let Ok(mut placeholder) = placeholder_editor_q.get_mut(e) {
+            let placeholder = &mut placeholder.0 .0;
+            let mut cursor_p = placeholder.cursor();
+            cursor_p.color = new_color;
+            placeholder.set_cursor(cursor_p);
+            placeholder.buffer_mut().set_redraw(true);
         }
     }
 }
@@ -793,6 +862,7 @@ fn freeze_cursor_blink(
 
 fn hide_inactive_or_readonly_cursor(
     mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
+    mut cosmic_editor_q_placeholder: Query<(Entity, &mut Placeholder, Option<&ReadOnly>)>,
     mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
     active_editor: Res<Focus>,
 ) {
@@ -805,6 +875,16 @@ fn hide_inactive_or_readonly_cursor(
 
     if active_editor.is_changed() || active_editor.0.is_none() {
         return;
+    }
+
+    for (e, mut editor, readonly_opt) in &mut cosmic_editor_q_placeholder.iter_mut() {
+        if e != active_editor.0.unwrap() || readonly_opt.is_some() {
+            let editor = &mut editor.0;
+            let mut cursor = editor.0.cursor();
+            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+            editor.0.set_cursor(cursor);
+            editor.0.buffer_mut().set_redraw(true);
+        }
     }
 
     for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
@@ -838,6 +918,7 @@ fn cosmic_edit_redraw_buffer_ui(
     mut swash_cache_state: ResMut<SwashCacheState>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
+        Option<&mut Placeholder>,
         &CosmicAttrs,
         &CosmicBackground,
         &FillColor,
@@ -855,6 +936,7 @@ fn cosmic_edit_redraw_buffer_ui(
 
     for (
         mut editor,
+        mut placeholder_opt,
         attrs,
         background_image,
         fill_color,
@@ -866,8 +948,20 @@ fn cosmic_edit_redraw_buffer_ui(
         mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        editor.0.shape_as_needed(&mut font_system.0);
-        if !editor.0.buffer().redraw() {
+        let editor = if editor.get_text().is_empty() && placeholder_opt.is_some() {
+            let placeholder = &mut placeholder_opt.as_mut().unwrap().0 .0;
+            let mut cursor = placeholder.cursor();
+            cursor.index = 0;
+            placeholder.set_cursor(cursor);
+            placeholder.buffer_mut().set_redraw(true);
+            *x_offset = XOffset(None);
+            placeholder
+        } else {
+            &mut editor.0
+        };
+
+        editor.shape_as_needed(&mut font_system.0);
+        if !editor.buffer().redraw() {
             continue;
         }
 
@@ -888,12 +982,11 @@ fn cosmic_edit_redraw_buffer_ui(
             CosmicMode::Wrap => (widget_width - padding_x, widget_height),
         };
         editor
-            .0
             .buffer_mut()
             .set_size(&mut font_system.0, buffer_width, buffer_height);
 
         if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(editor.0.buffer());
+            let text_size = get_text_size(editor.buffer());
             let text_height = (text_size.1 + 30.) / primary_window.scale_factor() as f32;
             if text_height > height {
                 height = text_height.ceil();
@@ -906,7 +999,7 @@ fn cosmic_edit_redraw_buffer_ui(
             &mut x_offset,
             &mut images,
             &mut swash_cache_state,
-            &mut editor.0,
+            editor,
             attrs,
             background_image.0.clone(),
             fill_color.0,
