@@ -4,6 +4,8 @@ use bevy_cosmic_edit::*;
 fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: String) -> Entity {
     let attrs =
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
+    let placeholder_attrs =
+        AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("#e6e6e6").unwrap())));
     commands
         .spawn(CosmicEditUiBundle {
             border_color: Color::hex("#ededed").unwrap().into(),
@@ -25,6 +27,8 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
             text_setter: CosmicText::OneStyle(text),
             text_position: CosmicTextPosition::Left { padding: 20 },
             mode: CosmicMode::InfiniteLine,
+            placeholder_setter: PlaceholderText(CosmicText::OneStyle("Type something...".into())),
+            placeholder_attrs: PlaceholderAttrs(placeholder_attrs.clone()),
             ..default()
         })
         .id()
