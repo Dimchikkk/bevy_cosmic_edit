@@ -578,7 +578,7 @@ pub(crate) fn input_kb(
                         }
                     }
                     editor.0.action(&mut font_system.0, Action::Backspace);
-                } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                } else if !command && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0) {
                     editor
                         .0
                         .action(&mut font_system.0, Action::Insert(char_ev.char));
