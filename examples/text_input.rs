@@ -1,4 +1,7 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    prelude::*,
+    window::{PresentMode, PrimaryWindow},
+};
 use bevy_cosmic_edit::*;
 
 fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: String) -> Entity {
@@ -109,7 +112,20 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "bevy • text_input".into(),
+                        present_mode: PresentMode::AutoVsync,
+                        fit_canvas_to_parent: true,
+                        prevent_default_event_handling: false,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .build(),
+        )
         .add_plugins(CosmicEditPlugin::default())
         .add_systems(Update, handle_enter)
         .add_systems(Startup, setup)
