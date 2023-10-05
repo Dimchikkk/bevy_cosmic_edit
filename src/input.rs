@@ -254,6 +254,19 @@ pub(crate) fn input_kb(
         #[cfg(not(target_os = "macos"))]
         let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
 
+        #[cfg(target_arch = "wasm32")]
+        let command = if web_sys::window()
+            .unwrap()
+            .navigator()
+            .user_agent()
+            .unwrap_or("NoUA".into())
+            .contains("Macintosh")
+        {
+            keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight])
+        } else {
+            command
+        };
+
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         #[cfg(target_os = "macos")]
@@ -510,6 +523,7 @@ pub(crate) fn input_kb(
             if command && keys.just_pressed(KeyCode::C) {
                 if let Some(text) = editor.0.copy_selection() {
                     write_clipboard_wasm(text.as_str());
+                    return;
                 }
             }
 
