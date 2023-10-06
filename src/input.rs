@@ -249,6 +249,19 @@ pub(crate) fn input_kb(
 
         let command = keypress_command(&keys);
 
+        #[cfg(target_arch = "wasm32")]
+        let command = if web_sys::window()
+            .unwrap()
+            .navigator()
+            .user_agent()
+            .unwrap_or("NoUA".into())
+            .contains("Macintosh")
+        {
+            keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight])
+        } else {
+            command
+        };
+
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         #[cfg(target_os = "macos")]
