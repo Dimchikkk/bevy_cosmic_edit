@@ -232,7 +232,6 @@ pub(crate) fn input_kb(
     mut font_system: ResMut<CosmicFontSystem>,
     mut is_deleting: Local<bool>,
     mut edits_duration: Local<Option<Duration>>,
-    mut undoredo_duration: Local<Option<Duration>>,
     _channel: Option<Res<WasmPasteAsyncChannel>>,
 ) {
     for (mut editor, mut edit_history, attrs, max_lines, max_chars, entity, readonly_opt) in
@@ -248,11 +247,7 @@ pub(crate) fn input_kb(
 
         let now_ms = get_timestamp();
 
-        #[cfg(target_os = "macos")]
-        let command = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
-
-        #[cfg(not(target_os = "macos"))]
-        let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+        let command = keypress_command(&keys);
 
         #[cfg(target_arch = "wasm32")]
         let command = if web_sys::window()
@@ -402,84 +397,6 @@ pub(crate) fn input_kb(
             return;
         }
 
-        // redo
-        #[cfg(not(target_os = "windows"))]
-        let requested_redo = command && shift && keys.just_pressed(KeyCode::Z) && !readonly;
-        #[cfg(target_os = "windows")]
-        let requested_redo = command && keys.just_pressed(KeyCode::Y);
-
-        if requested_redo {
-            let edits = &edit_history.edits;
-            if edits.is_empty() {
-                return;
-            }
-            if edit_history.current_edit == edits.len() - 1 {
-                return;
-            }
-            let idx = edit_history.current_edit + 1;
-            if let Some(current_edit) = edits.get(idx) {
-                editor.0.buffer_mut().lines.clear();
-                for line in current_edit.lines.iter() {
-                    let mut line_text = String::new();
-                    let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                    for (text, attrs) in line.iter() {
-                        let start = line_text.len();
-                        line_text.push_str(text);
-                        let end = line_text.len();
-                        attrs_list.add_span(start..end, attrs.as_attrs());
-                    }
-                    editor.0.buffer_mut().lines.push(BufferLine::new(
-                        line_text,
-                        attrs_list,
-                        Shaping::Advanced,
-                    ));
-                }
-                editor.0.set_cursor(current_edit.cursor);
-                editor.0.buffer_mut().set_redraw(true);
-                edit_history.current_edit += 1;
-            }
-            *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-            evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-            return;
-        }
-        // undo
-        let requested_undo = command && keys.just_pressed(KeyCode::Z) && !readonly;
-
-        if requested_undo {
-            let edits = &edit_history.edits;
-            if edits.is_empty() {
-                return;
-            }
-            if edit_history.current_edit == 0 {
-                return;
-            }
-            let idx = edit_history.current_edit - 1;
-            if let Some(current_edit) = edits.get(idx) {
-                editor.0.buffer_mut().lines.clear();
-                for line in current_edit.lines.iter() {
-                    let mut line_text = String::new();
-                    let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                    for (text, attrs) in line.iter() {
-                        let start = line_text.len();
-                        line_text.push_str(text);
-                        let end = line_text.len();
-                        attrs_list.add_span(start..end, attrs.as_attrs());
-                    }
-                    editor.0.buffer_mut().lines.push(BufferLine::new(
-                        line_text,
-                        attrs_list,
-                        Shaping::Advanced,
-                    ));
-                }
-                editor.0.set_cursor(current_edit.cursor);
-                editor.0.buffer_mut().set_redraw(true);
-                edit_history.current_edit -= 1;
-            }
-            *undoredo_duration = Some(Duration::from_millis(now_ms as u64));
-            evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-            return;
-        }
-
         let mut is_clipboard = false;
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -586,7 +503,12 @@ pub(crate) fn input_kb(
             }
         }
 
-        if !is_edit || readonly {
+        // skip event + history if undo/redo keys pressed
+
+        let requested_redo = keypress_redo(&keys);
+        let requested_undo = command && keys.just_pressed(KeyCode::Z);
+
+        if !is_edit || readonly || requested_redo || requested_undo {
             return;
         }
 
@@ -603,6 +525,116 @@ pub(crate) fn input_kb(
             save_edit_history(&mut editor.0, attrs, &mut edit_history);
             *edits_duration = Some(Duration::from_millis(now_ms as u64));
         }
+    }
+}
+
+fn keypress_command(keys: &Input<KeyCode>) -> bool {
+    #[cfg(target_os = "macos")]
+    let command = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
+
+    #[cfg(not(target_os = "macos"))]
+    let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
+    #[cfg(target_arch = "wasm32")]
+    let command = if web_sys::window()
+        .unwrap()
+        .navigator()
+        .user_agent()
+        .unwrap_or("NoUA".into())
+        .contains("Macintosh")
+    {
+        keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight])
+    } else {
+        command
+    };
+
+    command
+}
+
+fn keypress_redo(keys: &Input<KeyCode>) -> bool {
+    let command = keypress_command(keys);
+    let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+
+    #[cfg(not(target_os = "windows"))]
+    let requested_redo = command && shift && keys.just_pressed(KeyCode::Z);
+
+    // TODO: windows OS detection for wasm here
+    #[cfg(target_os = "windows")]
+    let requested_redo = command && keys.just_pressed(KeyCode::Y);
+
+    requested_redo
+}
+
+pub(crate) fn undo_redo(
+    active_editor: Res<Focus>,
+    keys: Res<Input<KeyCode>>,
+    mut editor_q: Query<
+        (&mut CosmicEditor, &CosmicAttrs, &mut CosmicEditHistory),
+        Without<ReadOnly>,
+    >,
+    mut evw_changed: EventWriter<CosmicTextChanged>,
+) {
+    if active_editor.0.is_none() {
+        return;
+    }
+
+    let entity = active_editor.0.unwrap();
+
+    let (mut editor, attrs, mut edit_history) = editor_q.get_mut(entity).unwrap();
+    let command = keypress_command(&keys);
+
+    let attrs = &attrs.0;
+
+    let requested_redo = keypress_redo(&keys);
+    let requested_undo = command & keys.just_pressed(KeyCode::Z);
+
+    if !(requested_redo || requested_undo) {
+        return;
+    }
+
+    let edits = &edit_history.edits;
+
+    if edits.is_empty() {
+        return;
+    }
+
+    // use not redo rather than undo, cos undo will be true when redo is
+    if !requested_redo && edit_history.current_edit == 0 {
+        return;
+    }
+
+    if requested_redo && edit_history.current_edit == edits.len() - 1 {
+        return;
+    }
+
+    let index = if requested_redo {
+        edit_history.current_edit + 1
+    } else {
+        edit_history.current_edit - 1
+    };
+
+    if let Some(current_edit) = edits.get(index) {
+        editor.0.buffer_mut().lines.clear();
+        for line in current_edit.lines.iter() {
+            let mut line_text = String::new();
+            let mut attrs_list = AttrsList::new(attrs.as_attrs());
+            for (text, attrs) in line.iter() {
+                let start = line_text.len();
+                line_text.push_str(text);
+                let end = line_text.len();
+                attrs_list.add_span(start..end, attrs.as_attrs());
+            }
+            editor.0.buffer_mut().lines.push(BufferLine::new(
+                line_text,
+                attrs_list,
+                Shaping::Advanced,
+            ));
+        }
+        editor.0.set_cursor(current_edit.cursor);
+        editor.0.set_select_opt(None); // prevent auto selection of redo-inserted text
+        editor.0.buffer_mut().set_redraw(true);
+        edit_history.current_edit = index;
+        evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
     }
 }
 
