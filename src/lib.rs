@@ -420,6 +420,7 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             Update,
             (
+                init_history,
                 input_kb,
                 input_mouse,
                 blink_cursor,
@@ -492,6 +493,14 @@ fn save_edit_history(
         edits: new_edits,
         current_edit: len - 1,
     };
+}
+
+fn init_history(
+    mut q: Query<(&mut CosmicEditor, &CosmicAttrs, &mut CosmicEditHistory), Added<CosmicEditor>>,
+) {
+    for (mut editor, attrs, mut history) in q.iter_mut() {
+        save_edit_history(&mut editor.0, &attrs.0, &mut history);
+    }
 }
 
 /// Adds the font system to each editor when added
