@@ -2,12 +2,22 @@
 
 use std::time::Duration;
 
+#[cfg(target_arch = "wasm32")]
+use bevy::tasks::AsyncComputeTaskPool;
+
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
     window::PrimaryWindow,
 };
 use cosmic_text::{Action, AttrsList, BufferLine, Cursor, Edit, Shaping};
+
+#[cfg(target_arch = "wasm32")]
+use js_sys::Promise;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_futures::JsFuture;
 
 use crate::{
     get_node_cursor_pos, get_timestamp, get_x_offset_center, get_y_offset_center,
@@ -18,6 +28,19 @@ use crate::{
 
 #[derive(Resource)]
 pub struct ClickTimer(pub Timer);
+
+// TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
+#[allow(dead_code)]
+pub struct WasmPaste {
+    text: String,
+    entity: Entity,
+}
+
+#[derive(Resource)]
+pub struct WasmPasteAsyncChannel {
+    pub tx: crossbeam_channel::Sender<WasmPaste>,
+    pub rx: crossbeam_channel::Receiver<WasmPaste>,
+}
 
 pub(crate) fn input_mouse(
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -189,6 +212,8 @@ pub(crate) fn input_mouse(
     }
 }
 
+// TODO: split copy/paste into own fn, separate fn for wasm
+// Maybe split undo/redo too, just drop inputs from this fn when pressed
 /// Handles undo/redo, copy/paste and char input
 pub(crate) fn input_kb(
     active_editor: Res<Focus>,
@@ -208,6 +233,7 @@ pub(crate) fn input_kb(
     mut is_deleting: Local<bool>,
     mut edits_duration: Local<Option<Duration>>,
     mut undoredo_duration: Local<Option<Duration>>,
+    _channel: Option<Res<WasmPasteAsyncChannel>>,
 ) {
     for (mut editor, mut edit_history, attrs, max_lines, max_chars, entity, readonly_opt) in
         &mut cosmic_edit_query.iter_mut()
@@ -227,6 +253,19 @@ pub(crate) fn input_kb(
 
         #[cfg(not(target_os = "macos"))]
         let command = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
+        #[cfg(target_arch = "wasm32")]
+        let command = if web_sys::window()
+            .unwrap()
+            .navigator()
+            .user_agent()
+            .unwrap_or("NoUA".into())
+            .contains("Macintosh")
+        {
+            keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight])
+        } else {
+            command
+        };
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
@@ -479,6 +518,40 @@ pub(crate) fn input_kb(
             }
         }
 
+        #[cfg(target_arch = "wasm32")]
+        {
+            if command && keys.just_pressed(KeyCode::C) {
+                if let Some(text) = editor.0.copy_selection() {
+                    write_clipboard_wasm(text.as_str());
+                    return;
+                }
+            }
+
+            if command && keys.just_pressed(KeyCode::X) && !readonly {
+                if let Some(text) = editor.0.copy_selection() {
+                    write_clipboard_wasm(text.as_str());
+                    editor.0.delete_selection();
+                }
+                is_clipboard = true;
+            }
+            if command && keys.just_pressed(KeyCode::V) && !readonly {
+                let tx = _channel.unwrap().tx.clone();
+                let _task = AsyncComputeTaskPool::get().spawn(async move {
+                    let promise = read_clipboard_wasm();
+
+                    let result = JsFuture::from(promise).await;
+
+                    if let Ok(js_text) = result {
+                        if let Some(text) = js_text.as_string() {
+                            let _ = tx.try_send(WasmPaste { text, entity });
+                        }
+                    }
+                });
+
+                return;
+            }
+        }
+
         let mut is_edit = is_clipboard;
         let mut is_return = false;
         if keys.just_pressed(KeyCode::Return) && !readonly {
@@ -505,7 +578,7 @@ pub(crate) fn input_kb(
                         }
                     }
                     editor.0.action(&mut font_system.0, Action::Backspace);
-                } else if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                } else if !command && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0) {
                     editor
                         .0
                         .action(&mut font_system.0, Action::Insert(char_ev.char));
@@ -530,5 +603,72 @@ pub(crate) fn input_kb(
             save_edit_history(&mut editor.0, attrs, &mut edit_history);
             *edits_duration = Some(Duration::from_millis(now_ms as u64));
         }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn write_clipboard_wasm(text: &str) {
+    let clipboard = web_sys::window()
+        .unwrap()
+        .navigator()
+        .clipboard()
+        .expect("Clipboard not found!");
+    let _result = clipboard.write_text(text);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn read_clipboard_wasm() -> Promise {
+    let clipboard = web_sys::window()
+        .unwrap()
+        .navigator()
+        .clipboard()
+        .expect("Clipboard not found!");
+    clipboard.read_text()
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn poll_wasm_paste(
+    channel: Res<WasmPasteAsyncChannel>,
+    mut editor_q: Query<
+        (
+            &mut CosmicEditor,
+            &CosmicAttrs,
+            &CosmicMaxChars,
+            &CosmicMaxChars,
+            &mut CosmicEditHistory,
+        ),
+        Without<ReadOnly>,
+    >,
+    mut evw_changed: EventWriter<CosmicTextChanged>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    let inlet = channel.rx.try_recv();
+    match inlet {
+        Ok(inlet) => {
+            let entity = inlet.entity;
+            if let Ok((mut editor, attrs, max_chars, max_lines, mut edit_history)) =
+                editor_q.get_mut(entity)
+            {
+                let text = inlet.text;
+                let attrs = &attrs.0;
+                for c in text.chars() {
+                    if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                        if c == 0xA as char {
+                            if max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0 {
+                                editor.0.action(&mut font_system.0, Action::Insert(c));
+                            }
+                        } else {
+                            editor.0.action(&mut font_system.0, Action::Insert(c));
+                        }
+                    }
+                }
+
+                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
+                save_edit_history(&mut editor.0, attrs, &mut edit_history);
+            }
+        }
+        Err(_) => {}
     }
 }

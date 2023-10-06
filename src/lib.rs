@@ -24,6 +24,8 @@ use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
 use input::{input_kb, input_mouse, ClickTimer};
+#[cfg(target_arch = "wasm32")]
+use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 
 #[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
@@ -456,6 +458,13 @@ impl Plugin for CosmicEditPlugin {
                     .add_event::<TextHoverOut>();
             }
             CursorConfig::None => {}
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
+            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
+                .add_systems(Update, poll_wasm_paste);
         }
     }
 }
