@@ -23,7 +23,7 @@ use cosmic_text::{
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 use image::{imageops::FilterType, GenericImageView};
-use input::{input_kb, input_mouse, ClickTimer};
+use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 
@@ -422,6 +422,7 @@ impl Plugin for CosmicEditPlugin {
             (
                 input_kb,
                 input_mouse,
+                undo_redo,
                 blink_cursor,
                 freeze_cursor_blink,
                 hide_inactive_or_readonly_cursor,
