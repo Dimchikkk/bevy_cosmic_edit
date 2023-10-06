@@ -450,7 +450,7 @@ pub(crate) fn input_kb(
             if edits.is_empty() {
                 return;
             }
-            if edit_history.current_edit <= 1 {
+            if edit_history.current_edit == 0 {
                 return;
             }
             let idx = edit_history.current_edit - 1;
