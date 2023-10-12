@@ -326,6 +326,9 @@ pub struct CosmicEditSpriteBundle {
     pub text_setter: CosmicText,
     /// Text input mode
     pub mode: CosmicMode,
+    /// Setting this will update the placeholder text
+    pub placeholder_setter: PlaceholderText,
+    pub placeholder_attrs: PlaceholderAttrs,
 }
 
 impl Default for CosmicEditSpriteBundle {
@@ -346,6 +349,8 @@ impl Default for CosmicEditSpriteBundle {
             max_chars: Default::default(),
             text_setter: Default::default(),
             mode: Default::default(),
+            placeholder_setter: Default::default(),
+            placeholder_attrs: Default::default(),
         }
     }
 }
