@@ -89,17 +89,13 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         editor.shape_as_needed(&mut font_system.0);
 
         // Get numbers, do maths to find and set cursor
-
-        let (base_width, mut base_height) = if node_opt.is_some() {
-            (
-                node_opt.unwrap().size().x.ceil(),
-                node_opt.unwrap().size().y.ceil(),
-            )
-        } else {
-            (
+        //
+        let (base_width, mut base_height) = match node_opt {
+            Some(node) => (node.size().x.ceil(), node.size().y.ceil()),
+            None => (
                 sprite_opt.as_ref().unwrap().custom_size.unwrap().x.ceil(),
                 sprite_opt.as_ref().unwrap().custom_size.unwrap().y.ceil(),
-            )
+            ),
         };
 
         let widget_width = base_width * scale;
