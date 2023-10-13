@@ -26,6 +26,10 @@ use render::{
     on_scale_factor_change, CursorBlinkTimer, CursorVisibility, SwashCacheState,
 };
 
+#[cfg(feature = "multicam")]
+#[derive(Component)]
+pub struct CosmicPrimaryCamera;
+
 #[derive(Clone, Component, PartialEq, Debug)]
 pub enum CosmicText {
     OneStyle(String),
