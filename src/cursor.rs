@@ -2,6 +2,9 @@ use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
 use crate::{CosmicEditor, CosmicTextChanged};
 
+#[cfg(feature = "multicam")]
+use crate::CosmicPrimaryCamera;
+
 /// For use with custom cursor control; Event is emitted when cursor enters a text widget
 #[derive(Event)]
 pub struct TextHoverIn;
@@ -33,10 +36,17 @@ pub fn change_cursor(
     }
 }
 
+#[cfg(feature = "multicam")]
+type CameraQuery<'a, 'b, 'c, 'd> =
+    Query<'a, 'b, (&'c Camera, &'d GlobalTransform), With<CosmicPrimaryCamera>>;
+
+#[cfg(not(feature = "multicam"))]
+type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransform)>;
+
 pub fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_edit_query: Query<(&mut Sprite, &GlobalTransform), With<CosmicEditor>>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
+    camera_q: CameraQuery,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
