@@ -574,13 +574,16 @@ pub(crate) fn undo_redo(
     >,
     mut evw_changed: EventWriter<CosmicTextChanged>,
 ) {
-    if active_editor.0.is_none() {
-        return;
-    }
+    let entity = match active_editor.0 {
+        Some(entity) => entity,
+        None => return,
+    };
 
-    let entity = active_editor.0.unwrap();
+    let (mut editor, attrs, mut edit_history) = match editor_q.get_mut(entity) {
+        Ok(components) => components,
+        Err(_) => return,
+    };
 
-    let (mut editor, attrs, mut edit_history) = editor_q.get_mut(entity).unwrap();
     let command = keypress_command(&keys);
 
     let attrs = &attrs.0;
