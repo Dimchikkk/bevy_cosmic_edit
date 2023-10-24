@@ -1,4 +1,4 @@
-use bevy::{prelude::*, ui::FocusPolicy, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
 
 #[derive(Resource)]
@@ -12,33 +12,12 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
 
     let editor = commands
-        .spawn(CosmicEditUiBundle {
-            node: Node::default(),
-            button: Button,
-            visibility: Visibility::Visible,
-            computed_visibility: ComputedVisibility::default(),
-            z_index: ZIndex::default(),
-            image: UiImage::default(),
-            transform: Transform::default(),
-            interaction: Interaction::default(),
-            focus_policy: FocusPolicy::default(),
+        .spawn(CosmicEditBundle {
             text_position: CosmicTextPosition::default(),
             fill_color: FillColor::default(),
-            background_color: BackgroundColor::default(),
-            global_transform: GlobalTransform::default(),
             background_image: CosmicBackground::default(),
-            border_color: Color::LIME_GREEN.into(),
-            style: Style {
-                // Size and position of text box
-                border: UiRect::all(Val::Px(4.)),
-                width: Val::Percent(20.),
-                height: Val::Px(50.),
-                left: Val::Percent(40.),
-                top: Val::Px(100.),
-                ..default()
-            },
-            cosmic_attrs: CosmicAttrs(attrs.clone()),
-            cosmic_metrics: CosmicMetrics {
+            attrs: CosmicAttrs(attrs.clone()),
+            metrics: CosmicMetrics {
                 font_size: 16.,
                 line_height: 16.,
                 scale_factor: primary_window.scale_factor() as f32,
@@ -47,8 +26,28 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             max_lines: CosmicMaxLines(1),
             text_setter: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
             mode: CosmicMode::Wrap,
-            placeholder_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
-            placeholder_attrs: PlaceholderAttrs(AttrsOwned::new(
+            canvas: Default::default(),
+        })
+        .insert(CosmicEditUiBundle {
+            node_bundle: NodeBundle {
+                border_color: Color::LIME_GREEN.into(),
+                style: Style {
+                    // Size and position of text box
+                    border: UiRect::all(Val::Px(4.)),
+                    width: Val::Percent(20.),
+                    height: Val::Px(50.),
+                    left: Val::Percent(40.),
+                    top: Val::Px(100.),
+                    ..default()
+                },
+                background_color: Color::WHITE.into(),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
                 Attrs::new().color(CosmicColor::rgb(88, 88, 88)),
             )),
         })

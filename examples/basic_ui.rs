@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor, CosmicFontConfig,
-    CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
+    AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor,
+    CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
 };
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -20,22 +20,31 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let scale_factor = primary_window.scale_factor() as f32;
 
-    let cosmic_edit = CosmicEditUiBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
+    let cosmic_edit = (
+        CosmicEditBundle {
+            metrics: CosmicMetrics {
+                font_size: 14.,
+                line_height: 18.,
+                scale_factor,
+            },
+            text_position: CosmicTextPosition::Center,
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
         },
-        cosmic_metrics: CosmicMetrics {
-            font_size: 14.,
-            line_height: 18.,
-            scale_factor,
+        CosmicEditUiBundle {
+            node_bundle: NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                background_color: Color::WHITE.into(),
+                ..default()
+            },
+            ..default()
         },
-        text_position: CosmicTextPosition::Center,
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-        ..default()
-    };
+    );
 
     let cosmic_edit = commands.spawn(cosmic_edit).id();
 

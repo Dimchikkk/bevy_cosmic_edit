@@ -5,37 +5,53 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     // spawn a new CosmicEditBundle
-    commands.spawn(CosmicEditUiBundle {
-        style: Style {
-            // Size and position of text box
-            width: Val::Px(300.),
-            height: Val::Px(50.),
-            left: Val::Px(100.),
-            top: Val::Px(100.),
+    let ui_editor = commands
+        .spawn(CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
+            )),
+            max_lines: CosmicMaxLines(1),
             ..default()
-        },
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(
-            Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
-        )),
-        max_lines: CosmicMaxLines(1),
-        placeholder_setter: PlaceholderText(CosmicText::OneStyle("Place held :)".into())),
-        ..default()
-    });
+        })
+        .insert(CosmicEditUiBundle {
+            node_bundle: NodeBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(50.),
+                    left: Val::Px(100.),
+                    top: Val::Px(100.),
+                    ..default()
+                },
+                // needs to be set to prevent a bug where nothing is displayed
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .id();
 
-    let sprite_editor = commands
-        .spawn(CosmicEditSpriteBundle {
+    commands.spawn((
+        CosmicEditBundle { ..default() },
+        SpriteBundle {
+            // Sets size of text box
             sprite: Sprite {
-                // Sets size of text box
                 custom_size: Some(Vec2::new(300., 100.)),
                 ..default()
             },
             // Position of text box
-            transform: Transform::from_xyz(100., 200., 0.),
+            transform: Transform::from_xyz(0., 100., 0.),
             ..default()
-        })
-        .id();
+        },
+    ));
 
-    commands.insert_resource(Focus(Some(sprite_editor)));
+    commands.insert_resource(Focus(Some(ui_editor)));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

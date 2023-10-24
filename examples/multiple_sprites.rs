@@ -20,43 +20,53 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         scale_factor: primary_window.scale_factor() as f32,
     };
 
-    let cosmic_edit_1 = CosmicEditSpriteBundle {
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        cosmic_metrics: metrics.clone(),
-        sprite: Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height(),
-            }),
+    let cosmic_edit_1 = (
+        CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            metrics: metrics.clone(),
+            text_position: CosmicTextPosition::Center,
+            fill_color: FillColor(Color::ALICE_BLUE),
+            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
-        text_position: CosmicTextPosition::Center,
-        fill_color: FillColor(Color::ALICE_BLUE),
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-        ..default()
-    };
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2 {
+                    x: primary_window.width() / 2.,
+                    y: primary_window.height(),
+                }),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+            ..default()
+        },
+    );
 
-    let cosmic_edit_2 = CosmicEditSpriteBundle {
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        cosmic_metrics: metrics,
-        sprite: Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height() / 2.,
-            }),
+    let cosmic_edit_2 = (
+        CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            metrics,
+            text_position: CosmicTextPosition::Center,
+            fill_color: FillColor(Color::GRAY.with_a(0.5)),
+            text_setter: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::new(
-            primary_window.width() / 4.,
-            -primary_window.height() / 4.,
-            1.,
-        )),
-        text_position: CosmicTextPosition::Center,
-        fill_color: FillColor(Color::GRAY.with_a(0.5)),
-        text_setter: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
-        ..default()
-    };
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2 {
+                    x: primary_window.width() / 2.,
+                    y: primary_window.height() / 2.,
+                }),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(
+                primary_window.width() / 4.,
+                -primary_window.height() / 4.,
+                1.,
+            )),
+            ..default()
+        },
+    );
 
     let id = commands.spawn(cosmic_edit_1).id();
 

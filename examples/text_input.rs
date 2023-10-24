@@ -10,30 +10,41 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
     let placeholder_attrs =
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("#e6e6e6").unwrap())));
     commands
-        .spawn(CosmicEditUiBundle {
-            border_color: Color::hex("#ededed").unwrap().into(),
-            style: Style {
-                border: UiRect::all(Val::Px(3.)),
-                width: Val::Percent(20.),
-                height: Val::Px(50.),
-                left: Val::Percent(40.),
-                top: Val::Px(100.),
+        .spawn((
+            CosmicEditBundle {
+                attrs: CosmicAttrs(attrs.clone()),
+                metrics: CosmicMetrics {
+                    font_size: 18.,
+                    line_height: 18. * 1.2,
+                    scale_factor,
+                },
+                max_lines: CosmicMaxLines(1),
+                text_setter: CosmicText::OneStyle(text),
+                text_position: CosmicTextPosition::Left { padding: 20 },
+                mode: CosmicMode::InfiniteLine,
                 ..default()
             },
-            cosmic_attrs: CosmicAttrs(attrs.clone()),
-            cosmic_metrics: CosmicMetrics {
-                font_size: 18.,
-                line_height: 18. * 1.2,
-                scale_factor,
+            CosmicEditUiBundle {
+                node_bundle: NodeBundle {
+                    border_color: Color::hex("#ededed").unwrap().into(),
+                    style: Style {
+                        border: UiRect::all(Val::Px(3.)),
+                        width: Val::Percent(20.),
+                        height: Val::Px(50.),
+                        left: Val::Percent(40.),
+                        top: Val::Px(100.),
+                        ..default()
+                    },
+                    background_color: Color::WHITE.into(),
+                    ..default()
+                },
+                ..default()
             },
-            max_lines: CosmicMaxLines(1),
-            text_setter: CosmicText::OneStyle(text),
-            text_position: CosmicTextPosition::Left { padding: 20 },
-            mode: CosmicMode::InfiniteLine,
-            placeholder_setter: PlaceholderText(CosmicText::OneStyle("Type something...".into())),
-            placeholder_attrs: PlaceholderAttrs(placeholder_attrs.clone()),
-            ..default()
-        })
+            CosmicEditPlaceholderBundle {
+                text_setter: PlaceholderText(CosmicText::OneStyle("Type something...".into())),
+                attrs: PlaceholderAttrs(placeholder_attrs.clone()),
+            },
+        ))
         .id()
 }
 
@@ -42,18 +53,9 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
     commands
         .spawn((
-            CosmicEditUiBundle {
-                border_color: Color::hex("#ededed").unwrap().into(),
-                style: Style {
-                    border: UiRect::all(Val::Px(3.)),
-                    width: Val::Percent(20.),
-                    height: Val::Px(50.),
-                    left: Val::Percent(40.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
-                cosmic_attrs: CosmicAttrs(attrs.clone()),
-                cosmic_metrics: CosmicMetrics {
+            CosmicEditBundle {
+                attrs: CosmicAttrs(attrs.clone()),
+                metrics: CosmicMetrics {
                     font_size: 18.,
                     line_height: 18. * 1.2,
                     scale_factor,
@@ -61,6 +63,22 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 text_setter: CosmicText::OneStyle(text),
                 text_position: CosmicTextPosition::Left { padding: 20 },
                 mode: CosmicMode::AutoHeight,
+                ..default()
+            },
+            CosmicEditUiBundle {
+                node_bundle: NodeBundle {
+                    border_color: Color::hex("#ededed").unwrap().into(),
+                    style: Style {
+                        border: UiRect::all(Val::Px(3.)),
+                        width: Val::Percent(20.),
+                        height: Val::Px(50.),
+                        left: Val::Percent(40.),
+                        top: Val::Px(100.),
+                        ..default()
+                    },
+                    background_color: Color::WHITE.into(),
+                    ..default()
+                },
                 ..default()
             },
             ReadOnly,

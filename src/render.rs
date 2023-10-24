@@ -11,8 +11,8 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
-    CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition, FillColor,
-    Focus, Placeholder, ReadOnly, XOffset,
+    CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition,
+    FillColor, Focus, Placeholder, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -35,12 +35,11 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         &CosmicAttrs,
         &CosmicBackground,
         &FillColor,
+        &mut CosmicCanvas,
         &CosmicTextPosition,
-        Option<&mut UiImage>,
         Option<&Node>,
         Option<&mut Style>,
         Option<&mut Sprite>,
-        Option<&mut Handle<Image>>,
         &mut XOffset,
         &CosmicMode,
         Option<&mut Placeholder>,
@@ -55,12 +54,11 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         attrs,
         background_image,
         fill_color,
+        mut canvas,
         text_position,
-        ui_image_opt,
         node_opt,
         style_opt,
         sprite_opt,
-        handle_opt,
         mut x_offset,
         mode,
         mut placeholder_opt,
@@ -236,58 +234,34 @@ pub(crate) fn cosmic_edit_redraw_buffer(
             },
         );
 
-        // replace target image with modified pixel buffer
-        match handle_opt {
-            Some(mut handle) => replace_target_image(
-                &mut handle,
-                &mut images,
-                widget_width,
-                widget_height,
-                pixels,
-            ),
-            None => replace_target_image(
-                &mut ui_image_opt.unwrap().texture,
-                &mut images,
-                widget_width,
-                widget_height,
-                pixels,
-            ),
+        let canvas = &mut canvas.0;
+
+        if let Some(prev_image) = images.get_mut(canvas) {
+            if *canvas == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
+                let mut prev_image = prev_image.clone();
+                prev_image.data.clear();
+                prev_image.data.extend_from_slice(pixels.as_slice());
+                prev_image.resize(Extent3d {
+                    width: widget_width as u32,
+                    height: widget_height as u32,
+                    depth_or_array_layers: 1,
+                });
+                let handle_id: HandleId = HandleId::random::<Image>();
+                let new_handle: Handle<Image> = Handle::weak(handle_id);
+                let new_handle = images.set(new_handle, prev_image);
+                *canvas = new_handle;
+            } else {
+                prev_image.data.clear();
+                prev_image.data.extend_from_slice(pixels.as_slice());
+                prev_image.resize(Extent3d {
+                    width: widget_width as u32,
+                    height: widget_height as u32,
+                    depth_or_array_layers: 1,
+                });
+            }
         }
 
         editor.buffer_mut().set_redraw(false);
-    }
-}
-
-fn replace_target_image(
-    cosmic_canvas_img_handle: &mut Handle<Image>,
-    images: &mut ResMut<Assets<Image>>,
-    width: f32,
-    height: f32,
-    pixels: Vec<u8>,
-) {
-    if let Some(prev_image) = images.get_mut(cosmic_canvas_img_handle) {
-        if *cosmic_canvas_img_handle == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
-            let mut prev_image = prev_image.clone();
-            prev_image.data.clear();
-            prev_image.data.extend_from_slice(pixels.as_slice());
-            prev_image.resize(Extent3d {
-                width: width as u32,
-                height: height as u32,
-                depth_or_array_layers: 1,
-            });
-            let handle_id: HandleId = HandleId::random::<Image>();
-            let new_handle: Handle<Image> = Handle::weak(handle_id);
-            let new_handle = images.set(new_handle, prev_image);
-            *cosmic_canvas_img_handle = new_handle;
-        } else {
-            prev_image.data.clear();
-            prev_image.data.extend_from_slice(pixels.as_slice());
-            prev_image.resize(Extent3d {
-                width: width as u32,
-                height: height as u32,
-                depth_or_array_layers: 1,
-            });
-        }
     }
 }
 
@@ -470,5 +444,37 @@ pub(crate) fn on_scale_factor_change(
 
             *x_offset = XOffset(None);
         }
+    }
+}
+
+pub(crate) fn cosmic_ui_to_canvas(
+    mut added_ui_images: Query<(&mut UiImage, &CosmicCanvas), Added<UiImage>>,
+) {
+    for (mut ui_image, canvas) in added_ui_images.iter_mut() {
+        ui_image.texture = canvas.0.clone_weak();
+    }
+}
+
+pub(crate) fn update_handle_ui(
+    mut changed_handles: Query<(&mut UiImage, &CosmicCanvas), Changed<CosmicCanvas>>,
+) {
+    for (mut ui_image, canvas) in changed_handles.iter_mut() {
+        ui_image.texture = canvas.0.clone_weak();
+    }
+}
+
+pub(crate) fn cosmic_sprite_to_canvas(
+    mut added_sprite_textures: Query<(&mut Handle<Image>, &CosmicCanvas), Added<Handle<Image>>>,
+) {
+    for (mut handle, canvas) in added_sprite_textures.iter_mut() {
+        *handle = canvas.0.clone_weak();
+    }
+}
+
+pub(crate) fn update_handle_sprite(
+    mut changed_handles: Query<(&mut Handle<Image>, &CosmicCanvas), Changed<CosmicCanvas>>,
+) {
+    for (mut handle, canvas) in changed_handles.iter_mut() {
+        *handle = canvas.0.clone_weak();
     }
 }
