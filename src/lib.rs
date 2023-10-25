@@ -73,7 +73,7 @@ pub enum CosmicTextPosition {
 pub struct CosmicTextChanged(pub (Entity, String));
 
 // TODO docs
-const DEFAULT_SCALE_PLACEHOLDER: f32 = 0.6969690;
+const DEFAULT_SCALE_PLACEHOLDER: f32 = 0.696969;
 
 #[derive(Clone, Component)]
 pub struct CosmicMetrics {
