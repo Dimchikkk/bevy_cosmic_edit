@@ -233,26 +233,6 @@ pub struct CosmicEditBundle {
 }
 
 #[derive(Bundle)]
-pub struct CosmicEditUiBundle {
-    pub node_bundle: NodeBundle,
-    pub image: UiImage,
-    pub interaction: Interaction,
-}
-
-impl Default for CosmicEditUiBundle {
-    fn default() -> Self {
-        Self {
-            node_bundle: NodeBundle {
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            },
-            image: Default::default(),
-            interaction: Default::default(),
-        }
-    }
-}
-
-#[derive(Bundle)]
 pub struct CosmicEditPlaceholderBundle {
     /// set this to update placeholder text
     pub text_setter: PlaceholderText,

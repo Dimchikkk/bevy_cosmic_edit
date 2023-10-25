@@ -13,20 +13,17 @@ fn setup(mut commands: Commands) {
             max_lines: CosmicMaxLines(1),
             ..default()
         })
-        .insert(CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(300.),
-                    height: Val::Px(50.),
-                    left: Val::Px(100.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
+        .insert(ButtonBundle {
+            style: Style {
+                // Size and position of text box
+                width: Val::Px(300.),
+                height: Val::Px(50.),
+                left: Val::Px(100.),
+                top: Val::Px(100.),
                 // needs to be set to prevent a bug where nothing is displayed
-                background_color: BackgroundColor(Color::WHITE),
                 ..default()
             },
+            background_color: BackgroundColor(Color::WHITE),
             ..default()
         })
         .insert(CosmicEditPlaceholderBundle {

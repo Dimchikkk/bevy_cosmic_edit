@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor,
-    CosmicFontConfig, CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
+    AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditor, CosmicFontConfig,
+    CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
 };
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -32,16 +32,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
         },
-        CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                background_color: Color::WHITE.into(),
+        // Use buttonbundle for layout
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..default()
             },
+            // Needs to be set to prevent a bug where nothing is displayed
+            background_color: Color::WHITE.into(),
             ..default()
         },
     );

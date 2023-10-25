@@ -219,16 +219,13 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_setter: CosmicText::MultiStyle(lines),
             ..default()
         },
-        CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                style: Style {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
                 ..default()
             },
+            background_color: BackgroundColor(Color::WHITE),
             ..default()
         },
     );
@@ -249,14 +246,11 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_setter: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
             ..default()
         },
-        CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
-                style: Style {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
+        ButtonBundle {
+            background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
+            style: Style {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
                 ..default()
             },
             ..default()

@@ -32,16 +32,13 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
             ..default()
         },
-        CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..default()
             },
+            background_color: BackgroundColor(Color::WHITE),
             ..default()
         },
     );

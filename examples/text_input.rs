@@ -24,20 +24,17 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 mode: CosmicMode::InfiniteLine,
                 ..default()
             },
-            CosmicEditUiBundle {
-                node_bundle: NodeBundle {
-                    border_color: Color::hex("#ededed").unwrap().into(),
-                    style: Style {
-                        border: UiRect::all(Val::Px(3.)),
-                        width: Val::Percent(20.),
-                        height: Val::Px(50.),
-                        left: Val::Percent(40.),
-                        top: Val::Px(100.),
-                        ..default()
-                    },
-                    background_color: Color::WHITE.into(),
+            ButtonBundle {
+                border_color: Color::hex("#ededed").unwrap().into(),
+                style: Style {
+                    border: UiRect::all(Val::Px(3.)),
+                    width: Val::Percent(20.),
+                    height: Val::Px(50.),
+                    left: Val::Percent(40.),
+                    top: Val::Px(100.),
                     ..default()
                 },
+                background_color: Color::WHITE.into(),
                 ..default()
             },
             CosmicEditPlaceholderBundle {
@@ -65,20 +62,17 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 mode: CosmicMode::AutoHeight,
                 ..default()
             },
-            CosmicEditUiBundle {
-                node_bundle: NodeBundle {
-                    border_color: Color::hex("#ededed").unwrap().into(),
-                    style: Style {
-                        border: UiRect::all(Val::Px(3.)),
-                        width: Val::Percent(20.),
-                        height: Val::Px(50.),
-                        left: Val::Percent(40.),
-                        top: Val::Px(100.),
-                        ..default()
-                    },
-                    background_color: Color::WHITE.into(),
+            ButtonBundle {
+                border_color: Color::hex("#ededed").unwrap().into(),
+                style: Style {
+                    border: UiRect::all(Val::Px(3.)),
+                    width: Val::Percent(20.),
+                    height: Val::Px(50.),
+                    left: Val::Percent(40.),
+                    top: Val::Px(100.),
                     ..default()
                 },
+                background_color: Color::WHITE.into(),
                 ..default()
             },
             ReadOnly,

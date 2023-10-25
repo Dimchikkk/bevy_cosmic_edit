@@ -14,19 +14,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             background_image: CosmicBackground(Some(bg_image_handle)),
             ..default()
         })
-        .insert(CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(300.),
-                    height: Val::Px(50.),
-                    left: Val::Px(100.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
-                background_color: Color::WHITE.into(),
+        .insert(ButtonBundle {
+            style: Style {
+                // Size and position of text box
+                width: Val::Px(300.),
+                height: Val::Px(50.),
+                left: Val::Px(100.),
+                top: Val::Px(100.),
                 ..default()
             },
+            background_color: Color::WHITE.into(),
             ..default()
         })
         .id();

@@ -28,21 +28,18 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             mode: CosmicMode::Wrap,
             canvas: Default::default(),
         })
-        .insert(CosmicEditUiBundle {
-            node_bundle: NodeBundle {
-                border_color: Color::LIME_GREEN.into(),
-                style: Style {
-                    // Size and position of text box
-                    border: UiRect::all(Val::Px(4.)),
-                    width: Val::Percent(20.),
-                    height: Val::Px(50.),
-                    left: Val::Percent(40.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
-                background_color: Color::WHITE.into(),
+        .insert(ButtonBundle {
+            border_color: Color::LIME_GREEN.into(),
+            style: Style {
+                // Size and position of text box
+                border: UiRect::all(Val::Px(4.)),
+                width: Val::Percent(20.),
+                height: Val::Px(50.),
+                left: Val::Percent(40.),
+                top: Val::Px(100.),
                 ..default()
             },
+            background_color: Color::WHITE.into(),
             ..default()
         })
         .insert(CosmicEditPlaceholderBundle {
