@@ -207,45 +207,55 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         )],
     ];
 
-    let cosmic_edit_1 = CosmicEditUiBundle {
-        text_position: bevy_cosmic_edit::CosmicTextPosition::Center,
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        cosmic_metrics: CosmicMetrics {
-            font_size: 18.,
-            line_height: 22.,
-            scale_factor: primary_window.scale_factor() as f32,
-        },
-        style: Style {
-            width: Val::Percent(50.),
-            height: Val::Percent(100.),
+    let cosmic_edit_1 = (
+        CosmicEditBundle {
+            text_position: bevy_cosmic_edit::CosmicTextPosition::Center,
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            metrics: CosmicMetrics {
+                font_size: 18.,
+                line_height: 22.,
+                scale_factor: primary_window.scale_factor() as f32,
+            },
+            text_setter: CosmicText::MultiStyle(lines),
             ..default()
         },
-        background_color: BackgroundColor(Color::WHITE),
-        text_setter: CosmicText::MultiStyle(lines),
-        ..default()
-    };
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            background_color: BackgroundColor(Color::WHITE),
+            ..default()
+        },
+    );
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
     attrs_2.color_opt = Some(bevy_color_to_cosmic(Color::PURPLE));
 
-    let cosmic_edit_2 = CosmicEditUiBundle {
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs_2)),
-        cosmic_metrics: CosmicMetrics {
-            font_size: 28.,
-            line_height: 36.,
-            scale_factor: primary_window.scale_factor() as f32,
-        },
-        text_position: CosmicTextPosition::Center,
-        background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
-        style: Style {
-            width: Val::Percent(50.),
-            height: Val::Percent(100.),
+    let cosmic_edit_2 = (
+        CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(attrs_2)),
+            metrics: CosmicMetrics {
+                font_size: 28.,
+                line_height: 36.,
+                scale_factor: primary_window.scale_factor() as f32,
+            },
+            text_position: CosmicTextPosition::Center,
+            text_setter: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
             ..default()
         },
-        text_setter: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
-        ..default()
-    };
+        ButtonBundle {
+            background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
+            style: Style {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            ..default()
+        },
+    );
 
     let mut id = None;
     // Spawn the CosmicEditUiBundles as children of root

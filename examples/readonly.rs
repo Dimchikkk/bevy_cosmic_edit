@@ -20,23 +20,28 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
 
-    let cosmic_edit = CosmicEditUiBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
+    let cosmic_edit = (
+        CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            text_position: CosmicTextPosition::Center,
+            metrics: CosmicMetrics {
+                font_size: 14.,
+                line_height: 18.,
+                scale_factor: primary_window.scale_factor() as f32,
+            },
+            text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
             ..default()
         },
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        text_position: CosmicTextPosition::Center,
-        background_color: BackgroundColor(Color::WHITE),
-        cosmic_metrics: CosmicMetrics {
-            font_size: 14.,
-            line_height: 18.,
-            scale_factor: primary_window.scale_factor() as f32,
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            background_color: BackgroundColor(Color::WHITE),
+            ..default()
         },
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
-        ..default()
-    };
+    );
 
     let mut id = None;
     // Spawn the CosmicEditUiBundle as a child of root

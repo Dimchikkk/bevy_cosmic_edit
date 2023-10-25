@@ -7,7 +7,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let bg_image_handle = asset_server.load("img/bevy_logo_light.png");
 
     let editor = commands
-        .spawn(CosmicEditUiBundle {
+        .spawn(CosmicEditBundle {
+            attrs: CosmicAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
+            )),
+            background_image: CosmicBackground(Some(bg_image_handle)),
+            ..default()
+        })
+        .insert(ButtonBundle {
             style: Style {
                 // Size and position of text box
                 width: Val::Px(300.),
@@ -16,10 +23,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 top: Val::Px(100.),
                 ..default()
             },
-            cosmic_attrs: CosmicAttrs(AttrsOwned::new(
-                Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
-            )),
-            background_image: CosmicBackground(Some(bg_image_handle)),
+            background_color: Color::WHITE.into(),
             ..default()
         })
         .id();

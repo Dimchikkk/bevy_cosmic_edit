@@ -6,9 +6,7 @@ mod render;
 
 use std::{collections::VecDeque, path::PathBuf};
 
-use bevy::{
-    prelude::*, render::texture::DEFAULT_IMAGE_HANDLE, transform::TransformSystem, ui::FocusPolicy,
-};
+use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE, transform::TransformSystem};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
     Weight as FontWeight,
@@ -209,154 +207,36 @@ impl Default for PlaceholderAttrs {
         Self(AttrsOwned::new(Attrs::new()))
     }
 }
-#[derive(Bundle)]
-pub struct CosmicEditUiBundle {
-    // Bevy UI bits
-    /// Describes the logical size of the node
-    pub node: Node,
-    /// Marker component that signals this node is a button
-    pub button: Button,
-    /// Styles which control the layout (size and position) of the node and it's children
-    /// In some cases these styles also affect how the node drawn/painted.
-    pub style: Style,
-    /// Describes whether and how the button has been interacted with by the input
-    pub interaction: Interaction,
-    /// Whether this node should block interaction with lower nodes
-    pub focus_policy: FocusPolicy,
-    /// UiNode Background Color, works as a tint.
-    pub background_color: BackgroundColor,
-    /// The background color, which serves as a "fill" for this node
-    pub fill_color: FillColor,
-    /// The color of the Node's border
-    pub border_color: BorderColor,
-    /// This is used as the cosmic text canvas
-    pub image: UiImage,
-    /// The transform of the node
-    ///
-    /// This field is automatically managed by the UI layout system.
-    /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub transform: Transform,
-    /// The global transform of the node
-    ///
-    /// This field is automatically managed by the UI layout system.
-    /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub global_transform: GlobalTransform,
-    /// Describes the visibility properties of the node
-    pub visibility: Visibility,
-    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-    pub computed_visibility: ComputedVisibility,
-    /// Indicates the depth at which the node should appear in the UI
-    pub z_index: ZIndex,
-    // cosmic bits
-    /// text positioning enum
-    pub text_position: CosmicTextPosition,
-    /// text metrics
-    pub cosmic_metrics: CosmicMetrics,
-    /// text attributes
-    pub cosmic_attrs: CosmicAttrs,
-    /// bg img
-    pub background_image: CosmicBackground,
-    /// How many lines are allowed in buffer, 0 for no limit
-    pub max_lines: CosmicMaxLines,
-    /// How many characters are allowed in buffer, 0 for no limit
-    pub max_chars: CosmicMaxChars,
-    /// Setting this will update the buffer's text
-    pub text_setter: CosmicText,
-    /// Text input mode
-    pub mode: CosmicMode,
-    /// Setting this will update the placeholder text
-    pub placeholder_setter: PlaceholderText,
-    pub placeholder_attrs: PlaceholderAttrs,
-}
 
-impl Default for CosmicEditUiBundle {
+#[derive(Component)]
+pub struct CosmicCanvas(pub Handle<Image>);
+
+impl Default for CosmicCanvas {
     fn default() -> Self {
-        Self {
-            focus_policy: FocusPolicy::Block,
-            node: Default::default(),
-            button: Default::default(),
-            style: Default::default(),
-            border_color: BorderColor(Color::NONE),
-            interaction: Default::default(),
-            fill_color: Default::default(),
-            image: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            visibility: Default::default(),
-            computed_visibility: Default::default(),
-            z_index: Default::default(),
-            text_position: Default::default(),
-            cosmic_metrics: Default::default(),
-            cosmic_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            text_setter: Default::default(),
-            mode: Default::default(),
-            background_color: BackgroundColor(Color::WHITE),
-            placeholder_setter: Default::default(),
-            placeholder_attrs: Default::default(),
-        }
+        CosmicCanvas(DEFAULT_IMAGE_HANDLE.typed())
     }
 }
 
-#[derive(Bundle)]
-pub struct CosmicEditSpriteBundle {
-    // Bevy Sprite Bits
-    pub sprite: Sprite,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub texture: Handle<Image>,
-    /// User indication of whether an entity is visible
-    pub visibility: Visibility,
-    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-    pub computed_visibility: ComputedVisibility,
-    /// Widget background color
-    pub fill_color: FillColor,
+#[derive(Bundle, Default)]
+pub struct CosmicEditBundle {
     // cosmic bits
-    /// text positioning enum
+    pub fill_color: FillColor,
     pub text_position: CosmicTextPosition,
-    /// text metrics
-    pub cosmic_metrics: CosmicMetrics,
-    /// text attributes
-    pub cosmic_attrs: CosmicAttrs,
-    /// bg img
+    pub metrics: CosmicMetrics,
+    pub attrs: CosmicAttrs,
     pub background_image: CosmicBackground,
-    /// How many lines are allowed in buffer, 0 for no limit
     pub max_lines: CosmicMaxLines,
-    /// How many characters are allowed in buffer, 0 for no limit
     pub max_chars: CosmicMaxChars,
-    /// Setting this will update the buffer's text
     pub text_setter: CosmicText,
-    /// Text input mode
     pub mode: CosmicMode,
-    /// Setting this will update the placeholder text
-    pub placeholder_setter: PlaceholderText,
-    pub placeholder_attrs: PlaceholderAttrs,
+    pub canvas: CosmicCanvas,
 }
 
-impl Default for CosmicEditSpriteBundle {
-    fn default() -> Self {
-        Self {
-            sprite: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            texture: DEFAULT_IMAGE_HANDLE.typed(),
-            visibility: Visibility::Visible,
-            computed_visibility: Default::default(),
-            fill_color: Default::default(),
-            text_position: Default::default(),
-            cosmic_metrics: Default::default(),
-            cosmic_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            text_setter: Default::default(),
-            mode: Default::default(),
-            placeholder_setter: Default::default(),
-            placeholder_attrs: Default::default(),
-        }
-    }
+#[derive(Bundle)]
+pub struct CosmicEditPlaceholderBundle {
+    /// set this to update placeholder text
+    pub text_setter: PlaceholderText,
+    pub attrs: PlaceholderAttrs,
 }
 
 #[derive(Clone)]
@@ -411,6 +291,8 @@ impl Plugin for CosmicEditPlugin {
                 cosmic_editor_builder,
                 placeholder_builder,
                 on_scale_factor_change,
+                render::cosmic_ui_to_canvas,
+                render::cosmic_sprite_to_canvas,
             ),
         )
         .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
@@ -425,6 +307,8 @@ impl Plugin for CosmicEditPlugin {
                 freeze_cursor_blink,
                 hide_inactive_or_readonly_cursor,
                 clear_inactive_selection,
+                render::update_handle_ui,
+                render::update_handle_sprite,
             ),
         )
         .add_systems(
@@ -807,7 +691,7 @@ mod tests {
     use crate::*;
 
     fn test_spawn_cosmic_edit_system(mut commands: Commands) {
-        commands.spawn(CosmicEditUiBundle {
+        commands.spawn(CosmicEditBundle {
             text_setter: CosmicText::OneStyle("Blah".into()),
             ..Default::default()
         });

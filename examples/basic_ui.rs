@@ -1,6 +1,6 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
-    AttrsOwned, CosmicAttrs, CosmicEditPlugin, CosmicEditUiBundle, CosmicEditor, CosmicFontConfig,
+    AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditor, CosmicFontConfig,
     CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
 };
 
@@ -20,22 +20,30 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let scale_factor = primary_window.scale_factor() as f32;
 
-    let cosmic_edit = CosmicEditUiBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
+    let cosmic_edit = (
+        CosmicEditBundle {
+            metrics: CosmicMetrics {
+                font_size: 14.,
+                line_height: 18.,
+                scale_factor,
+            },
+            text_position: CosmicTextPosition::Center,
+            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
         },
-        cosmic_metrics: CosmicMetrics {
-            font_size: 14.,
-            line_height: 18.,
-            scale_factor,
+        // Use buttonbundle for layout
+        ButtonBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            // Needs to be set to prevent a bug where nothing is displayed
+            background_color: Color::WHITE.into(),
+            ..default()
         },
-        text_position: CosmicTextPosition::Center,
-        cosmic_attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-        ..default()
-    };
+    );
 
     let cosmic_edit = commands.spawn(cosmic_edit).id();
 
