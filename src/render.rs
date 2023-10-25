@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     asset::HandleId,
-    prelude::*;
+    prelude::*,
     render::render_resource::Extent3d,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
@@ -12,7 +12,7 @@ use image::{imageops::FilterType, GenericImageView};
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
     CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition,
-    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER
+    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
 };
 
 #[derive(Resource)]
