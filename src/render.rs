@@ -11,8 +11,9 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
-    CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition,
-    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
+    CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicText,
+    CosmicTextPosition, FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset,
+    DEFAULT_SCALE_PLACEHOLDER,
 };
 
 #[derive(Resource)]
@@ -73,12 +74,14 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         let current_text = cosmic_editor.get_text();
 
         // intercept text for password inputs
-        if password_opt.is_some() && !current_text.is_empty() {
-            cosmic_editor.set_text(
-                crate::CosmicText::OneStyle("•".repeat(current_text.len())),
-                attrs.0.clone(),
-                &mut font_system.0,
-            );
+        if let Some(password) = password_opt {
+            if !current_text.is_empty() {
+                cosmic_editor.set_text(
+                    CosmicText::OneStyle(format!("{}", password.0).repeat(current_text.len())),
+                    attrs.0.clone(),
+                    &mut font_system.0,
+                );
+            }
         }
 
         // Check for placeholder, replace editor if found and buffer is empty

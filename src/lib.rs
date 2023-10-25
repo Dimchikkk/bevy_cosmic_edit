@@ -205,7 +205,13 @@ pub struct PlaceholderText(pub CosmicText);
 pub struct PlaceholderAttrs(pub AttrsOwned);
 
 #[derive(Component)]
-pub struct PasswordInput;
+pub struct PasswordInput(pub char);
+
+impl Default for PasswordInput {
+    fn default() -> Self {
+        PasswordInput("•".chars().next().unwrap())
+    }
+}
 
 impl Default for PlaceholderAttrs {
     fn default() -> Self {

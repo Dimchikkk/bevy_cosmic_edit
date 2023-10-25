@@ -67,7 +67,7 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                     Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
                 )),
             })
-            .insert(PasswordInput);
+            .insert(PasswordInput('\u{1F92B}'));
         });
 }
 
@@ -104,10 +104,18 @@ fn print_changed_input(mut evr_type: EventReader<CosmicTextChanged>) {
 }
 
 fn main() {
+    let font_bytes: &[u8] = include_bytes!("../assets/fonts/VictorMono-Regular.ttf");
+    let font_config = CosmicFontConfig {
+        fonts_dir_path: None,
+        font_bytes: Some(vec![font_bytes]),
+        load_system_fonts: true,
+    };
+
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin {
             change_cursor: CursorConfig::Default,
+            font_config,
             ..default()
         })
         .add_systems(Startup, setup)
