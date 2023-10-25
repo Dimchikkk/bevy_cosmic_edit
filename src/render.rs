@@ -403,14 +403,14 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
         editor.0.buffer_mut().set_redraw(true);
     }
 
-    if active_editor.is_changed() || active_editor.0.is_none() {
-        return;
-    }
-
     for (e, mut editor, readonly_opt) in &mut cosmic_editor_q_placeholder.iter_mut() {
-        if e != active_editor.0.unwrap() || readonly_opt.is_some() {
+        // filthy short circuiting instead of correct unwrapping
+        if active_editor.is_none() || e != active_editor.0.unwrap() || readonly_opt.is_some() {
             let editor = &mut editor.0;
             let mut cursor = editor.0.cursor();
+            if cursor.color == Some(cosmic_text::Color::rgba(0, 0, 0, 0)) {
+                return;
+            }
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);
@@ -418,8 +418,11 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
     }
 
     for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
-        if e != active_editor.0.unwrap() {
+        if active_editor.is_none() || e != active_editor.0.unwrap() {
             let mut cursor = editor.0.cursor();
+            if cursor.color == Some(cosmic_text::Color::rgba(0, 0, 0, 0)) {
+                return;
+            }
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);

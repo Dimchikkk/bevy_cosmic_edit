@@ -411,12 +411,17 @@ fn cosmic_editor_builder(
     mut commands: Commands,
 ) {
     for (entity, metrics) in added_editors.iter_mut() {
-        let buffer = Buffer::new(
+        let mut buffer = Buffer::new(
             &mut font_system.0,
             Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
         );
         // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        let editor = Editor::new(buffer);
+        buffer.set_redraw(true);
+        let mut editor = Editor::new(buffer);
+
+        let mut cursor = editor.cursor();
+        cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+        editor.set_cursor(cursor);
 
         commands.entity(entity).insert(CosmicEditor(editor));
         commands.entity(entity).insert(CosmicEditHistory::default());
