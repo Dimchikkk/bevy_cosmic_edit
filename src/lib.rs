@@ -202,6 +202,9 @@ pub struct PlaceholderText(pub CosmicText);
 #[derive(Component)]
 pub struct PlaceholderAttrs(pub AttrsOwned);
 
+#[derive(Component)]
+pub struct PasswordInput;
+
 impl Default for PlaceholderAttrs {
     fn default() -> Self {
         Self(AttrsOwned::new(Attrs::new()))

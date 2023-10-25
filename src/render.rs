@@ -12,7 +12,7 @@ use image::{imageops::FilterType, GenericImageView};
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
     CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition,
-    FillColor, Focus, Placeholder, ReadOnly, XOffset,
+    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -43,6 +43,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         &mut XOffset,
         &CosmicMode,
         Option<&mut Placeholder>,
+        Option<&PasswordInput>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -50,7 +51,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
     let scale = primary_window.scale_factor() as f32;
 
     for (
-        mut editor,
+        mut cosmic_editor,
         attrs,
         background_image,
         fill_color,
@@ -62,18 +63,30 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         mut x_offset,
         mode,
         mut placeholder_opt,
+        password_opt,
     ) in &mut cosmic_edit_query.iter_mut()
     {
-        if !editor.0.buffer().redraw() {
+        if !cosmic_editor.0.buffer().redraw() {
             continue;
         }
 
+        let current_text = cosmic_editor.get_text();
+
+        // intercept text for password inputs
+        if password_opt.is_some() && !current_text.is_empty() {
+            cosmic_editor.set_text(
+                crate::CosmicText::OneStyle("•".repeat(current_text.len())),
+                attrs.0.clone(),
+                &mut font_system.0,
+            );
+        }
+
         // Check for placeholder, replace editor if found and buffer is empty
-        let editor = if editor.get_text().is_empty() && placeholder_opt.is_some() {
+        let editor = if current_text.is_empty() && placeholder_opt.is_some() {
             let placeholder = &mut placeholder_opt.as_mut().unwrap().0 .0;
             placeholder.buffer_mut().set_redraw(true);
 
-            editor.0.buffer_mut().set_redraw(true);
+            cosmic_editor.0.buffer_mut().set_redraw(true);
 
             let mut cursor = placeholder.cursor();
             cursor.index = 0;
@@ -81,7 +94,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
             *x_offset = XOffset(None);
             placeholder
         } else {
-            &mut editor.0
+            &mut cosmic_editor.0
         };
 
         editor.shape_as_needed(&mut font_system.0);
@@ -262,6 +275,15 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         editor.buffer_mut().set_redraw(false);
+
+        // reset intercepted text
+        if password_opt.is_some() && !current_text.is_empty() {
+            cosmic_editor.set_text(
+                crate::CosmicText::OneStyle(current_text),
+                attrs.0.clone(),
+                &mut font_system.0,
+            );
+        }
     }
 }
 
