@@ -21,7 +21,7 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    on_scale_factor_change, CursorBlinkTimer, CursorVisibility, SwashCacheState,
+    on_scale_factor_change, set_initial_scale, CursorBlinkTimer, CursorVisibility, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -73,6 +73,8 @@ pub enum CosmicTextPosition {
 pub struct CosmicTextChanged(pub (Entity, String));
 
 // TODO docs
+const DEFAULT_SCALE_PLACEHOLDER: f32 = 0.696969;
+
 #[derive(Clone, Component)]
 pub struct CosmicMetrics {
     pub font_size: f32,
@@ -85,7 +87,7 @@ impl Default for CosmicMetrics {
         Self {
             font_size: 12.,
             line_height: 12.,
-            scale_factor: 1.,
+            scale_factor: DEFAULT_SCALE_PLACEHOLDER,
         }
     }
 }
@@ -291,9 +293,13 @@ impl Plugin for CosmicEditPlugin {
         app.add_systems(
             First,
             (
-                cosmic_editor_builder,
-                placeholder_builder,
-                on_scale_factor_change,
+                set_initial_scale,
+                (
+                    cosmic_editor_builder,
+                    placeholder_builder,
+                    on_scale_factor_change,
+                )
+                    .after(set_initial_scale),
                 render::cosmic_ui_to_canvas,
                 render::cosmic_sprite_to_canvas,
             ),

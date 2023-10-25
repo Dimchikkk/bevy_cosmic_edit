@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     asset::HandleId,
-    prelude::*,
+    prelude::*;
     render::render_resource::Extent3d,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
@@ -12,7 +12,7 @@ use image::{imageops::FilterType, GenericImageView};
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
     CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTextPosition,
-    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset,
+    FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER
 };
 
 #[derive(Resource)]
@@ -448,6 +448,19 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
             editor.0.buffer_mut().set_redraw(true);
+        }
+    }
+}
+
+pub(crate) fn set_initial_scale(
+    window_q: Query<&Window, With<PrimaryWindow>>,
+    mut metrics_q: Query<&mut CosmicMetrics, Added<CosmicMetrics>>,
+) {
+    let scale = window_q.single().scale_factor() as f32;
+
+    for mut metrics in metrics_q.iter_mut() {
+        if metrics.scale_factor == DEFAULT_SCALE_PLACEHOLDER {
+            metrics.scale_factor = scale;
         }
     }
 }
