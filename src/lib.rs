@@ -291,13 +291,15 @@ impl Plugin for CosmicEditPlugin {
             First,
             (
                 set_initial_scale,
-                cosmic_editor_builder,
-                placeholder_builder,
-                on_scale_factor_change,
+                (
+                    cosmic_editor_builder,
+                    placeholder_builder,
+                    on_scale_factor_change,
+                )
+                    .after(set_initial_scale),
                 render::cosmic_ui_to_canvas,
                 render::cosmic_sprite_to_canvas,
-            )
-                .chain(),
+            ),
         )
         .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
         .add_systems(
