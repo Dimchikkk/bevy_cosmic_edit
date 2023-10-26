@@ -523,15 +523,18 @@ pub(crate) fn hide_password_text(
             // the actual char length cos '●' is 3x as long as 'a'
             // This operation will need to be undone when resetting.
             //
-            // Selecting LTR works, RTL doesn't
-            // Running into character boundary issues somewhere, perhaps when cursor is not
-            // divisible by char_len or something.
+            // Currently breaks entering multi-byte chars
 
             let char_len = password.0.len_utf8();
 
-            if let Some(mut select) = select_opt {
-                select.index *= char_len;
-            }
+            let select_opt = match select_opt {
+                Some(mut select) => {
+                    select.index *= char_len;
+                    Some(select)
+                }
+                None => None,
+            };
+
             cursor.index *= char_len;
 
             cosmic_editor.0.set_select_opt(select_opt);
@@ -554,11 +557,13 @@ pub(crate) fn restore_password_text(
                 let char_len = password.0.len_utf8();
 
                 let mut cursor = cosmic_editor.0.cursor();
-                let select_opt = cosmic_editor.0.select_opt();
-
-                if let Some(mut select) = select_opt {
-                    select.index /= char_len;
-                }
+                let select_opt = match cosmic_editor.0.select_opt() {
+                    Some(mut select) => {
+                        select.index /= char_len;
+                        Some(select)
+                    }
+                    None => None,
+                };
 
                 cursor.index /= char_len;
 
