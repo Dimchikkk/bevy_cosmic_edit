@@ -510,14 +510,29 @@ pub(crate) fn hide_password_text(
     for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
         let text = cosmic_editor.get_text();
         let select_opt = cosmic_editor.0.select_opt();
-        let cursor = cosmic_editor.0.cursor();
+        let mut cursor = cosmic_editor.0.cursor();
 
         if !text.is_empty() {
             cosmic_editor.set_text(
-                CosmicText::OneStyle(format!("{}", password.0).repeat(text.len())),
+                CosmicText::OneStyle(format!("{}", password.0).repeat(text.chars().count())),
                 attrs.0.clone(),
                 &mut font_system.0,
             );
+
+            // multiply cursor idx and select_opt end point by password char length
+            // the actual char length cos '●' is 3x as long as 'a'
+            // This operation will need to be undone when resetting.
+            //
+            // Selecting LTR works, RTL doesn't
+            // Running into character boundary issues somewhere, perhaps when cursor is not
+            // divisible by char_len or something.
+
+            let char_len = password.0.len_utf8();
+
+            if let Some(mut select) = select_opt {
+                select.index *= char_len;
+            }
+            cursor.index *= char_len;
 
             cosmic_editor.0.set_select_opt(select_opt);
             cosmic_editor.0.set_cursor(cursor);
@@ -528,16 +543,25 @@ pub(crate) fn hide_password_text(
 }
 
 pub(crate) fn restore_password_text(
-    mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs), With<PasswordInput>>,
+    mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
     mut font_system: ResMut<CosmicFontSystem>,
     password_input_states: Res<PasswordStates>,
 ) {
-    for (entity, mut cosmic_editor, attrs) in editor_q.iter_mut() {
+    for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
         if let Some(text) = password_input_states.0.get(&entity) {
             // reset intercepted text
             if !text.is_empty() {
-                let cursor = cosmic_editor.0.cursor();
+                let char_len = password.0.len_utf8();
+
+                let mut cursor = cosmic_editor.0.cursor();
                 let select_opt = cosmic_editor.0.select_opt();
+
+                if let Some(mut select) = select_opt {
+                    select.index /= char_len;
+                }
+
+                cursor.index /= char_len;
+
                 cosmic_editor.set_text(
                     crate::CosmicText::OneStyle(text.clone()),
                     attrs.0.clone(),
