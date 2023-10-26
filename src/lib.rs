@@ -21,7 +21,8 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    on_scale_factor_change, set_initial_scale, CursorBlinkTimer, CursorVisibility, SwashCacheState,
+    hide_password_text, on_scale_factor_change, restore_password_text, set_initial_scale,
+    CursorBlinkTimer, CursorVisibility, PasswordStates, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -314,23 +315,33 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             Update,
             (
-                init_history,
-                input_kb,
-                input_mouse,
-                undo_redo,
-                blink_cursor,
-                freeze_cursor_blink,
-                hide_inactive_or_readonly_cursor,
-                clear_inactive_selection,
-                render::update_handle_ui,
-                render::update_handle_sprite,
+                (
+                    init_history,
+                    input_kb,
+                    undo_redo,
+                    blink_cursor,
+                    freeze_cursor_blink,
+                    hide_inactive_or_readonly_cursor,
+                    clear_inactive_selection,
+                    render::update_handle_ui,
+                    render::update_handle_sprite,
+                )
+                    .before(hide_password_text),
+                hide_password_text,
+                input_mouse.after(hide_password_text),
             ),
         )
         .add_systems(
             PostUpdate,
-            (cosmic_edit_redraw_buffer).after(TransformSystem::TransformPropagate),
+            (
+                restore_password_text,
+                cosmic_edit_redraw_buffer
+                    .after(TransformSystem::TransformPropagate)
+                    .before(restore_password_text),
+            ),
         )
         .init_resource::<Focus>()
+        .init_resource::<PasswordStates>()
         .insert_resource(CursorBlinkTimer(Timer::from_seconds(
             0.53,
             TimerMode::Repeating,

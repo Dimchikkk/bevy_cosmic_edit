@@ -4,6 +4,7 @@ use bevy::{
     asset::HandleId,
     prelude::*,
     render::render_resource::Extent3d,
+    utils::HashMap,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
 use cosmic_text::{Affinity, Edit, Metrics, SwashCache};
@@ -44,7 +45,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         &mut XOffset,
         &CosmicMode,
         Option<&mut Placeholder>,
-        Option<&PasswordInput>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -64,7 +64,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         mut x_offset,
         mode,
         mut placeholder_opt,
-        password_opt,
     ) in &mut cosmic_edit_query.iter_mut()
     {
         if !cosmic_editor.0.buffer().redraw() {
@@ -72,22 +71,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         let current_text = cosmic_editor.get_text();
-        let current_select_opt = cosmic_editor.0.select_opt().clone();
-        let current_cursor = cosmic_editor.0.cursor().clone();
-
-        // intercept text for password inputs
-        if let Some(password) = password_opt {
-            if !current_text.is_empty() {
-                cosmic_editor.set_text(
-                    CosmicText::OneStyle(format!("{}", password.0).repeat(current_text.len())),
-                    attrs.0.clone(),
-                    &mut font_system.0,
-                );
-
-                cosmic_editor.0.set_select_opt(current_select_opt);
-                cosmic_editor.0.set_cursor(current_cursor);
-            }
-        }
 
         // Check for placeholder, replace editor if found and buffer is empty
         let editor = if current_text.is_empty() && placeholder_opt.is_some() {
@@ -283,18 +266,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         editor.buffer_mut().set_redraw(false);
-
-        // reset intercepted text
-        if password_opt.is_some() && !current_text.is_empty() {
-            cosmic_editor.set_text(
-                crate::CosmicText::OneStyle(current_text),
-                attrs.0.clone(),
-                &mut font_system.0,
-            );
-
-            cosmic_editor.0.set_select_opt(current_select_opt);
-            cosmic_editor.0.set_cursor(current_cursor);
-        }
     }
 }
 
@@ -525,5 +496,57 @@ pub(crate) fn update_handle_sprite(
 ) {
     for (mut handle, canvas) in changed_handles.iter_mut() {
         *handle = canvas.0.clone_weak();
+    }
+}
+
+#[derive(Resource, Default)]
+pub(crate) struct PasswordStates(pub HashMap<Entity, String>);
+
+pub(crate) fn hide_password_text(
+    mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut password_input_states: ResMut<PasswordStates>,
+) {
+    for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
+        let text = cosmic_editor.get_text();
+        let select_opt = cosmic_editor.0.select_opt();
+        let cursor = cosmic_editor.0.cursor();
+
+        if !text.is_empty() {
+            cosmic_editor.set_text(
+                CosmicText::OneStyle(format!("{}", password.0).repeat(text.len())),
+                attrs.0.clone(),
+                &mut font_system.0,
+            );
+
+            cosmic_editor.0.set_select_opt(select_opt);
+            cosmic_editor.0.set_cursor(cursor);
+        }
+
+        password_input_states.0.insert(entity, text);
+    }
+}
+
+pub(crate) fn restore_password_text(
+    mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs), With<PasswordInput>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    password_input_states: Res<PasswordStates>,
+) {
+    for (entity, mut cosmic_editor, attrs) in editor_q.iter_mut() {
+        if let Some(text) = password_input_states.0.get(&entity) {
+            // reset intercepted text
+            if !text.is_empty() {
+                let cursor = cosmic_editor.0.cursor();
+                let select_opt = cosmic_editor.0.select_opt();
+                cosmic_editor.set_text(
+                    crate::CosmicText::OneStyle(text.clone()),
+                    attrs.0.clone(),
+                    &mut font_system.0,
+                );
+
+                cosmic_editor.0.set_select_opt(select_opt);
+                cosmic_editor.0.set_cursor(cursor);
+            }
+        }
     }
 }
