@@ -62,12 +62,66 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 ..default()
             })
             .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Password".into())),
+                text_setter: PlaceholderText(CosmicText::OneStyle("Password ●".into())),
                 attrs: PlaceholderAttrs(AttrsOwned::new(
                     Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
                 )),
             })
-            .insert(PasswordInput('\u{1F92B}'));
+            .insert(PasswordInput('●'));
+
+            root.spawn(CosmicEditBundle {
+                max_lines: CosmicMaxLines(1),
+                metrics: CosmicMetrics {
+                    scale_factor: window.scale_factor() as f32,
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(50.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicEditPlaceholderBundle {
+                text_setter: PlaceholderText(CosmicText::OneStyle("Password 🙊".into())),
+                attrs: PlaceholderAttrs(AttrsOwned::new(
+                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+                )),
+            })
+            .insert(PasswordInput('🙊'));
+
+            root.spawn(CosmicEditBundle {
+                max_lines: CosmicMaxLines(1),
+                metrics: CosmicMetrics {
+                    scale_factor: window.scale_factor() as f32,
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(50.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicEditPlaceholderBundle {
+                text_setter: PlaceholderText(CosmicText::OneStyle("Password -".into())),
+                attrs: PlaceholderAttrs(AttrsOwned::new(
+                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+                )),
+            })
+            .insert(PasswordInput('-'));
         });
 }
 
@@ -104,7 +158,7 @@ fn print_changed_input(mut evr_type: EventReader<CosmicTextChanged>) {
 }
 
 fn main() {
-    let font_bytes: &[u8] = include_bytes!("../assets/fonts/VictorMono-Regular.ttf");
+    let font_bytes: &[u8] = include_bytes!("../assets/fonts/FiraMono-Regular.ttf");
     let font_config = CosmicFontConfig {
         fonts_dir_path: None,
         font_bytes: Some(vec![font_bytes]),

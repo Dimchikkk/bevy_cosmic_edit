@@ -22,8 +22,8 @@ use wasm_bindgen_futures::JsFuture;
 use crate::{
     get_node_cursor_pos, get_timestamp, get_x_offset_center, get_y_offset_center,
     save_edit_history, CosmicAttrs, CosmicEditHistory, CosmicEditor, CosmicFontSystem,
-    CosmicMaxChars, CosmicMaxLines, CosmicTextChanged, CosmicTextPosition, Focus, ReadOnly,
-    XOffset,
+    CosmicMaxChars, CosmicMaxLines, CosmicText, CosmicTextChanged, CosmicTextPosition, Focus,
+    PasswordInput, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -49,12 +49,14 @@ pub(crate) fn input_mouse(
     buttons: Res<Input<MouseButton>>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
+        &CosmicAttrs,
         &GlobalTransform,
         &CosmicTextPosition,
         Entity,
         &XOffset,
         Option<&mut Node>,
         Option<&mut Sprite>,
+        Option<&PasswordInput>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
@@ -86,11 +88,39 @@ pub(crate) fn input_mouse(
     let primary_window = windows.single();
     let scale_factor = primary_window.scale_factor() as f32;
     let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
-    for (mut editor, node_transform, text_position, entity, x_offset, node_opt, sprite_opt) in
-        &mut cosmic_edit_query.iter_mut()
+    for (
+        mut editor,
+        attrs,
+        node_transform,
+        text_position,
+        entity,
+        x_offset,
+        node_opt,
+        sprite_opt,
+        password_opt,
+    ) in &mut cosmic_edit_query.iter_mut()
     {
         if active_editor.0 != Some(entity) {
             continue;
+        }
+
+        // hijack buffer contents
+        let current_text = editor.get_text();
+        let current_select_opt = editor.0.select_opt().clone();
+        let current_cursor = editor.0.cursor().clone();
+
+        // intercept text for password inputs
+        if let Some(password) = password_opt {
+            if !current_text.is_empty() {
+                editor.set_text(
+                    CosmicText::OneStyle(format!("{}", password.0).repeat(current_text.len())),
+                    attrs.0.clone(),
+                    &mut font_system.0,
+                );
+
+                editor.0.set_select_opt(current_select_opt);
+                editor.0.set_cursor(current_cursor);
+            }
         }
 
         let (width, height, is_ui_node) = match node_opt {
@@ -208,6 +238,18 @@ pub(crate) fn input_mouse(
                     );
                 }
             }
+        }
+
+        // reset intercepted text
+        if password_opt.is_some() && !current_text.is_empty() {
+            editor.set_text(
+                crate::CosmicText::OneStyle(current_text),
+                attrs.0.clone(),
+                &mut font_system.0,
+            );
+
+            editor.0.set_select_opt(current_select_opt);
+            editor.0.set_cursor(current_cursor);
         }
     }
 }

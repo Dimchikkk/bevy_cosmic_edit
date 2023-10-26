@@ -72,6 +72,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         let current_text = cosmic_editor.get_text();
+        let current_select_opt = cosmic_editor.0.select_opt().clone();
+        let current_cursor = cosmic_editor.0.cursor().clone();
 
         // intercept text for password inputs
         if let Some(password) = password_opt {
@@ -81,6 +83,9 @@ pub(crate) fn cosmic_edit_redraw_buffer(
                     attrs.0.clone(),
                     &mut font_system.0,
                 );
+
+                cosmic_editor.0.set_select_opt(current_select_opt);
+                cosmic_editor.0.set_cursor(current_cursor);
             }
         }
 
@@ -286,6 +291,9 @@ pub(crate) fn cosmic_edit_redraw_buffer(
                 attrs.0.clone(),
                 &mut font_system.0,
             );
+
+            cosmic_editor.0.set_select_opt(current_select_opt);
+            cosmic_editor.0.set_cursor(current_cursor);
         }
     }
 }
