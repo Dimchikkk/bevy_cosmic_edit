@@ -481,6 +481,7 @@ pub(crate) fn cosmic_ui_to_canvas(
 pub(crate) fn update_handle_ui(
     mut changed_handles: Query<(&mut UiImage, &CosmicCanvas), Changed<CosmicCanvas>>,
 ) {
+    // TODO: not do this every image update
     for (mut ui_image, canvas) in changed_handles.iter_mut() {
         ui_image.texture = canvas.0.clone_weak();
     }
@@ -497,6 +498,7 @@ pub(crate) fn cosmic_sprite_to_canvas(
 pub(crate) fn update_handle_sprite(
     mut changed_handles: Query<(&mut Handle<Image>, &CosmicCanvas), Changed<CosmicCanvas>>,
 ) {
+    // TODO: not do this every image update
     for (mut handle, canvas) in changed_handles.iter_mut() {
         *handle = canvas.0.clone_weak();
     }

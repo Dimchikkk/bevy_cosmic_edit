@@ -23,18 +23,7 @@ opt-level = 3
 opt-level = 'z'
 
 [dependencies]
-bevy = { version = "0.11", default-features = false, features = [
-  "bevy_asset",
-  "bevy_core_pipeline",
-  "bevy_render",
-  "bevy_scene",
-  "bevy_sprite",
-  "bevy_text",
-  "bevy_ui",
-  "bevy_winit",
-  "png",
-  "x11",
-] }
+bevy = { version = "0.11" }
 cosmic-text = { version = "0.9" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 crossbeam-channel = "0.5.8"
