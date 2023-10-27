@@ -21,7 +21,8 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    on_scale_factor_change, set_initial_scale, CursorBlinkTimer, CursorVisibility, SwashCacheState,
+    hide_password_text, on_scale_factor_change, restore_password_text, set_initial_scale,
+    CursorBlinkTimer, CursorVisibility, PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -105,7 +106,7 @@ struct XOffset(Option<(f32, f32)>);
 pub struct CosmicEditor(pub Editor);
 
 impl CosmicEditor {
-    fn set_text(
+    pub fn set_text(
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
@@ -204,6 +205,15 @@ pub struct PlaceholderText(pub CosmicText);
 #[derive(Component)]
 pub struct PlaceholderAttrs(pub AttrsOwned);
 
+#[derive(Component)]
+pub struct PasswordInput(pub char);
+
+impl Default for PasswordInput {
+    fn default() -> Self {
+        PasswordInput("•".chars().next().unwrap())
+    }
+}
+
 impl Default for PlaceholderAttrs {
     fn default() -> Self {
         Self(AttrsOwned::new(Attrs::new()))
@@ -287,6 +297,19 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
+        let update_texts = (update_buffer_text, update_placeholder_text);
+        let main_unordered = (
+            init_history,
+            input_kb,
+            undo_redo,
+            blink_cursor,
+            freeze_cursor_blink,
+            hide_inactive_or_readonly_cursor,
+            clear_inactive_selection,
+            render::update_handle_ui,
+            render::update_handle_sprite,
+        );
+
         app.add_systems(
             First,
             (
@@ -301,27 +324,30 @@ impl Plugin for CosmicEditPlugin {
                 render::cosmic_sprite_to_canvas,
             ),
         )
-        .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
         .add_systems(
-            Update,
+            PreUpdate,
             (
-                init_history,
-                input_kb,
+                update_texts,
+                main_unordered,
+                hide_password_text,
                 input_mouse,
-                undo_redo,
-                blink_cursor,
-                freeze_cursor_blink,
-                hide_inactive_or_readonly_cursor,
-                clear_inactive_selection,
-                render::update_handle_ui,
-                render::update_handle_sprite,
-            ),
+                restore_password_text,
+            )
+                .chain(),
         )
         .add_systems(
             PostUpdate,
-            (cosmic_edit_redraw_buffer).after(TransformSystem::TransformPropagate),
+            (
+                hide_password_text,
+                cosmic_edit_redraw_buffer
+                    .after(TransformSystem::TransformPropagate)
+                    .after(hide_password_text)
+                    .before(restore_password_text),
+                restore_password_text,
+            ),
         )
         .init_resource::<Focus>()
+        .init_resource::<PasswordValues>()
         .insert_resource(CursorBlinkTimer(Timer::from_seconds(
             0.53,
             TimerMode::Repeating,
