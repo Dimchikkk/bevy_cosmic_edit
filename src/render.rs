@@ -500,7 +500,7 @@ pub(crate) fn update_handle_sprite(
 }
 
 #[derive(Resource, Default)]
-pub(crate) struct PasswordStates(pub HashMap<Entity, String>);
+pub(crate) struct PasswordStates(pub HashMap<Entity, (String, usize)>);
 
 pub(crate) fn hide_password_text(
     mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
@@ -537,11 +537,22 @@ pub(crate) fn hide_password_text(
 
             cursor.index *= char_len;
 
+            if cosmic_editor.0.buffer().lines[0].layout_opt().is_some() {
+                let lc = cosmic_editor.0.buffer().layout_cursor(&cursor);
+
+                println!("{:?}", lc.glyph);
+            }
+
             cosmic_editor.0.set_select_opt(select_opt);
             cosmic_editor.0.set_cursor(cursor);
         }
 
-        password_input_states.0.insert(entity, text);
+        let glyph_idx = match cosmic_editor.0.buffer().lines[0].layout_opt() {
+            Some(_) => cosmic_editor.0.buffer().layout_cursor(&cursor).glyph,
+            None => 0,
+        };
+
+        password_input_states.0.insert(entity, (text, glyph_idx));
     }
 }
 
@@ -551,7 +562,7 @@ pub(crate) fn restore_password_text(
     password_input_states: Res<PasswordStates>,
 ) {
     for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
-        if let Some(text) = password_input_states.0.get(&entity) {
+        if let Some((text, _glyph_idx)) = password_input_states.0.get(&entity) {
             // reset intercepted text
             if !text.is_empty() {
                 let char_len = password.0.len_utf8();
