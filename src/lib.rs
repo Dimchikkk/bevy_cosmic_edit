@@ -297,6 +297,19 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
+        let update_texts = (update_buffer_text, update_placeholder_text);
+        let main_unordered = (
+            init_history,
+            input_kb,
+            undo_redo,
+            blink_cursor,
+            freeze_cursor_blink,
+            hide_inactive_or_readonly_cursor,
+            clear_inactive_selection,
+            render::update_handle_ui,
+            render::update_handle_sprite,
+        );
+
         app.add_systems(
             First,
             (
@@ -311,33 +324,26 @@ impl Plugin for CosmicEditPlugin {
                 render::cosmic_sprite_to_canvas,
             ),
         )
-        .add_systems(PreUpdate, (update_buffer_text, update_placeholder_text))
         .add_systems(
-            Update,
+            PreUpdate,
             (
-                (
-                    init_history,
-                    input_kb,
-                    undo_redo,
-                    blink_cursor,
-                    freeze_cursor_blink,
-                    hide_inactive_or_readonly_cursor,
-                    clear_inactive_selection,
-                    render::update_handle_ui,
-                    render::update_handle_sprite,
-                )
-                    .before(hide_password_text),
+                update_texts,
+                main_unordered,
                 hide_password_text,
-                input_mouse.after(hide_password_text),
-            ),
+                input_mouse,
+                restore_password_text,
+            )
+                .chain(),
         )
         .add_systems(
             PostUpdate,
             (
-                restore_password_text,
+                hide_password_text,
                 cosmic_edit_redraw_buffer
                     .after(TransformSystem::TransformPropagate)
+                    .after(hide_password_text)
                     .before(restore_password_text),
+                restore_password_text,
             ),
         )
         .init_resource::<Focus>()
