@@ -196,9 +196,6 @@ pub struct CosmicMaxChars(pub usize);
 #[derive(Component, Default)]
 pub struct FillColor(pub Color);
 
-#[derive(Component)]
-pub struct Placeholder(pub CosmicEditor);
-
 #[derive(Component, Default)]
 pub struct PlaceholderText(pub CosmicText);
 
@@ -297,7 +294,6 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        let update_texts = (update_buffer_text, update_placeholder_text);
         let main_unordered = (
             init_history,
             input_kb,
@@ -314,12 +310,7 @@ impl Plugin for CosmicEditPlugin {
             First,
             (
                 set_initial_scale,
-                (
-                    cosmic_editor_builder,
-                    placeholder_builder,
-                    on_scale_factor_change,
-                )
-                    .after(set_initial_scale),
+                (cosmic_editor_builder, on_scale_factor_change).after(set_initial_scale),
                 render::cosmic_ui_to_canvas,
                 render::cosmic_sprite_to_canvas,
             ),
@@ -327,7 +318,7 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             PreUpdate,
             (
-                update_texts,
+                update_buffer_text,
                 main_unordered,
                 hide_password_text,
                 input_mouse,
@@ -441,23 +432,6 @@ fn cosmic_editor_builder(
     }
 }
 
-fn placeholder_builder(
-    mut added_editors: Query<(Entity, &CosmicMetrics), Added<PlaceholderText>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-    mut commands: Commands,
-) {
-    for (entity, metrics) in added_editors.iter_mut() {
-        let buffer = Buffer::new(
-            &mut font_system.0,
-            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
-        );
-
-        let editor = CosmicEditor(Editor::new(buffer));
-
-        commands.entity(entity).insert(Placeholder(editor));
-    }
-}
-
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
     let mut db = cosmic_text::fontdb::Database::new();
@@ -528,21 +502,6 @@ fn update_buffer_text(
     for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
         let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
         editor.set_text(text, attrs.0.clone(), &mut font_system.0);
-    }
-}
-
-/// Updates editor buffer when text component changes
-fn update_placeholder_text(
-    mut editor_q: Query<
-        (&mut Placeholder, &mut PlaceholderText, &PlaceholderAttrs),
-        Changed<PlaceholderText>,
-    >,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    for (mut editor, text, attrs) in editor_q.iter_mut() {
-        editor
-            .0
-            .set_text(text.0.to_owned(), attrs.0.clone(), &mut font_system.0);
     }
 }
 

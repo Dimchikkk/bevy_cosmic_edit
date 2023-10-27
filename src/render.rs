@@ -13,8 +13,8 @@ use image::{imageops::FilterType, GenericImageView};
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
     CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicText,
-    CosmicTextPosition, FillColor, Focus, PasswordInput, Placeholder, ReadOnly, XOffset,
-    DEFAULT_SCALE_PLACEHOLDER,
+    CosmicTextPosition, FillColor, Focus, PasswordInput, PlaceholderAttrs, PlaceholderText,
+    ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
 };
 
 #[derive(Resource)]
@@ -47,7 +47,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         Option<&mut Sprite>,
         &mut XOffset,
         &CosmicMode,
-        Option<&mut Placeholder>,
+        Option<&mut PlaceholderText>,
+        Option<&mut PlaceholderAttrs>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -66,7 +67,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         sprite_opt,
         mut x_offset,
         mode,
-        mut placeholder_opt,
+        placeholder_text_opt,
+        placeholder_attrs_opt,
     ) in &mut cosmic_edit_query.iter_mut()
     {
         if !cosmic_editor.0.buffer().redraw() {
@@ -75,21 +77,26 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         let current_text = cosmic_editor.get_text();
 
-        // Check for placeholder, replace editor if found and buffer is empty
-        let editor = if current_text.is_empty() && placeholder_opt.is_some() {
-            let placeholder = &mut placeholder_opt.as_mut().unwrap().0 .0;
-            placeholder.buffer_mut().set_redraw(true);
+        let mut placeholder = false;
 
-            cosmic_editor.0.buffer_mut().set_redraw(true);
+        if current_text.is_empty() {
+            if let Some(text) = placeholder_text_opt {
+                let attrs = match placeholder_attrs_opt {
+                    Some(attrs) => attrs.0.clone(),
+                    None => attrs.0.clone(),
+                };
 
-            let mut cursor = placeholder.cursor();
-            cursor.index = 0;
-            placeholder.set_cursor(cursor);
-            *x_offset = XOffset(None);
-            placeholder
-        } else {
-            &mut cosmic_editor.0
-        };
+                cosmic_editor.set_text(text.0.clone(), attrs, &mut font_system.0);
+
+                let mut cursor = cosmic_editor.0.cursor();
+                cursor.index = 0;
+                cosmic_editor.0.set_cursor(cursor);
+
+                placeholder = true;
+            }
+        }
+
+        let editor = &mut cosmic_editor.0;
 
         editor.shape_as_needed(&mut font_system.0);
 
@@ -269,6 +276,14 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         editor.buffer_mut().set_redraw(false);
+
+        if placeholder {
+            cosmic_editor.set_text(
+                CosmicText::OneStyle(current_text),
+                attrs.0.clone(),
+                &mut font_system.0,
+            );
+        }
     }
 }
 
@@ -326,7 +341,6 @@ pub(crate) fn blink_cursor(
     time: Res<Time>,
     active_editor: ResMut<Focus>,
     mut cosmic_editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
-    mut placeholder_editor_q: Query<&mut Placeholder, Without<ReadOnly>>,
 ) {
     if let Some(e) = active_editor.0 {
         timer.0.tick(time.delta());
@@ -353,14 +367,6 @@ pub(crate) fn blink_cursor(
             cursor.color = new_color;
             editor.set_cursor(cursor);
             editor.buffer_mut().set_redraw(true);
-        }
-
-        if let Ok(mut placeholder) = placeholder_editor_q.get_mut(e) {
-            let placeholder = &mut placeholder.0 .0;
-            let mut cursor_p = placeholder.cursor();
-            cursor_p.color = new_color;
-            placeholder.set_cursor(cursor_p);
-            placeholder.buffer_mut().set_redraw(true);
         }
     }
 }
@@ -399,7 +405,6 @@ pub(crate) fn freeze_cursor_blink(
 
 pub(crate) fn hide_inactive_or_readonly_cursor(
     mut cosmic_editor_q_readonly: Query<&mut CosmicEditor, With<ReadOnly>>,
-    mut cosmic_editor_q_placeholder: Query<(Entity, &mut Placeholder, Option<&ReadOnly>)>,
     mut cosmic_editor_q_editable: Query<(Entity, &mut CosmicEditor), Without<ReadOnly>>,
     active_editor: Res<Focus>,
 ) {
@@ -408,20 +413,6 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
         cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
         editor.0.set_cursor(cursor);
         editor.0.buffer_mut().set_redraw(true);
-    }
-
-    for (e, mut editor, readonly_opt) in &mut cosmic_editor_q_placeholder.iter_mut() {
-        // filthy short circuiting instead of correct unwrapping
-        if active_editor.is_none() || e != active_editor.0.unwrap() || readonly_opt.is_some() {
-            let editor = &mut editor.0;
-            let mut cursor = editor.0.cursor();
-            if cursor.color == Some(cosmic_text::Color::rgba(0, 0, 0, 0)) {
-                continue;
-            }
-            cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
-            editor.0.set_cursor(cursor);
-            editor.0.buffer_mut().set_redraw(true);
-        }
     }
 
     for (e, mut editor) in &mut cosmic_editor_q_editable.iter_mut() {
