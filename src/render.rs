@@ -28,6 +28,9 @@ pub(crate) struct CursorBlinkTimer(pub Timer);
 #[derive(Resource)]
 pub(crate) struct CursorVisibility(pub bool);
 
+#[derive(Resource, Default)]
+pub(crate) struct PasswordValues(pub HashMap<Entity, (String, usize)>);
+
 pub(crate) fn cosmic_edit_redraw_buffer(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
@@ -413,7 +416,7 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
             let editor = &mut editor.0;
             let mut cursor = editor.0.cursor();
             if cursor.color == Some(cosmic_text::Color::rgba(0, 0, 0, 0)) {
-                return;
+                continue;
             }
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
@@ -425,7 +428,7 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
         if active_editor.is_none() || e != active_editor.0.unwrap() {
             let mut cursor = editor.0.cursor();
             if cursor.color == Some(cosmic_text::Color::rgba(0, 0, 0, 0)) {
-                return;
+                continue;
             }
             cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
             editor.0.set_cursor(cursor);
@@ -499,13 +502,10 @@ pub(crate) fn update_handle_sprite(
     }
 }
 
-#[derive(Resource, Default)]
-pub(crate) struct PasswordStates(pub HashMap<Entity, (String, usize)>);
-
 pub(crate) fn hide_password_text(
     mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
     mut font_system: ResMut<CosmicFontSystem>,
-    mut password_input_states: ResMut<PasswordStates>,
+    mut password_input_states: ResMut<PasswordValues>,
     active_editor: Res<Focus>,
 ) {
     for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
@@ -562,11 +562,10 @@ pub(crate) fn hide_password_text(
 pub(crate) fn restore_password_text(
     mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
     mut font_system: ResMut<CosmicFontSystem>,
-    password_input_states: Res<PasswordStates>,
+    password_input_states: Res<PasswordValues>,
 ) {
     for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
         if let Some((text, _glyph_idx)) = password_input_states.0.get(&entity) {
-            // reset intercepted text
             if !text.is_empty() {
                 let char_len = password.0.len_utf8();
 

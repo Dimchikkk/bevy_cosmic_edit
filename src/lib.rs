@@ -22,7 +22,7 @@ use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
     hide_password_text, on_scale_factor_change, restore_password_text, set_initial_scale,
-    CursorBlinkTimer, CursorVisibility, PasswordStates, SwashCacheState,
+    CursorBlinkTimer, CursorVisibility, PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -106,7 +106,7 @@ struct XOffset(Option<(f32, f32)>);
 pub struct CosmicEditor(pub Editor);
 
 impl CosmicEditor {
-    fn set_text(
+    pub fn set_text(
         &mut self,
         text: CosmicText,
         attrs: AttrsOwned,
@@ -341,7 +341,7 @@ impl Plugin for CosmicEditPlugin {
             ),
         )
         .init_resource::<Focus>()
-        .init_resource::<PasswordStates>()
+        .init_resource::<PasswordValues>()
         .insert_resource(CursorBlinkTimer(Timer::from_seconds(
             0.53,
             TimerMode::Repeating,
