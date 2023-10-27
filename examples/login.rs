@@ -16,10 +16,8 @@ struct PasswordTag;
 #[derive(Component)]
 struct DisplayTag;
 
-fn setup(mut commands: Commands, mut window: Query<&mut Window, With<PrimaryWindow>>) {
-    let mut window = window.single_mut();
-
-    window.resolution = WindowResolution::new(330.0, 480.0);
+fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
+    let window = window.single();
 
     commands.spawn(Camera2dBundle::default());
 
@@ -229,7 +227,13 @@ fn submit_button(
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: WindowResolution::new(330., 480.),
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugins(CosmicEditPlugin {
             change_cursor: CursorConfig::Default,
             ..default()
