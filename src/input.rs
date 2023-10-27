@@ -411,12 +411,18 @@ pub(crate) fn input_kb(
         {
             if let Ok(mut clipboard) = arboard::Clipboard::new() {
                 if command && keys.just_pressed(KeyCode::C) {
+                    if password_opt.is_some() {
+                        return;
+                    }
                     if let Some(text) = editor.0.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         return;
                     }
                 }
                 if command && keys.just_pressed(KeyCode::X) && !readonly {
+                    if password_opt.is_some() {
+                        return;
+                    }
                     if let Some(text) = editor.0.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         editor.0.delete_selection();
@@ -451,6 +457,9 @@ pub(crate) fn input_kb(
         #[cfg(target_arch = "wasm32")]
         {
             if command && keys.just_pressed(KeyCode::C) {
+                if password_opt.is_some() {
+                    return;
+                }
                 if let Some(text) = editor.0.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     return;
@@ -458,6 +467,9 @@ pub(crate) fn input_kb(
             }
 
             if command && keys.just_pressed(KeyCode::X) && !readonly {
+                if password_opt.is_some() {
+                    return;
+                }
                 if let Some(text) = editor.0.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     editor.0.delete_selection();
@@ -690,6 +702,7 @@ pub fn poll_wasm_paste(
             &CosmicMaxChars,
             &CosmicMaxChars,
             &mut CosmicEditHistory,
+            Option<&PasswordInput>,
         ),
         Without<ReadOnly>,
     >,
@@ -700,7 +713,7 @@ pub fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, attrs, max_chars, max_lines, mut edit_history)) =
+            if let Ok((mut editor, attrs, max_chars, max_lines, mut edit_history, password_opt)) =
                 editor_q.get_mut(entity)
             {
                 let text = inlet.text;
@@ -712,8 +725,9 @@ pub fn poll_wasm_paste(
                                 editor.0.action(&mut font_system.0, Action::Insert(c));
                             }
                         } else {
-                            if password_opt.is_some() && char_ev.char.len_utf8() > 1 {
-                                println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",char_ev.char);
+                            if password_opt.is_some() && c.len_utf8() > 1 {
+                                // TODO: console.log here instead
+                                println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
                                 continue;
                             }
                             editor.0.action(&mut font_system.0, Action::Insert(c));
