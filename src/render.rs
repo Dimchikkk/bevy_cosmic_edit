@@ -506,6 +506,7 @@ pub(crate) fn hide_password_text(
     mut editor_q: Query<(Entity, &mut CosmicEditor, &CosmicAttrs, &PasswordInput)>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut password_input_states: ResMut<PasswordStates>,
+    active_editor: Res<Focus>,
 ) {
     for (entity, mut cosmic_editor, attrs, password) in editor_q.iter_mut() {
         let text = cosmic_editor.get_text();
@@ -537,13 +538,15 @@ pub(crate) fn hide_password_text(
 
             cursor.index *= char_len;
 
-            if cosmic_editor.0.buffer().lines[0].layout_opt().is_some() {
-                let lc = cosmic_editor.0.buffer().layout_cursor(&cursor);
+            cosmic_editor.0.set_select_opt(select_opt);
 
-                println!("{:?}", lc.glyph);
+            // Fixes stuck cursor on password inputs
+            if let Some(active) = active_editor.0 {
+                if entity != active {
+                    cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
+                }
             }
 
-            cosmic_editor.0.set_select_opt(select_opt);
             cosmic_editor.0.set_cursor(cursor);
         }
 
