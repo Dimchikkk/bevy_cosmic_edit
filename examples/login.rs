@@ -21,6 +21,11 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
 
     commands.spawn(Camera2dBundle::default());
 
+    let mut login_id = None;
+    let mut password_id = None;
+    let mut submit_id = None;
+    let mut output_id = None;
+
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -34,119 +39,143 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             ..default()
         })
         .with_children(|root| {
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
+            login_id = Some(
+                root.spawn(ButtonBundle {
+                    style: Style {
+                        // Size and position of text box
+                        width: Val::Px(300.),
+                        height: Val::Px(50.),
+                        margin: UiRect::all(Val::Px(15.0)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::WHITE),
                     ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(300.),
-                    height: Val::Px(50.),
-                    margin: UiRect::all(Val::Px(15.0)),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Username".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert(UsernameTag);
+                })
+                .id(),
+            );
 
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
+            password_id = Some(
+                root.spawn(ButtonBundle {
+                    style: Style {
+                        // Size and position of text box
+                        width: Val::Px(300.),
+                        height: Val::Px(50.),
+                        margin: UiRect::all(Val::Px(15.0)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::WHITE),
                     ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(300.),
-                    height: Val::Px(50.),
-                    margin: UiRect::all(Val::Px(15.0)),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Password".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert(PasswordTag)
-            .insert(PasswordInput::default());
+                })
+                .id(),
+            );
 
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    font_size: 25.0,
-                    line_height: 25.0,
-                    scale_factor: window.scale_factor() as f32,
-                    ..default()
-                },
-                attrs: CosmicAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::WHITE)),
-                )),
-                text_setter: CosmicText::OneStyle("Submit".into()),
-                fill_color: FillColor(Color::GREEN),
-                ..default()
-            })
-            .insert(ButtonBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(150.),
-                    height: Val::Px(50.),
-                    margin: UiRect::all(Val::Px(15.0)),
-                    border: UiRect::all(Val::Px(3.0)),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
-                border_color: Color::DARK_GREEN.into(),
+            submit_id = Some(
+                root.spawn(ButtonBundle {
+                    style: Style {
+                        // Size and position of text box
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect::all(Val::Px(15.0)),
+                        border: UiRect::all(Val::Px(3.0)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::WHITE),
+                    border_color: Color::DARK_GREEN.into(),
 
-                ..default()
-            })
-            .insert(SubmitButton)
-            .insert(ReadOnly);
+                    ..default()
+                })
+                .insert(SubmitButton)
+                .id(),
+            );
 
-            root.spawn(CosmicEditBundle {
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
+            output_id = Some(
+                root.spawn(ButtonBundle {
+                    style: Style {
+                        // Size and position of text box
+                        width: Val::Px(300.),
+                        height: Val::Px(100.),
+                        margin: UiRect::all(Val::Px(15.0)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::WHITE),
                     ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
-                style: Style {
-                    // Size and position of text box
-                    width: Val::Px(300.),
-                    height: Val::Px(100.),
-                    margin: UiRect::all(Val::Px(15.0)),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Output".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert((ReadOnly, DisplayTag));
+                })
+                .id(),
+            );
         });
+
+    commands
+        .spawn(CosmicEditBundle {
+            target: CosmicTarget(login_id),
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Username".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert(UsernameTag);
+
+    commands
+        .spawn(CosmicEditBundle {
+            target: CosmicTarget(password_id),
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Password".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert(PasswordTag)
+        .insert(PasswordInput::default());
+
+    commands
+        .spawn(CosmicEditBundle {
+            target: CosmicTarget(submit_id),
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                font_size: 25.0,
+                line_height: 25.0,
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            attrs: CosmicAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::WHITE)),
+            )),
+            text_setter: CosmicText::OneStyle("Submit".into()),
+            fill_color: FillColor(Color::GREEN),
+            ..default()
+        })
+        .insert(ReadOnly);
+
+    commands
+        .spawn(CosmicEditBundle {
+            target: CosmicTarget(output_id),
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Output".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert((ReadOnly, DisplayTag));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

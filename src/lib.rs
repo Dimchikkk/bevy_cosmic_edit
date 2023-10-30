@@ -6,7 +6,7 @@ mod render;
 
 use std::{collections::VecDeque, path::PathBuf};
 
-use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE, transform::TransformSystem};
+use bevy::{prelude::*, transform::TransformSystem};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
     Weight as FontWeight,
@@ -220,16 +220,10 @@ impl Default for PasswordInput {
     }
 }
 
-#[derive(Component)]
-pub struct CosmicCanvas(pub Handle<Image>);
+#[derive(Component, Default)]
+pub struct CosmicTarget(pub Option<Entity>);
 
-impl Default for CosmicCanvas {
-    fn default() -> Self {
-        CosmicCanvas(DEFAULT_IMAGE_HANDLE.typed())
-    }
-}
-
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct CosmicEditBundle {
     // cosmic bits
     pub fill_color: FillColor,
@@ -241,7 +235,33 @@ pub struct CosmicEditBundle {
     pub max_chars: CosmicMaxChars,
     pub text_setter: CosmicText,
     pub mode: CosmicMode,
-    pub canvas: CosmicCanvas,
+    pub sprite_bundle: SpriteBundle,
+    pub target: CosmicTarget,
+}
+
+impl Default for CosmicEditBundle {
+    fn default() -> Self {
+        CosmicEditBundle {
+            fill_color: Default::default(),
+            text_position: Default::default(),
+            metrics: Default::default(),
+            attrs: Default::default(),
+            background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
+            text_setter: Default::default(),
+            mode: Default::default(),
+            sprite_bundle: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::ONE * 128.0),
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            target: Default::default(),
+        }
+    }
 }
 
 #[derive(Bundle)]
@@ -305,8 +325,6 @@ impl Plugin for CosmicEditPlugin {
             freeze_cursor_blink,
             hide_inactive_or_readonly_cursor,
             clear_inactive_selection,
-            render::update_handle_ui,
-            render::update_handle_sprite,
         );
 
         app.add_systems(
@@ -314,8 +332,7 @@ impl Plugin for CosmicEditPlugin {
             (
                 set_initial_scale,
                 (cosmic_editor_builder, on_scale_factor_change).after(set_initial_scale),
-                render::cosmic_ui_to_canvas,
-                render::cosmic_sprite_to_canvas,
+                render::swap_target_handle,
             ),
         )
         .add_systems(

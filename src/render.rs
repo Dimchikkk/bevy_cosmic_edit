@@ -12,7 +12,7 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
-    CosmicCanvas, CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicText,
+    CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTarget, CosmicText,
     CosmicTextPosition, FillColor, Focus, PasswordInput, PlaceholderAttrs, PlaceholderText,
     ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
 };
@@ -34,6 +34,76 @@ pub(crate) struct PasswordValues(pub HashMap<Entity, (String, usize)>);
 #[derive(Component)]
 pub(crate) struct Placeholder;
 
+#[derive(Component)]
+pub(crate) struct CosmicPadding(pub (i32, i32));
+
+pub(crate) fn cosmic_position(
+    mut query: Query<(
+        &mut CosmicPadding,
+        &CosmicTextPosition,
+        &CosmicEditor,
+        &CosmicWidgetSize,
+    )>,
+) {
+    for (mut padding, position, editor, size) in query.iter_mut() {
+        padding.0 = match position {
+            CosmicTextPosition::Center => (
+                get_x_offset_center(size.0.x, editor.0.buffer()),
+                get_y_offset_center(size.0.y, editor.0.buffer()),
+            ),
+            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
+            CosmicTextPosition::Left { padding } => {
+                (*padding, get_y_offset_center(size.0.y, editor.0.buffer()))
+            }
+        }
+    }
+}
+
+#[derive(Component)]
+pub(crate) struct CosmicWidgetSize(pub Vec2);
+
+pub(crate) fn cosmic_widget_size(mut query: Query<(&mut CosmicWidgetSize, &Sprite)>) {
+    // TODO: Decide on initial source of truth for widget size
+    // One per widget style? Doesn't seem too bad reeeeeeally but does just move the problem
+    // So hows about always have a sprite, use that as single source of truth, and
+    // just point UiImage textures at that sprite? Should all end up correctly sized and that.
+    // Might allow shaders, depending on how render pipeline works.
+    // Removes need for CosmicCanvas entirely
+    for (mut size, sprite) in query.iter_mut() {
+        size.0 = sprite.custom_size.unwrap_or(Vec2::ONE).ceil();
+    }
+}
+
+pub(crate) fn cosmic_buffer_size(
+    mut query: Query<(
+        &mut CosmicEditor,
+        &CosmicMode,
+        &CosmicWidgetSize,
+        &CosmicTextPosition,
+    )>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    // 2
+    for (mut editor, mode, widget, position) in query.iter_mut() {
+        let padding_x = match position {
+            CosmicTextPosition::Center => 0.,
+            CosmicTextPosition::TopLeft { padding } => *padding as f32,
+            CosmicTextPosition::Left { padding } => *padding as f32,
+        };
+
+        let (buffer_width, buffer_height) = match mode {
+            CosmicMode::InfiniteLine => (f32::MAX, widget.0.y),
+            CosmicMode::AutoHeight => (widget.0.x - padding_x, (i32::MAX / 2) as f32),
+            CosmicMode::Wrap => (widget.0.x - padding_x, widget.0.y),
+        };
+
+        editor
+            .0
+            .buffer_mut()
+            .set_size(&mut font_system.0, buffer_width, buffer_height);
+    }
+}
+
 pub(crate) fn cosmic_edit_redraw_buffer(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
@@ -43,7 +113,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         &CosmicAttrs,
         &CosmicBackground,
         &FillColor,
-        &mut CosmicCanvas,
+        &mut Handle<Image>,
         &CosmicTextPosition,
         Option<&Node>,
         Option<&mut Style>,
@@ -87,6 +157,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         // Get numbers, do maths to find and set cursor
         //
+        // TODO: width/height from texture dimensions, we don't care about ANYTHING but the image
+        // we're working on.
         let (base_width, mut base_height) = match node_opt {
             Some(node) => (node.size().x.ceil(), node.size().y.ceil()),
             None => (
@@ -99,6 +171,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         let widget_height = base_height * scale;
 
         // TODO: Split positioning out, store padding in component
+
         let padding_x = match text_position {
             CosmicTextPosition::Center => 0.,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
@@ -106,6 +179,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         };
 
         // TODO: Split modes out, store results in component
+
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, widget_height),
             CosmicMode::AutoHeight => (widget_width - padding_x, (i32::MAX / 2) as f32),
@@ -238,11 +312,9 @@ pub(crate) fn cosmic_edit_redraw_buffer(
             },
         );
 
-        let canvas = &mut canvas.0;
-
         // TODO: set CosmicCanvas default value to a new image, expect it here instead of checking
         // for `DEFAULT_IMAGE_HANDLE`
-        if let Some(prev_image) = images.get_mut(canvas) {
+        if let Some(prev_image) = images.get_mut(&canvas) {
             if *canvas == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
                 let mut prev_image = prev_image.clone();
                 prev_image.data.clear();
@@ -445,35 +517,24 @@ pub(crate) fn on_scale_factor_change(
     }
 }
 
-pub(crate) fn cosmic_ui_to_canvas(
-    mut added_ui_images: Query<(&mut UiImage, &CosmicCanvas), Added<UiImage>>,
+pub(crate) fn swap_target_handle(
+    mut source_q: Query<(&mut CosmicTarget, &Handle<Image>), Changed<Handle<Image>>>,
+    mut dest_q: Query<(Option<&mut Handle<Image>>, Option<&mut UiImage>), Without<CosmicTarget>>,
 ) {
-    for (mut ui_image, canvas) in added_ui_images.iter_mut() {
-        ui_image.texture = canvas.0.clone_weak();
-    }
-}
-
-pub(crate) fn update_handle_ui(
-    mut changed_handles: Query<(&mut UiImage, &CosmicCanvas), Changed<CosmicCanvas>>,
-) {
-    for (mut ui_image, canvas) in changed_handles.iter_mut() {
-        ui_image.texture = canvas.0.clone_weak();
-    }
-}
-
-pub(crate) fn cosmic_sprite_to_canvas(
-    mut added_sprite_textures: Query<(&mut Handle<Image>, &CosmicCanvas), Added<Handle<Image>>>,
-) {
-    for (mut handle, canvas) in added_sprite_textures.iter_mut() {
-        *handle = canvas.0.clone_weak();
-    }
-}
-
-pub(crate) fn update_handle_sprite(
-    mut changed_handles: Query<(&mut Handle<Image>, &CosmicCanvas), Changed<CosmicCanvas>>,
-) {
-    for (mut handle, canvas) in changed_handles.iter_mut() {
-        *handle = canvas.0.clone_weak();
+    // TODO once set do not reset
+    // maybe remove the CosmicTarget component? Re-adding will change the target
+    // but then there's no link between source and dest (other than the image handle)
+    for (target, source_handle) in source_q.iter_mut() {
+        if let Some(dest_entity) = target.0 {
+            if let Ok((handle_opt, ui_opt)) = dest_q.get_mut(dest_entity) {
+                if let Some(mut dest_handle) = handle_opt {
+                    *dest_handle = source_handle.clone_weak();
+                }
+                if let Some(mut dest_ui_image) = ui_opt {
+                    dest_ui_image.texture = source_handle.clone_weak();
+                }
+            }
+        }
     }
 }
 
