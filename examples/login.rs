@@ -104,12 +104,20 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             );
         });
 
-    commands
+    let login_editor = commands
         .spawn(CosmicEditBundle {
             target: CosmicTarget(login_id),
             max_lines: CosmicMaxLines(1),
             metrics: CosmicMetrics {
                 scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            sprite_bundle: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(300.0, 50.0)),
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
                 ..default()
             },
             ..default()
@@ -120,7 +128,8 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
             )),
         })
-        .insert(UsernameTag);
+        .insert(UsernameTag)
+        .id();
 
     commands
         .spawn(CosmicEditBundle {
@@ -176,6 +185,8 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             )),
         })
         .insert((ReadOnly, DisplayTag));
+
+    commands.insert_resource(Focus(Some(login_editor)));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

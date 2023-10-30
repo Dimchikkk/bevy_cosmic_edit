@@ -22,8 +22,8 @@ use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
     hide_password_text, on_scale_factor_change, restore_password_text, restore_placeholder_text,
-    set_initial_scale, show_placeholder, CursorBlinkTimer, CursorVisibility, PasswordValues,
-    SwashCacheState,
+    set_initial_scale, show_placeholder, CosmicPadding, CosmicWidgetSize, CursorBlinkTimer,
+    CursorVisibility, PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -237,6 +237,9 @@ pub struct CosmicEditBundle {
     pub mode: CosmicMode,
     pub sprite_bundle: SpriteBundle,
     pub target: CosmicTarget,
+    // render bits
+    pub padding: CosmicPadding,
+    pub widget_size: CosmicWidgetSize,
 }
 
 impl Default for CosmicEditBundle {
@@ -260,6 +263,8 @@ impl Default for CosmicEditBundle {
                 ..default()
             },
             target: Default::default(),
+            padding: Default::default(),
+            widget_size: Default::default(),
         }
     }
 }
@@ -327,6 +332,16 @@ impl Plugin for CosmicEditPlugin {
             clear_inactive_selection,
         );
 
+        let render_ordered = (
+            render::cosmic_widget_size,
+            render::cosmic_buffer_size,
+            render::auto_height,
+            render::set_cursor,
+            render::cosmic_padding,
+            render::render_texture,
+        )
+            .chain();
+
         app.add_systems(
             First,
             (
@@ -351,7 +366,8 @@ impl Plugin for CosmicEditPlugin {
             (
                 hide_password_text,
                 show_placeholder,
-                cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
+                render_ordered.after(TransformSystem::TransformPropagate),
+                //cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
                 apply_deferred, // Prevents one-frame inputs adding placeholder to editor
                 restore_password_text,
                 restore_placeholder_text,

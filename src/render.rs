@@ -34,10 +34,11 @@ pub(crate) struct PasswordValues(pub HashMap<Entity, (String, usize)>);
 #[derive(Component)]
 pub(crate) struct Placeholder;
 
-#[derive(Component)]
-pub(crate) struct CosmicPadding(pub (i32, i32));
+#[derive(Component, Default)]
+pub struct CosmicPadding(pub Vec2);
 
-pub(crate) fn cosmic_position(
+// TODO: this is only used to set cursor position; name and rewrite appropriately
+pub(crate) fn cosmic_padding(
     mut query: Query<(
         &mut CosmicPadding,
         &CosmicTextPosition,
@@ -47,30 +48,29 @@ pub(crate) fn cosmic_position(
 ) {
     for (mut padding, position, editor, size) in query.iter_mut() {
         padding.0 = match position {
-            CosmicTextPosition::Center => (
-                get_x_offset_center(size.0.x, editor.0.buffer()),
-                get_y_offset_center(size.0.y, editor.0.buffer()),
+            CosmicTextPosition::Center => Vec2::new(
+                get_x_offset_center(size.0.x, editor.0.buffer()) as f32,
+                get_y_offset_center(size.0.y, editor.0.buffer()) as f32,
             ),
-            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => {
-                (*padding, get_y_offset_center(size.0.y, editor.0.buffer()))
-            }
+            CosmicTextPosition::TopLeft { padding } => Vec2::new(*padding as f32, *padding as f32),
+            CosmicTextPosition::Left { padding } => Vec2::new(
+                *padding as f32,
+                get_y_offset_center(size.0.y, editor.0.buffer()) as f32,
+            ),
         }
     }
 }
 
-#[derive(Component)]
-pub(crate) struct CosmicWidgetSize(pub Vec2);
+#[derive(Component, Default)]
+pub struct CosmicWidgetSize(pub Vec2);
 
-pub(crate) fn cosmic_widget_size(mut query: Query<(&mut CosmicWidgetSize, &Sprite)>) {
-    // TODO: Decide on initial source of truth for widget size
-    // One per widget style? Doesn't seem too bad reeeeeeally but does just move the problem
-    // So hows about always have a sprite, use that as single source of truth, and
-    // just point UiImage textures at that sprite? Should all end up correctly sized and that.
-    // Might allow shaders, depending on how render pipeline works.
-    // Removes need for CosmicCanvas entirely
+pub(crate) fn cosmic_widget_size(
+    mut query: Query<(&mut CosmicWidgetSize, &Sprite)>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    let scale = windows.single().scale_factor() as f32;
     for (mut size, sprite) in query.iter_mut() {
-        size.0 = sprite.custom_size.unwrap_or(Vec2::ONE).ceil();
+        size.0 = sprite.custom_size.unwrap().ceil() * scale;
     }
 }
 
@@ -83,7 +83,6 @@ pub(crate) fn cosmic_buffer_size(
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    // 2
     for (mut editor, mode, widget, position) in query.iter_mut() {
         let padding_x = match position {
             CosmicTextPosition::Center => 0.,
@@ -104,6 +103,196 @@ pub(crate) fn cosmic_buffer_size(
     }
 }
 
+pub(crate) fn render_texture(
+    mut query: Query<(
+        &mut CosmicEditor,
+        &CosmicAttrs,
+        &CosmicBackground,
+        &FillColor,
+        &mut Handle<Image>,
+        &CosmicWidgetSize,
+        &CosmicPadding,
+        &XOffset,
+    )>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut images: ResMut<Assets<Image>>,
+    mut swash_cache_state: ResMut<SwashCacheState>,
+) {
+    for (
+        mut cosmic_editor,
+        attrs,
+        background_image,
+        fill_color,
+        mut canvas,
+        size,
+        padding,
+        x_offset,
+    ) in query.iter_mut()
+    {
+        if !cosmic_editor.0.buffer().redraw() {
+            continue;
+        }
+
+        cosmic_editor.0.shape_as_needed(&mut font_system.0);
+
+        // Draw background
+        let mut pixels = vec![0; size.0.x as usize * size.0.y as usize * 4];
+        if let Some(bg_image) = background_image.0.clone() {
+            if let Some(image) = images.get(&bg_image) {
+                let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
+                if image.size().x != size.0.x || image.size().y != size.0.y {
+                    dynamic_image = dynamic_image.resize_to_fill(
+                        size.0.x as u32,
+                        size.0.y as u32,
+                        FilterType::Triangle,
+                    );
+                }
+                for (i, (_, _, rgba)) in dynamic_image.pixels().enumerate() {
+                    if let Some(p) = pixels.get_mut(i * 4..(i + 1) * 4) {
+                        p[0] = rgba[0];
+                        p[1] = rgba[1];
+                        p[2] = rgba[2];
+                        p[3] = rgba[3];
+                    }
+                }
+            }
+        } else {
+            let bg = fill_color.0;
+            for pixel in pixels.chunks_exact_mut(4) {
+                pixel[0] = (bg.r() * 255.) as u8; // Red component
+                pixel[1] = (bg.g() * 255.) as u8; // Green component
+                pixel[2] = (bg.b() * 255.) as u8; // Blue component
+                pixel[3] = (bg.a() * 255.) as u8; // Alpha component
+            }
+        }
+
+        let font_color = attrs
+            .0
+            .color_opt
+            .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
+
+        // Draw glyphs
+        cosmic_editor.0.draw(
+            &mut font_system.0,
+            &mut swash_cache_state.swash_cache,
+            font_color,
+            |x, y, w, h, color| {
+                for row in 0..h as i32 {
+                    for col in 0..w as i32 {
+                        draw_pixel(
+                            &mut pixels,
+                            size.0.x as i32,
+                            size.0.y as i32,
+                            x + col + padding.0.x as i32 - x_offset.0.unwrap_or((0., 0.)).0 as i32,
+                            y + row + padding.0.y as i32,
+                            color,
+                        );
+                    }
+                }
+            },
+        );
+
+        // TODO: set CosmicCanvas default value to a new image, expect it here instead of checking
+        // for `DEFAULT_IMAGE_HANDLE`
+        if let Some(prev_image) = images.get_mut(&canvas) {
+            if *canvas == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
+                let mut prev_image = prev_image.clone();
+                prev_image.data.clear();
+                prev_image.data.extend_from_slice(pixels.as_slice());
+                prev_image.resize(Extent3d {
+                    width: size.0.x as u32,
+                    height: size.0.y as u32,
+                    depth_or_array_layers: 1,
+                });
+                let handle_id: HandleId = HandleId::random::<Image>();
+                let new_handle: Handle<Image> = Handle::weak(handle_id);
+                let new_handle = images.set(new_handle, prev_image);
+                *canvas = new_handle;
+            } else {
+                prev_image.data.clear();
+                prev_image.data.extend_from_slice(pixels.as_slice());
+                prev_image.resize(Extent3d {
+                    width: size.0.x as u32,
+                    height: size.0.y as u32,
+                    depth_or_array_layers: 1,
+                });
+            }
+        }
+
+        cosmic_editor.0.buffer_mut().set_redraw(false);
+    }
+}
+
+pub(crate) fn set_cursor(
+    mut query: Query<(
+        &mut XOffset,
+        &CosmicMode,
+        &CosmicEditor,
+        &CosmicWidgetSize,
+        &CosmicPadding,
+    )>,
+) {
+    for (mut x_offset, mode, cosmic_editor, size, padding) in query.iter_mut() {
+        let mut cursor_x = 0.;
+        if mode == &CosmicMode::InfiniteLine {
+            if let Some(line) = cosmic_editor.0.buffer().layout_runs().next() {
+                for (idx, glyph) in line.glyphs.iter().enumerate() {
+                    if cosmic_editor.0.cursor().affinity == Affinity::Before {
+                        if idx <= cosmic_editor.0.cursor().index {
+                            cursor_x += glyph.w;
+                        }
+                    } else if idx < cosmic_editor.0.cursor().index {
+                        cursor_x += glyph.w;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if mode == &CosmicMode::InfiniteLine && x_offset.0.is_none() {
+            *x_offset = XOffset(Some((0., size.0.x - 2. * padding.0.x)));
+        }
+
+        if let Some((x_min, x_max)) = x_offset.0 {
+            if cursor_x > x_max {
+                let diff = cursor_x - x_max;
+                *x_offset = XOffset(Some((x_min + diff, cursor_x)));
+            }
+            if cursor_x < x_min {
+                let diff = x_min - cursor_x;
+                *x_offset = XOffset(Some((cursor_x, x_max - diff)));
+            }
+        }
+    }
+}
+
+pub(crate) fn auto_height(
+    mut query: Query<(&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize)>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    let scale = windows.single().scale_factor() as f32;
+    for (mut sprite, mode, cosmic_editor, size) in query.iter_mut() {
+        if mode == &CosmicMode::AutoHeight {
+            let text_size = get_text_size(cosmic_editor.0.buffer());
+            let text_height = (text_size.1 + 30.) / scale;
+            if text_height > size.0.y / scale {
+                let mut new_size = sprite.custom_size.unwrap();
+                new_size.y = text_height.ceil();
+                sprite.custom_size = Some(new_size);
+            }
+        }
+    }
+}
+
+pub(crate) fn set_size_from_ui() {
+    // TODO
+}
+
+pub(crate) fn set_size_from_mesh() {
+    // TODO
+}
+
 pub(crate) fn cosmic_edit_redraw_buffer(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
@@ -115,9 +304,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         &FillColor,
         &mut Handle<Image>,
         &CosmicTextPosition,
-        Option<&Node>,
         Option<&mut Style>,
-        Option<&mut Sprite>,
+        &mut Sprite,
         &mut XOffset,
         &CosmicMode,
     )>,
@@ -133,13 +321,13 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         fill_color,
         mut canvas,
         text_position,
-        node_opt,
         style_opt,
-        sprite_opt,
+        sprite,
         mut x_offset,
         mode,
     ) in &mut cosmic_edit_query.iter_mut()
     {
+        // TODO: redraw tag component
         if !cosmic_editor.0.buffer().redraw() {
             continue;
         }
@@ -155,22 +343,20 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         // other systems use texture how they like. Separate system for sizing texture to target
         // width/height. May allow shaders to finally be used.
 
-        // Get numbers, do maths to find and set cursor
-        //
-        // TODO: width/height from texture dimensions, we don't care about ANYTHING but the image
+        // width/height from texture dimensions, we don't care about ANYTHING but the image
         // we're working on.
-        let (base_width, mut base_height) = match node_opt {
-            Some(node) => (node.size().x.ceil(), node.size().y.ceil()),
-            None => (
-                sprite_opt.as_ref().unwrap().custom_size.unwrap().x.ceil(),
-                sprite_opt.as_ref().unwrap().custom_size.unwrap().y.ceil(),
-            ),
-        };
+        let (base_width, mut base_height) = (
+            sprite.custom_size.unwrap().x.ceil(),
+            sprite.custom_size.unwrap().y.ceil(),
+        );
+
         // TODO: cache these numbers, no need to recalc if no underlying changes
+        // cosmic_widget_size
         let widget_width = base_width * scale;
         let widget_height = base_height * scale;
 
         // TODO: Split positioning out, store padding in component
+        // cosmic_buffer_size
 
         let padding_x = match text_position {
             CosmicTextPosition::Center => 0.,
@@ -179,6 +365,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         };
 
         // TODO: Split modes out, store results in component
+        // cosmic_buffer_size
 
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, widget_height),
@@ -192,6 +379,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         // TODO: AutoHeight adjustment should be it's own system
         // Currently works with a 1 frame delay if I'm reading the code right
+        // auto_height
         if mode == &CosmicMode::AutoHeight {
             let text_size = get_text_size(editor.buffer());
             let text_height = (text_size.1 + 30.) / primary_window.scale_factor() as f32;
@@ -199,10 +387,13 @@ pub(crate) fn cosmic_edit_redraw_buffer(
                 base_height = text_height.ceil();
                 match style_opt {
                     Some(mut style) => style.height = Val::Px(base_height),
-                    None => sprite_opt.unwrap().custom_size.unwrap().y = base_height,
+                    None => sprite.custom_size.unwrap().y = base_height,
                 }
             }
         }
+
+        // TODO: cursor setting should be it's own system
+        // set_cursor
 
         let mut cursor_x = 0.;
         if mode == &CosmicMode::InfiniteLine {
@@ -274,6 +465,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         // Get values for glyph draw step
         // TODO: will come from padding component, set in positioning system
+        // cosmic_padding
         let (padding_x, padding_y) = match text_position {
             CosmicTextPosition::Center => (
                 get_x_offset_center(widget_width, editor.buffer()),
@@ -521,13 +713,15 @@ pub(crate) fn swap_target_handle(
     mut source_q: Query<(&mut CosmicTarget, &Handle<Image>), Changed<Handle<Image>>>,
     mut dest_q: Query<(Option<&mut Handle<Image>>, Option<&mut UiImage>), Without<CosmicTarget>>,
 ) {
-    // TODO once set do not reset
+    // TODO: once set do not reset
     // maybe remove the CosmicTarget component? Re-adding will change the target
     // but then there's no link between source and dest (other than the image handle)
+    // Link is needed to size sprite according to Ui style
     for (target, source_handle) in source_q.iter_mut() {
         if let Some(dest_entity) = target.0 {
             if let Ok((handle_opt, ui_opt)) = dest_q.get_mut(dest_entity) {
                 if let Some(mut dest_handle) = handle_opt {
+                    // TODO: check here if we're already same handle, noop if so
                     *dest_handle = source_handle.clone_weak();
                 }
                 if let Some(mut dest_ui_image) = ui_opt {
