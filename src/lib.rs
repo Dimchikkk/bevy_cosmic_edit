@@ -332,10 +332,12 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             PostUpdate,
             (
-                (hide_password_text, show_placeholder),
+                hide_password_text,
+                show_placeholder,
                 cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
                 apply_deferred, // Prevents one-frame inputs adding placeholder to editor
-                (restore_password_text, restore_placeholder_text),
+                restore_password_text,
+                restore_placeholder_text,
             )
                 .chain(),
         )
