@@ -202,18 +202,20 @@ pub struct PlaceholderText(pub CosmicText);
 #[derive(Component)]
 pub struct PlaceholderAttrs(pub AttrsOwned);
 
+impl Default for PlaceholderAttrs {
+    fn default() -> Self {
+        Self(AttrsOwned::new(
+            Attrs::new().color(CosmicColor::rgb(128, 128, 128)),
+        ))
+    }
+}
+
 #[derive(Component)]
 pub struct PasswordInput(pub char);
 
 impl Default for PasswordInput {
     fn default() -> Self {
         PasswordInput("•".chars().next().unwrap())
-    }
-}
-
-impl Default for PlaceholderAttrs {
-    fn default() -> Self {
-        Self(AttrsOwned::new(Attrs::new()))
     }
 }
 
