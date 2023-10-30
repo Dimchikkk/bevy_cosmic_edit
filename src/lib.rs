@@ -21,8 +21,9 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    hide_password_text, on_scale_factor_change, restore_password_text, set_initial_scale,
-    CursorBlinkTimer, CursorVisibility, PasswordValues, SwashCacheState,
+    hide_password_text, on_scale_factor_change, restore_password_text, restore_placeholder_text,
+    set_initial_scale, show_placeholder, CursorBlinkTimer, CursorVisibility, PasswordValues,
+    SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -331,13 +332,12 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             PostUpdate,
             (
-                hide_password_text,
-                cosmic_edit_redraw_buffer
-                    .after(TransformSystem::TransformPropagate)
-                    .after(hide_password_text)
-                    .before(restore_password_text),
-                restore_password_text,
-            ),
+                (hide_password_text, show_placeholder),
+                cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
+                apply_deferred, // Prevents one-frame inputs adding placeholder to editor
+                (restore_password_text, restore_placeholder_text),
+            )
+                .chain(),
         )
         .init_resource::<Focus>()
         .init_resource::<PasswordValues>()

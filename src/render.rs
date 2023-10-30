@@ -31,6 +31,9 @@ pub(crate) struct CursorVisibility(pub bool);
 #[derive(Resource, Default)]
 pub(crate) struct PasswordValues(pub HashMap<Entity, (String, usize)>);
 
+#[derive(Component)]
+pub(crate) struct Placeholder;
+
 pub(crate) fn cosmic_edit_redraw_buffer(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
@@ -47,8 +50,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         Option<&mut Sprite>,
         &mut XOffset,
         &CosmicMode,
-        Option<&mut PlaceholderText>,
-        Option<&mut PlaceholderAttrs>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -67,33 +68,10 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         sprite_opt,
         mut x_offset,
         mode,
-        placeholder_text_opt,
-        placeholder_attrs_opt,
     ) in &mut cosmic_edit_query.iter_mut()
     {
         if !cosmic_editor.0.buffer().redraw() {
             continue;
-        }
-
-        let current_text = cosmic_editor.get_text();
-
-        let mut placeholder = false;
-
-        if current_text.is_empty() {
-            if let Some(text) = placeholder_text_opt {
-                let attrs = match placeholder_attrs_opt {
-                    Some(attrs) => attrs.0.clone(),
-                    None => attrs.0.clone(),
-                };
-
-                cosmic_editor.set_text(text.0.clone(), attrs, &mut font_system.0);
-
-                let mut cursor = cosmic_editor.0.cursor();
-                cursor.index = 0;
-                cosmic_editor.0.set_cursor(cursor);
-
-                placeholder = true;
-            }
         }
 
         let editor = &mut cosmic_editor.0;
@@ -276,14 +254,6 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         editor.buffer_mut().set_redraw(false);
-
-        if placeholder {
-            cosmic_editor.set_text(
-                CosmicText::OneStyle(current_text),
-                attrs.0.clone(),
-                &mut font_system.0,
-            );
-        }
     }
 }
 
@@ -581,5 +551,43 @@ pub(crate) fn restore_password_text(
                 cosmic_editor.0.set_cursor(cursor);
             }
         }
+    }
+}
+
+pub(crate) fn show_placeholder(
+    mut editor_q: Query<(
+        Entity,
+        &mut CosmicEditor,
+        &PlaceholderText,
+        &PlaceholderAttrs,
+    )>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut commands: Commands,
+) {
+    for (entity, mut cosmic_editor, placeholder, attrs) in editor_q.iter_mut() {
+        if cosmic_editor.get_text().is_empty() {
+            cosmic_editor.set_text(placeholder.0.clone(), attrs.0.clone(), &mut font_system.0);
+
+            let mut cursor = cosmic_editor.0.cursor();
+            cursor.index = 0;
+            cosmic_editor.0.set_cursor(cursor);
+
+            commands.entity(entity).insert(Placeholder);
+        } else {
+            commands.entity(entity).remove::<Placeholder>();
+        }
+    }
+}
+
+pub(crate) fn restore_placeholder_text(
+    mut editor_q: Query<(&mut CosmicEditor, &CosmicAttrs), With<Placeholder>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut cosmic_editor, attrs) in editor_q.iter_mut() {
+        cosmic_editor.set_text(
+            CosmicText::OneStyle("".into()),
+            attrs.0.clone(),
+            &mut font_system.0,
+        );
     }
 }
