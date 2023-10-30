@@ -78,6 +78,13 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         editor.shape_as_needed(&mut font_system.0);
 
+        // TODO: set w/h in CosmicEditor struct / Bundle, then set sprite size or styles in a
+        // Query<&mut Style, (Added<Style>, With<CosmicEditor>> system
+        //
+        // TODO: This function should not care about destination, simply render to texture and let
+        // other systems use texture how they like. Separate system for sizing texture to target
+        // width/height. May allow shaders to finally be used.
+
         // Get numbers, do maths to find and set cursor
         //
         let (base_width, mut base_height) = match node_opt {
@@ -87,16 +94,18 @@ pub(crate) fn cosmic_edit_redraw_buffer(
                 sprite_opt.as_ref().unwrap().custom_size.unwrap().y.ceil(),
             ),
         };
-
+        // TODO: cache these numbers, no need to recalc if no underlying changes
         let widget_width = base_width * scale;
         let widget_height = base_height * scale;
 
+        // TODO: Split positioning out, store padding in component
         let padding_x = match text_position {
             CosmicTextPosition::Center => 0.,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
             CosmicTextPosition::Left { padding } => *padding as f32,
         };
 
+        // TODO: Split modes out, store results in component
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, widget_height),
             CosmicMode::AutoHeight => (widget_width - padding_x, (i32::MAX / 2) as f32),
@@ -107,6 +116,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
             .buffer_mut()
             .set_size(&mut font_system.0, buffer_width, buffer_height);
 
+        // TODO: AutoHeight adjustment should be it's own system
+        // Currently works with a 1 frame delay if I'm reading the code right
         if mode == &CosmicMode::AutoHeight {
             let text_size = get_text_size(editor.buffer());
             let text_height = (text_size.1 + 30.) / primary_window.scale_factor() as f32;
@@ -188,6 +199,7 @@ pub(crate) fn cosmic_edit_redraw_buffer(
         }
 
         // Get values for glyph draw step
+        // TODO: will come from padding component, set in positioning system
         let (padding_x, padding_y) = match text_position {
             CosmicTextPosition::Center => (
                 get_x_offset_center(widget_width, editor.buffer()),
@@ -228,6 +240,8 @@ pub(crate) fn cosmic_edit_redraw_buffer(
 
         let canvas = &mut canvas.0;
 
+        // TODO: set CosmicCanvas default value to a new image, expect it here instead of checking
+        // for `DEFAULT_IMAGE_HANDLE`
         if let Some(prev_image) = images.get_mut(canvas) {
             if *canvas == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
                 let mut prev_image = prev_image.clone();
