@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{
     asset::HandleId,
     prelude::*,
-    render::render_resource::Extent3d,
+    render::{render_resource::Extent3d, texture::DEFAULT_IMAGE_HANDLE},
     utils::HashMap,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
@@ -120,7 +120,7 @@ pub(crate) fn render_texture(
         &CosmicAttrs,
         &CosmicBackground,
         &FillColor,
-        &mut Handle<Image>,
+        &Handle<Image>,
         &CosmicWidgetSize,
         &CosmicPadding,
         &XOffset,
@@ -129,16 +129,8 @@ pub(crate) fn render_texture(
     mut images: ResMut<Assets<Image>>,
     mut swash_cache_state: ResMut<SwashCacheState>,
 ) {
-    for (
-        mut cosmic_editor,
-        attrs,
-        background_image,
-        fill_color,
-        mut canvas,
-        size,
-        padding,
-        x_offset,
-    ) in query.iter_mut()
+    for (mut cosmic_editor, attrs, background_image, fill_color, canvas, size, padding, x_offset) in
+        query.iter_mut()
     {
         // TODO: redraw tag component
         if !cosmic_editor.0.buffer().redraw() {
@@ -202,34 +194,34 @@ pub(crate) fn render_texture(
             },
         );
 
-        // TODO: set CosmicCanvas default value to a new image, expect it here instead of checking
-        // for `DEFAULT_IMAGE_HANDLE`
         if let Some(prev_image) = images.get_mut(&canvas) {
-            if *canvas == bevy::render::texture::DEFAULT_IMAGE_HANDLE.typed() {
-                let mut prev_image = prev_image.clone();
-                prev_image.data.clear();
-                prev_image.data.extend_from_slice(pixels.as_slice());
-                prev_image.resize(Extent3d {
-                    width: size.0.x as u32,
-                    height: size.0.y as u32,
-                    depth_or_array_layers: 1,
-                });
+            prev_image.data.clear();
+            prev_image.data.extend_from_slice(pixels.as_slice());
+            prev_image.resize(Extent3d {
+                width: size.0.x as u32,
+                height: size.0.y as u32,
+                depth_or_array_layers: 1,
+            });
+        }
+
+        cosmic_editor.0.buffer_mut().set_redraw(false);
+    }
+}
+
+pub(crate) fn new_image_from_default(
+    mut query: Query<&mut Handle<Image>, Added<CosmicEditor>>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    for mut canvas in query.iter_mut() {
+        if let Some(prev_image) = images.get_mut(&canvas) {
+            if *canvas == DEFAULT_IMAGE_HANDLE.typed() {
+                let prev_image = prev_image.clone();
                 let handle_id: HandleId = HandleId::random::<Image>();
                 let new_handle: Handle<Image> = Handle::weak(handle_id);
                 let new_handle = images.set(new_handle, prev_image);
                 *canvas = new_handle;
-            } else {
-                prev_image.data.clear();
-                prev_image.data.extend_from_slice(pixels.as_slice());
-                prev_image.resize(Extent3d {
-                    width: size.0.x as u32,
-                    height: size.0.y as u32,
-                    depth_or_array_layers: 1,
-                });
             }
         }
-
-        cosmic_editor.0.buffer_mut().set_redraw(false);
     }
 }
 

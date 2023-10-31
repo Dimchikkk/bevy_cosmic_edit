@@ -333,6 +333,7 @@ impl Plugin for CosmicEditPlugin {
         );
 
         let render_ordered = (
+            render::new_image_from_default,
             render::cosmic_reshape,
             render::cosmic_widget_size,
             render::cosmic_buffer_size,
