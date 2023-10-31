@@ -287,8 +287,18 @@ pub(crate) fn auto_height(
     }
 }
 
-pub(crate) fn set_size_from_ui() {
-    // TODO
+pub(crate) fn set_size_from_ui(
+    mut source_q: Query<(&mut Sprite, &CosmicTarget)>,
+    dest_q: Query<&Node>,
+) {
+    for (mut sprite, target) in source_q.iter_mut() {
+        if target.0.is_none() {
+            continue;
+        }
+        if let Ok(node) = dest_q.get(target.0.unwrap()) {
+            sprite.custom_size = Some(node.size().ceil());
+        }
+    }
 }
 
 pub(crate) fn set_size_from_mesh() {
