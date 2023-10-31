@@ -12,7 +12,7 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     get_text_size, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBackground,
-    CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicTarget, CosmicText,
+    CosmicEditor, CosmicFontSystem, CosmicMetrics, CosmicMode, CosmicSource, CosmicText,
     CosmicTextPosition, FillColor, Focus, PasswordInput, PlaceholderAttrs, PlaceholderText,
     ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
 };
@@ -288,14 +288,11 @@ pub(crate) fn auto_height(
 }
 
 pub(crate) fn set_size_from_ui(
-    mut source_q: Query<(&mut Sprite, &CosmicTarget)>,
-    dest_q: Query<&Node>,
+    mut source_q: Query<&mut Sprite, With<CosmicEditor>>,
+    dest_q: Query<(&Node, &CosmicSource)>,
 ) {
-    for (mut sprite, target) in source_q.iter_mut() {
-        if target.0.is_none() {
-            continue;
-        }
-        if let Ok(node) = dest_q.get(target.0.unwrap()) {
+    for (node, source) in dest_q.iter() {
+        if let Ok(mut sprite) = source_q.get_mut(source.0) {
             sprite.custom_size = Some(node.size().ceil().max(Vec2::ONE));
         }
     }
@@ -480,23 +477,24 @@ pub(crate) fn on_scale_factor_change(
 }
 
 pub(crate) fn swap_target_handle(
-    mut source_q: Query<(&mut CosmicTarget, &Handle<Image>), Changed<Handle<Image>>>,
-    mut dest_q: Query<(Option<&mut Handle<Image>>, Option<&mut UiImage>), Without<CosmicTarget>>,
+    mut source_q: Query<&Handle<Image>, (Changed<Handle<Image>>, With<CosmicEditor>)>,
+    mut dest_q: Query<
+        (
+            Option<&mut Handle<Image>>,
+            Option<&mut UiImage>,
+            &CosmicSource,
+        ),
+        Without<CosmicEditor>,
+    >,
 ) {
     // TODO: once set do not reset
-    // maybe remove the CosmicTarget component? Re-adding will change the target
-    // but then there's no link between source and dest (other than the image handle)
-    // Link is needed to size sprite according to Ui style
-    for (target, source_handle) in source_q.iter_mut() {
-        if let Some(dest_entity) = target.0 {
-            if let Ok((handle_opt, ui_opt)) = dest_q.get_mut(dest_entity) {
-                if let Some(mut dest_handle) = handle_opt {
-                    // TODO: check here if we're already same handle, noop if so
-                    *dest_handle = source_handle.clone_weak();
-                }
-                if let Some(mut dest_ui_image) = ui_opt {
-                    dest_ui_image.texture = source_handle.clone_weak();
-                }
+    for (mut dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
+        if let Ok(source_handle) = source_q.get(source_entity.0) {
+            if let Some(mut dest_handle) = dest_handle_opt {
+                *dest_handle = source_handle.clone_weak();
+            }
+            if let Some(mut dest_ui) = dest_ui_opt {
+                dest_ui.texture = source_handle.clone_weak();
             }
         }
     }

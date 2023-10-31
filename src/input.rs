@@ -22,8 +22,8 @@ use wasm_bindgen_futures::JsFuture;
 use crate::{
     get_node_cursor_pos, get_timestamp, get_x_offset_center, get_y_offset_center,
     save_edit_history, CosmicAttrs, CosmicEditHistory, CosmicEditor, CosmicFontSystem,
-    CosmicMaxChars, CosmicMaxLines, CosmicTextChanged, CosmicTextPosition, Focus, PasswordInput,
-    ReadOnly, XOffset,
+    CosmicMaxChars, CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, Focus,
+    PasswordInput, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -47,15 +47,15 @@ pub(crate) fn input_mouse(
     active_editor: Res<Focus>,
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
-    mut cosmic_edit_query: Query<(
+    mut editor_q: Query<(
         &mut CosmicEditor,
         &GlobalTransform,
         &CosmicTextPosition,
         Entity,
         &XOffset,
-        Option<&mut Node>,
-        Option<&mut Sprite>,
+        &mut Sprite,
     )>,
+    node_q: Query<(&Node, &GlobalTransform, &CosmicSource)>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -86,21 +86,29 @@ pub(crate) fn input_mouse(
     let primary_window = windows.single();
     let scale_factor = primary_window.scale_factor() as f32;
     let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
-    for (mut editor, node_transform, text_position, entity, x_offset, node_opt, sprite_opt) in
-        &mut cosmic_edit_query.iter_mut()
+
+    for (mut editor, sprite_transform, text_position, entity, x_offset, sprite) in
+        &mut editor_q.iter_mut()
     {
         if active_editor.0 != Some(entity) {
             continue;
         }
 
-        let (width, height, is_ui_node) = match node_opt {
-            Some(node) => (node.size().x, node.size().y, true),
-            None => {
-                let sprite = sprite_opt.unwrap();
-                let size = sprite.custom_size.unwrap();
-                (size.x, size.y, false)
+        let mut is_ui_node = false;
+        let mut transform = sprite_transform;
+        let (mut width, mut height) =
+            (sprite.custom_size.unwrap().x, sprite.custom_size.unwrap().y);
+
+        // TODO: this is bad loop nesting, rethink system with relationships in mind
+        for (node, node_transform, source) in node_q.iter() {
+            if source.0 != entity {
+                continue;
             }
-        };
+            is_ui_node = true;
+            transform = node_transform;
+            width = node.size().x;
+            height = node.size().y;
+        }
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
@@ -132,7 +140,7 @@ pub(crate) fn input_mouse(
         if buttons.just_pressed(MouseButton::Left) {
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
-                node_transform,
+                transform,
                 (width, height),
                 is_ui_node,
                 camera,
@@ -171,7 +179,7 @@ pub(crate) fn input_mouse(
         if buttons.pressed(MouseButton::Left) && *click_count == 0 {
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
-                node_transform,
+                transform,
                 (width, height),
                 is_ui_node,
                 camera,

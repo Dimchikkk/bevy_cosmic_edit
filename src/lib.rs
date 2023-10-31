@@ -220,8 +220,8 @@ impl Default for PasswordInput {
     }
 }
 
-#[derive(Component, Default)]
-pub struct CosmicTarget(pub Option<Entity>);
+#[derive(Component)]
+pub struct CosmicSource(pub Entity);
 
 #[derive(Bundle)]
 pub struct CosmicEditBundle {
@@ -236,7 +236,6 @@ pub struct CosmicEditBundle {
     pub text_setter: CosmicText,
     pub mode: CosmicMode,
     pub sprite_bundle: SpriteBundle,
-    pub target: CosmicTarget,
     // render bits
     pub padding: CosmicPadding,
     pub widget_size: CosmicWidgetSize,
@@ -262,7 +261,6 @@ impl Default for CosmicEditBundle {
                 visibility: Visibility::Hidden,
                 ..default()
             },
-            target: Default::default(),
             padding: Default::default(),
             widget_size: Default::default(),
         }

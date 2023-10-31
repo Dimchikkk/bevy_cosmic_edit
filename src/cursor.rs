@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicEditor, CosmicTextChanged};
+use crate::{CosmicEditor, CosmicSource, CosmicTextChanged};
 
 #[cfg(feature = "multicam")]
 use crate::CosmicPrimaryCamera;
@@ -82,7 +82,7 @@ pub fn hover_sprites(
 }
 
 pub fn hover_ui(
-    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicEditor>)>,
+    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicSource>)>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {

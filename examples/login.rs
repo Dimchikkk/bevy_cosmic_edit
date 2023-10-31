@@ -21,92 +21,8 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
 
     commands.spawn(Camera2dBundle::default());
 
-    let mut login_id = None;
-    let mut password_id = None;
-    let mut submit_id = None;
-    let mut output_id = None;
-
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                padding: UiRect::all(Val::Px(15.0)),
-                width: Val::Px(330.0),
-
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|root| {
-            login_id = Some(
-                root.spawn(ButtonBundle {
-                    style: Style {
-                        // Size and position of text box
-                        width: Val::Px(300.),
-                        height: Val::Px(50.),
-                        margin: UiRect::all(Val::Px(15.0)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::WHITE),
-                    ..default()
-                })
-                .id(),
-            );
-
-            password_id = Some(
-                root.spawn(ButtonBundle {
-                    style: Style {
-                        // Size and position of text box
-                        width: Val::Px(300.),
-                        height: Val::Px(50.),
-                        margin: UiRect::all(Val::Px(15.0)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::WHITE),
-                    ..default()
-                })
-                .id(),
-            );
-
-            submit_id = Some(
-                root.spawn(ButtonBundle {
-                    style: Style {
-                        // Size and position of text box
-                        width: Val::Px(150.),
-                        height: Val::Px(50.),
-                        margin: UiRect::all(Val::Px(15.0)),
-                        border: UiRect::all(Val::Px(3.0)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::WHITE),
-                    border_color: Color::DARK_GREEN.into(),
-
-                    ..default()
-                })
-                .insert(SubmitButton)
-                .id(),
-            );
-
-            output_id = Some(
-                root.spawn(ButtonBundle {
-                    style: Style {
-                        // Size and position of text box
-                        width: Val::Px(300.),
-                        height: Val::Px(100.),
-                        margin: UiRect::all(Val::Px(15.0)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::WHITE),
-                    ..default()
-                })
-                .id(),
-            );
-        });
-
     let login_editor = commands
         .spawn(CosmicEditBundle {
-            target: CosmicTarget(login_id),
             max_lines: CosmicMaxLines(1),
             metrics: CosmicMetrics {
                 scale_factor: window.scale_factor() as f32,
@@ -131,9 +47,8 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
         .insert(UsernameTag)
         .id();
 
-    commands
+    let password_editor = commands
         .spawn(CosmicEditBundle {
-            target: CosmicTarget(password_id),
             max_lines: CosmicMaxLines(1),
             metrics: CosmicMetrics {
                 scale_factor: window.scale_factor() as f32,
@@ -148,11 +63,11 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             )),
         })
         .insert(PasswordTag)
-        .insert(PasswordInput::default());
+        .insert(PasswordInput::default())
+        .id();
 
-    commands
+    let submit_editor = commands
         .spawn(CosmicEditBundle {
-            target: CosmicTarget(submit_id),
             max_lines: CosmicMaxLines(1),
             metrics: CosmicMetrics {
                 font_size: 25.0,
@@ -167,11 +82,11 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             fill_color: FillColor(Color::GREEN),
             ..default()
         })
-        .insert(ReadOnly);
+        .insert(ReadOnly)
+        .id();
 
-    commands
+    let display_editor = commands
         .spawn(CosmicEditBundle {
-            target: CosmicTarget(output_id),
             metrics: CosmicMetrics {
                 scale_factor: window.scale_factor() as f32,
                 ..default()
@@ -184,9 +99,81 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
             )),
         })
-        .insert((ReadOnly, DisplayTag));
+        .insert((ReadOnly, DisplayTag))
+        .id();
 
     commands.insert_resource(Focus(Some(login_editor)));
+
+    // Spawn UI
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(15.0)),
+                width: Val::Px(330.0),
+
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|root| {
+            root.spawn(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(50.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicSource(login_editor));
+
+            root.spawn(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(50.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicSource(password_editor));
+
+            root.spawn(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(150.),
+                    height: Val::Px(50.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    border: UiRect::all(Val::Px(3.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                border_color: Color::DARK_GREEN.into(),
+
+                ..default()
+            })
+            .insert(SubmitButton)
+            .insert(CosmicSource(submit_editor));
+
+            root.spawn(ButtonBundle {
+                style: Style {
+                    // Size and position of text box
+                    width: Val::Px(300.),
+                    height: Val::Px(100.),
+                    margin: UiRect::all(Val::Px(15.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicSource(display_editor));
+        });
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
@@ -201,16 +188,13 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, Entity),
-        (
-            Changed<Interaction>,
-            (With<CosmicEditor>, Without<ReadOnly>),
-        ),
+        (&Interaction, &CosmicSource),
+        (Changed<Interaction>, Without<ReadOnly>),
     >,
 ) {
-    for (interaction, entity) in interaction_query.iter_mut() {
+    for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(entity)));
+            commands.insert_resource(Focus(Some(source.0)));
         }
     }
 }
