@@ -221,8 +221,6 @@ pub(crate) fn input_mouse(
 }
 
 // TODO: split copy/paste into own fn, separate fn for wasm
-// Maybe split undo/redo too, just drop inputs from this fn when pressed
-/// Handles undo/redo, copy/paste and char input
 pub(crate) fn input_kb(
     active_editor: Res<Focus>,
     keys: Res<Input<KeyCode>>,

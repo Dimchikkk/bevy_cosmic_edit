@@ -22,8 +22,8 @@ use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
     blink_cursor, freeze_cursor_blink, hide_inactive_or_readonly_cursor, hide_password_text,
     on_scale_factor_change, restore_password_text, restore_placeholder_text, set_initial_scale,
-    show_placeholder, CosmicPadding, CosmicWidgetSize, CursorBlinkTimer, CursorVisibility,
-    PasswordValues, SwashCacheState,
+    show_placeholder, CosmicPadding, CosmicRenderSet, CosmicWidgetSize, CursorBlinkTimer,
+    CursorVisibility, PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -330,18 +330,17 @@ impl Plugin for CosmicEditPlugin {
             clear_inactive_selection,
         );
 
-        let render_ordered = (
-            render::new_image_from_default,
-            render::set_size_from_ui,
-            render::cosmic_reshape,
-            render::cosmic_widget_size,
-            render::cosmic_buffer_size,
-            render::auto_height,
-            render::set_cursor,
-            render::cosmic_padding,
-            render::render_texture,
-        )
-            .chain();
+        let render_systems = (
+            render::new_image_from_default.in_set(CosmicRenderSet::Setup),
+            render::set_size_from_ui.in_set(CosmicRenderSet::Setup),
+            render::cosmic_reshape.in_set(CosmicRenderSet::Shaping),
+            render::cosmic_widget_size.in_set(CosmicRenderSet::Sizing),
+            render::cosmic_buffer_size.in_set(CosmicRenderSet::Sizing),
+            render::auto_height.in_set(CosmicRenderSet::Sizing),
+            render::set_cursor.in_set(CosmicRenderSet::Cursor),
+            render::cosmic_padding.in_set(CosmicRenderSet::Padding),
+            render::render_texture.in_set(CosmicRenderSet::Draw),
+        );
 
         app.add_systems(
             First,
@@ -362,13 +361,25 @@ impl Plugin for CosmicEditPlugin {
             )
                 .chain(),
         )
+        .configure_sets(
+            PostUpdate,
+            (
+                CosmicRenderSet::Setup,
+                CosmicRenderSet::Shaping,
+                CosmicRenderSet::Sizing,
+                CosmicRenderSet::Cursor,
+                CosmicRenderSet::Padding,
+                CosmicRenderSet::Draw,
+            )
+                .chain()
+                .after(TransformSystem::TransformPropagate),
+        )
         .add_systems(
             PostUpdate,
             (
                 hide_password_text,
                 show_placeholder,
-                render_ordered.after(TransformSystem::TransformPropagate),
-                //cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
+                render_systems,
                 apply_deferred, // Prevents one-frame inputs adding placeholder to editor
                 restore_password_text,
                 restore_placeholder_text,

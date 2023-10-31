@@ -17,6 +17,16 @@ use crate::{
     ReadOnly, XOffset, DEFAULT_SCALE_PLACEHOLDER,
 };
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum CosmicRenderSet {
+    Setup,
+    Shaping,
+    Sizing,
+    Cursor,
+    Padding,
+    Draw,
+}
+
 #[derive(Resource)]
 pub(crate) struct SwashCacheState {
     pub swash_cache: SwashCache,
@@ -37,6 +47,9 @@ pub(crate) struct Placeholder;
 #[derive(Component, Default)]
 pub struct CosmicPadding(pub Vec2);
 
+#[derive(Component, Default)]
+pub struct CosmicWidgetSize(pub Vec2);
+
 pub(crate) fn cosmic_padding(
     mut query: Query<(
         &mut CosmicPadding,
@@ -45,7 +58,6 @@ pub(crate) fn cosmic_padding(
         &CosmicWidgetSize,
     )>,
 ) {
-    // TODO: cache
     for (mut padding, position, editor, size) in query.iter_mut() {
         padding.0 = match position {
             CosmicTextPosition::Center => Vec2::new(
@@ -61,14 +73,10 @@ pub(crate) fn cosmic_padding(
     }
 }
 
-#[derive(Component, Default)]
-pub struct CosmicWidgetSize(pub Vec2);
-
 pub(crate) fn cosmic_widget_size(
-    mut query: Query<(&mut CosmicWidgetSize, &Sprite)>,
+    mut query: Query<(&mut CosmicWidgetSize, &Sprite), Changed<Sprite>>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    // TODO: cache
     let scale = windows.single().scale_factor() as f32;
     for (mut size, sprite) in query.iter_mut() {
         size.0 = sprite.custom_size.unwrap().ceil() * scale;
@@ -84,7 +92,6 @@ pub(crate) fn cosmic_buffer_size(
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    // TODO: cache
     for (mut editor, mode, size, position) in query.iter_mut() {
         let padding_x = match position {
             CosmicTextPosition::Center => 0.,
@@ -270,7 +277,10 @@ pub(crate) fn set_cursor(
 }
 
 pub(crate) fn auto_height(
-    mut query: Query<(&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize)>,
+    mut query: Query<
+        (&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize),
+        Changed<CosmicEditor>,
+    >,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let scale = windows.single().scale_factor() as f32;
@@ -289,7 +299,7 @@ pub(crate) fn auto_height(
 
 pub(crate) fn set_size_from_ui(
     mut source_q: Query<&mut Sprite, With<CosmicEditor>>,
-    dest_q: Query<(&Node, &CosmicSource)>,
+    dest_q: Query<(&Node, &CosmicSource), Changed<Node>>,
 ) {
     for (node, source) in dest_q.iter() {
         if let Ok(mut sprite) = source_q.get_mut(source.0) {
@@ -298,7 +308,7 @@ pub(crate) fn set_size_from_ui(
     }
 }
 
-pub(crate) fn set_size_from_mesh() {
+pub(crate) fn _set_size_from_mesh() {
     // TODO
 }
 
@@ -477,7 +487,7 @@ pub(crate) fn on_scale_factor_change(
 }
 
 pub(crate) fn swap_target_handle(
-    mut source_q: Query<&Handle<Image>, (Changed<Handle<Image>>, With<CosmicEditor>)>,
+    source_q: Query<&Handle<Image>, (Changed<Handle<Image>>, With<CosmicEditor>)>,
     mut dest_q: Query<
         (
             Option<&mut Handle<Image>>,
@@ -487,8 +497,8 @@ pub(crate) fn swap_target_handle(
         Without<CosmicEditor>,
     >,
 ) {
-    // TODO: once set do not reset
-    for (mut dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
+    // TODO: do this once
+    for (dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
         if let Ok(source_handle) = source_q.get(source_entity.0) {
             if let Some(mut dest_handle) = dest_handle_opt {
                 *dest_handle = source_handle.clone_weak();
