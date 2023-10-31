@@ -20,10 +20,10 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
-    blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    hide_password_text, on_scale_factor_change, restore_password_text, restore_placeholder_text,
-    set_initial_scale, show_placeholder, CosmicPadding, CosmicWidgetSize, CursorBlinkTimer,
-    CursorVisibility, PasswordValues, SwashCacheState,
+    blink_cursor, freeze_cursor_blink, hide_inactive_or_readonly_cursor, hide_password_text,
+    on_scale_factor_change, restore_password_text, restore_placeholder_text, set_initial_scale,
+    show_placeholder, CosmicPadding, CosmicWidgetSize, CursorBlinkTimer, CursorVisibility,
+    PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -333,6 +333,7 @@ impl Plugin for CosmicEditPlugin {
         );
 
         let render_ordered = (
+            render::cosmic_reshape,
             render::cosmic_widget_size,
             render::cosmic_buffer_size,
             render::auto_height,
