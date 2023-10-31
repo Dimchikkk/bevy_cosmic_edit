@@ -277,10 +277,7 @@ pub(crate) fn set_cursor(
 }
 
 pub(crate) fn auto_height(
-    mut query: Query<
-        (&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize),
-        Changed<CosmicEditor>,
-    >,
+    mut query: Query<(&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize)>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let scale = windows.single().scale_factor() as f32;
@@ -299,7 +296,7 @@ pub(crate) fn auto_height(
 
 pub(crate) fn set_size_from_ui(
     mut source_q: Query<&mut Sprite, With<CosmicEditor>>,
-    dest_q: Query<(&Node, &CosmicSource), Changed<Node>>,
+    dest_q: Query<(&Node, &CosmicSource)>,
 ) {
     for (node, source) in dest_q.iter() {
         if let Ok(mut sprite) = source_q.get_mut(source.0) {

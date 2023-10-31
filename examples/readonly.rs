@@ -20,8 +20,9 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
 
-    let cosmic_edit = (
-        CosmicEditBundle {
+    // spawn editor
+    let cosmic_edit = commands
+        .spawn(CosmicEditBundle {
             attrs: CosmicAttrs(AttrsOwned::new(attrs)),
             text_position: CosmicTextPosition::Center,
             metrics: CosmicMetrics {
@@ -31,25 +32,27 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             },
             text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
             ..default()
-        },
-        ButtonBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            background_color: BackgroundColor(Color::WHITE),
-            ..default()
-        },
-    );
+        })
+        .insert(ReadOnly)
+        .id();
 
-    let mut id = None;
-    // Spawn the CosmicEditUiBundle as a child of root
+    // Spawn the ButtonBundle as a child of root
     commands.entity(root).with_children(|parent| {
-        id = Some(parent.spawn(cosmic_edit).insert(ReadOnly).id());
+        parent
+            .spawn(ButtonBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            // add cosmic source
+            .insert(CosmicSource(cosmic_edit));
     });
 
-    commands.insert_resource(Focus(id));
+    commands.insert_resource(Focus(Some(cosmic_edit)));
 }
 
 pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

@@ -20,26 +20,24 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let scale_factor = primary_window.scale_factor() as f32;
 
-    let cosmic_edit = (
-        CosmicEditBundle {
-            metrics: CosmicMetrics {
-                font_size: 14.,
-                line_height: 18.,
-                scale_factor,
-            },
-            text_position: CosmicTextPosition::Center,
-            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-            ..default()
+    let cosmic_edit = (CosmicEditBundle {
+        metrics: CosmicMetrics {
+            font_size: 14.,
+            line_height: 18.,
+            scale_factor,
         },
-        SpriteBundle {
+        text_position: CosmicTextPosition::Center,
+        attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
+        sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
                 ..default()
             },
             ..default()
         },
-    );
+        ..default()
+    },);
 
     let cosmic_edit = commands.spawn(cosmic_edit).id();
 
