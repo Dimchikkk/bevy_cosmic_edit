@@ -296,7 +296,7 @@ pub(crate) fn set_size_from_ui(
             continue;
         }
         if let Ok(node) = dest_q.get(target.0.unwrap()) {
-            sprite.custom_size = Some(node.size().ceil());
+            sprite.custom_size = Some(node.size().ceil().max(Vec2::ONE));
         }
     }
 }
