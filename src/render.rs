@@ -277,18 +277,38 @@ pub(crate) fn set_cursor(
 }
 
 pub(crate) fn auto_height(
-    mut query: Query<(&mut Sprite, &CosmicMode, &CosmicEditor, &CosmicWidgetSize)>,
+    mut query: Query<(
+        Entity,
+        &mut Sprite,
+        &CosmicMode,
+        &mut CosmicEditor,
+        &CosmicWidgetSize,
+    )>,
+    mut style_q: Query<(&mut Style, &CosmicSource)>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let scale = windows.single().scale_factor() as f32;
-    for (mut sprite, mode, cosmic_editor, size) in query.iter_mut() {
+
+    for (entity, mut sprite, mode, mut cosmic_editor, size) in query.iter_mut() {
         if mode == &CosmicMode::AutoHeight {
             let text_size = get_text_size(cosmic_editor.0.buffer());
             let text_height = (text_size.1 + 30.) / scale;
             if text_height > size.0.y / scale {
                 let mut new_size = sprite.custom_size.unwrap();
                 new_size.y = text_height.ceil();
+                // TODO this gets set automatically in UI cases but needs to be done for all other cases.
+                // redundant work but easier to just set on all sprites
                 sprite.custom_size = Some(new_size);
+
+                cosmic_editor.0.buffer_mut().set_redraw(true);
+
+                // TODO: bad loop nesting
+                for (mut style, source) in style_q.iter_mut() {
+                    if source.0 != entity {
+                        continue;
+                    }
+                    style.height = Val::Px(text_height.ceil());
+                }
             }
         }
     }

@@ -336,9 +336,11 @@ impl Plugin for CosmicEditPlugin {
             render::cosmic_reshape.in_set(CosmicRenderSet::Shaping),
             render::cosmic_widget_size.in_set(CosmicRenderSet::Sizing),
             render::cosmic_buffer_size.in_set(CosmicRenderSet::Sizing),
-            render::auto_height.in_set(CosmicRenderSet::Sizing),
-            render::set_cursor.in_set(CosmicRenderSet::Cursor),
+            render::auto_height
+                .after(CosmicRenderSet::Sizing)
+                .before(CosmicRenderSet::Draw),
             render::cosmic_padding.in_set(CosmicRenderSet::Padding),
+            render::set_cursor.in_set(CosmicRenderSet::Cursor),
             render::render_texture.in_set(CosmicRenderSet::Draw),
         );
 
