@@ -201,7 +201,7 @@ pub(crate) fn render_texture(
             },
         );
 
-        if let Some(prev_image) = images.get_mut(&canvas) {
+        if let Some(prev_image) = images.get_mut(canvas) {
             prev_image.data.clear();
             prev_image.data.extend_from_slice(pixels.as_slice());
             prev_image.resize(Extent3d {
