@@ -9,7 +9,7 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
     let placeholder_attrs =
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("#e6e6e6").unwrap())));
-    commands
+    let editor = commands
         .spawn((
             CosmicEditBundle {
                 attrs: CosmicAttrs(attrs.clone()),
@@ -24,31 +24,36 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 mode: CosmicMode::InfiniteLine,
                 ..default()
             },
-            ButtonBundle {
-                border_color: Color::hex("#ededed").unwrap().into(),
-                style: Style {
-                    border: UiRect::all(Val::Px(3.)),
-                    width: Val::Percent(20.),
-                    height: Val::Px(50.),
-                    left: Val::Percent(40.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
-                background_color: Color::WHITE.into(),
-                ..default()
-            },
             CosmicEditPlaceholderBundle {
                 text_setter: PlaceholderText(CosmicText::OneStyle("Type something...".into())),
                 attrs: PlaceholderAttrs(placeholder_attrs.clone()),
             },
         ))
-        .id()
+        .id();
+    commands
+        .spawn(ButtonBundle {
+            border_color: Color::hex("#ededed").unwrap().into(),
+            style: Style {
+                border: UiRect::all(Val::Px(3.)),
+                width: Val::Percent(20.),
+                height: Val::Px(50.),
+                left: Val::Percent(40.),
+                top: Val::Px(100.),
+                ..default()
+            },
+            background_color: Color::WHITE.into(),
+            ..default()
+        })
+        .insert(CosmicSource(editor));
+
+    editor
 }
 
 fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: String) -> Entity {
     let attrs =
         AttrsOwned::new(Attrs::new().color(bevy_color_to_cosmic(Color::hex("4d4d4d").unwrap())));
-    commands
+
+    let editor = commands
         .spawn((
             CosmicEditBundle {
                 attrs: CosmicAttrs(attrs.clone()),
@@ -62,22 +67,27 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
                 mode: CosmicMode::AutoHeight,
                 ..default()
             },
-            ButtonBundle {
-                border_color: Color::hex("#ededed").unwrap().into(),
-                style: Style {
-                    border: UiRect::all(Val::Px(3.)),
-                    width: Val::Percent(20.),
-                    height: Val::Px(50.),
-                    left: Val::Percent(40.),
-                    top: Val::Px(100.),
-                    ..default()
-                },
-                background_color: Color::WHITE.into(),
-                ..default()
-            },
             ReadOnly,
         ))
-        .id()
+        .id();
+
+    commands
+        .spawn(ButtonBundle {
+            border_color: Color::hex("#ededed").unwrap().into(),
+            style: Style {
+                border: UiRect::all(Val::Px(3.)),
+                width: Val::Percent(20.),
+                height: Val::Px(50.),
+                left: Val::Percent(40.),
+                top: Val::Px(100.),
+                ..default()
+            },
+            background_color: Color::WHITE.into(),
+            ..default()
+        })
+        .insert(CosmicSource(editor));
+
+    editor
 }
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -94,12 +104,20 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 fn handle_enter(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    mut mode: Query<(Entity, &CosmicEditor, &mut CosmicMode)>,
+    mut query_dest: Query<(Entity, &CosmicSource)>,
+    mut query_source: Query<(Entity, &CosmicEditor, &CosmicMode)>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     if keys.just_pressed(KeyCode::Return) {
         let scale_factor = windows.single().scale_factor() as f32;
-        for (entity, editor, mode) in mode.iter_mut() {
+        for (entity, editor, mode) in query_source.iter_mut() {
+            // Remove UI elements
+            for (dest_entity, source) in query_dest.iter_mut() {
+                if source.0 == entity {
+                    commands.entity(dest_entity).despawn_recursive();
+                }
+            }
+
             let text = editor.get_text();
             commands.entity(entity).despawn_recursive();
             if *mode == CosmicMode::AutoHeight {

@@ -26,9 +26,33 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             max_lines: CosmicMaxLines(1),
             text_setter: CosmicText::OneStyle("BANANA IS THE CODEWORD!".into()),
             mode: CosmicMode::Wrap,
-            canvas: Default::default(),
+            // CosmicEdit draws to this spritebundle
+            sprite_bundle: SpriteBundle {
+                sprite: Sprite {
+                    // when using another target like a UI element, this is overridden
+                    custom_size: Some(Vec2::ONE * 128.0),
+                    ..default()
+                },
+                // this is the default behaviour for targeting UI elements.
+                // If wanting a sprite, define your own SpriteBundle and
+                // leave the visibility on. See examples/basic_sprite.rs
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            // Computed fields
+            padding: Default::default(),
+            widget_size: Default::default(),
         })
-        .insert(ButtonBundle {
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(CosmicColor::rgb(88, 88, 88)),
+            )),
+        })
+        .id();
+
+    commands
+        .spawn(ButtonBundle {
             border_color: Color::LIME_GREEN.into(),
             style: Style {
                 // Size and position of text box
@@ -42,13 +66,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             background_color: Color::WHITE.into(),
             ..default()
         })
-        .insert(CosmicEditPlaceholderBundle {
-            text_setter: PlaceholderText(CosmicText::OneStyle("Placeholder".into())),
-            attrs: PlaceholderAttrs(AttrsOwned::new(
-                Attrs::new().color(CosmicColor::rgb(88, 88, 88)),
-            )),
-        })
-        .id();
+        .insert(CosmicSource(editor));
 
     commands.insert_resource(Focus(Some(editor)));
 

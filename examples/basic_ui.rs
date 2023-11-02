@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditor, CosmicFontConfig,
-    CosmicMetrics, CosmicText, CosmicTextPosition, Focus,
+    CosmicMetrics, CosmicSource, CosmicText, CosmicTextPosition, Focus,
 };
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
@@ -20,8 +20,8 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let scale_factor = primary_window.scale_factor() as f32;
 
-    let cosmic_edit = (
-        CosmicEditBundle {
+    let cosmic_edit = commands
+        .spawn(CosmicEditBundle {
             metrics: CosmicMetrics {
                 font_size: 14.,
                 line_height: 18.,
@@ -31,21 +31,28 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             attrs: CosmicAttrs(AttrsOwned::new(attrs)),
             text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
-        },
-        // Use buttonbundle for layout
-        ButtonBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
+        })
+        .id();
+
+    commands
+        .spawn(
+            // Use buttonbundle for layout
+            // Includes Interaction and UiImage which are used by the plugin.
+            ButtonBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                // Needs to be set to prevent a bug where nothing is displayed
+                background_color: Color::WHITE.into(),
                 ..default()
             },
-            // Needs to be set to prevent a bug where nothing is displayed
-            background_color: Color::WHITE.into(),
-            ..default()
-        },
-    );
-
-    let cosmic_edit = commands.spawn(cosmic_edit).id();
+        )
+        // point editor at this entity.
+        // Plugin looks for UiImage and sets it's
+        // texture to the editor's rendered image
+        .insert(CosmicSource(cosmic_edit));
 
     commands.insert_resource(Focus(Some(cosmic_edit)));
 }
