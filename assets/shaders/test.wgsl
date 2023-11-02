@@ -1,5 +1,6 @@
 #import bevy_sprite::mesh2d_view_bindings  globals
 #import bevy_sprite::mesh2d_vertex_output  MeshVertexOutput
+#import test_export
 
 struct CustomMaterial {
     color: vec4<f32>,
@@ -20,7 +21,9 @@ fn fragment(
 let t_1 = sin(globals.time*2.0)*0.5+0.5;
 let t_2 = cos(globals.time*2.0);
 
-let color: vec4<f32> = vec4(t_1, t_2, t_1, 1.0);
+var color: vec4<f32> = vec4(t_1, t_2, t_1, 0.0);
+
+color.a = test_export::i_say_one();
 
     return color * textureSample(base_color_texture, base_color_sampler, mesh.uv);
 }

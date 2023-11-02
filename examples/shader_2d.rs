@@ -1,10 +1,7 @@
 use bevy::{
     prelude::*,
     reflect::{TypePath, TypeUuid},
-    render::{
-        render_resource::{AsBindGroup, ShaderRef},
-        texture::DEFAULT_IMAGE_HANDLE,
-    },
+    render::render_resource::{AsBindGroup, ShaderRef},
     sprite::{Material2d, MaterialMesh2dBundle},
     window::PrimaryWindow,
 };
@@ -43,8 +40,12 @@ fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<CustomMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
 ) {
     commands.spawn(Camera2dBundle::default());
+
+    // Shaders need to be in loaded to be accessed
+    commands.spawn(asset_server.load("shaders/test_export.wgsl") as Handle<Shader>);
 
     // Sprite editor
     let editor = commands
