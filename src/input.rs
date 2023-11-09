@@ -359,10 +359,18 @@ pub(crate) fn input_kb(
         }
 
         if keys.just_pressed(KeyCode::Back) {
+            // fix for issue #8
+            if let Some(select) = editor.0.select_opt() {
+                if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
+                {
+                    editor.0.set_select_opt(None);
+                }
+            }
             #[cfg(target_arch = "wasm32")]
             editor.0.action(&mut font_system.0, Action::Backspace);
             *is_deleting = true;
         }
+
         if keys.just_released(KeyCode::Back) {
             *is_deleting = false;
         }
@@ -517,14 +525,6 @@ pub(crate) fn input_kb(
             for char_ev in char_evr.iter() {
                 is_edit = true;
                 if *is_deleting {
-                    // fix for issue #8
-                    if let Some(select) = editor.0.select_opt() {
-                        if editor.0.cursor().line == select.line
-                            && editor.0.cursor().index == select.index
-                        {
-                            editor.0.set_select_opt(None);
-                        }
-                    }
                     editor.0.action(&mut font_system.0, Action::Backspace);
                 } else if !command && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0) {
                     if password_opt.is_some() && char_ev.char.len_utf8() > 1 {
