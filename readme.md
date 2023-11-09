@@ -27,9 +27,10 @@ RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --
 
 ## Compatibility
 
-| bevy | bevy_cosmic_edit |
-| ---- | ---------------- |
-| 0.11 | 0.8 - latest     |
+| bevy   | bevy_cosmic_edit |
+| ------ | ---------------- |
+| 0.12.0 | 0.15 - latest    |
+| 0.11.* | 0.8 - 0.14       |
 
 
 ## License
