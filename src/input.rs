@@ -358,7 +358,7 @@ pub(crate) fn input_kb(
             return;
         }
 
-        if keys.just_pressed(KeyCode::Back) {
+        if keys.just_pressed(KeyCode::Back) & !readonly {
             // fix for issue #8
             if let Some(select) = editor.0.select_opt() {
                 if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
@@ -374,7 +374,7 @@ pub(crate) fn input_kb(
         if keys.just_released(KeyCode::Back) {
             *is_deleting = false;
         }
-        if keys.just_pressed(KeyCode::Delete) {
+        if keys.just_pressed(KeyCode::Delete) && !readonly {
             editor.0.action(&mut font_system.0, Action::Delete);
         }
         if keys.just_pressed(KeyCode::Escape) {
