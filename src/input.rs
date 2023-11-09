@@ -196,7 +196,7 @@ pub(crate) fn input_mouse(
             return;
         }
 
-        for ev in scroll_evr.iter() {
+        for ev in scroll_evr.read() {
             match ev.unit {
                 MouseScrollUnit::Line => {
                     editor.0.action(
@@ -522,7 +522,7 @@ pub(crate) fn input_kb(
         }
 
         if !(is_clipboard || is_return || readonly) {
-            for char_ev in char_evr.iter() {
+            for char_ev in char_evr.read() {
                 is_edit = true;
                 if *is_deleting {
                     editor.0.action(&mut font_system.0, Action::Backspace);

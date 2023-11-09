@@ -200,7 +200,7 @@ fn change_active_editor_ui(
 }
 
 fn print_changed_input(mut evr_type: EventReader<CosmicTextChanged>) {
-    for ev in evr_type.iter() {
+    for ev in evr_type.read() {
         println!("Changed: {}", ev.0 .1);
     }
 }
