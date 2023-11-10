@@ -463,13 +463,33 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
 
 pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
-    mut metrics_q: Query<&mut CosmicMetrics, Added<CosmicMetrics>>,
+    mut cosmic_query: Query<
+        (
+            Option<&mut CosmicEditor>,
+            &mut CosmicMetrics,
+            Option<&mut XOffset>,
+        ),
+        Added<CosmicMetrics>,
+    >,
+    mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let scale = window_q.single().scale_factor() as f32;
 
-    for mut metrics in metrics_q.iter_mut() {
-        if metrics.scale_factor == DEFAULT_SCALE_PLACEHOLDER {
-            metrics.scale_factor = scale;
+    for (editor, mut metrics, x_offset) in &mut cosmic_query.iter_mut() {
+        if metrics.scale_factor != DEFAULT_SCALE_PLACEHOLDER {
+            continue;
+        }
+
+        let font_system = &mut font_system.0;
+        metrics.scale_factor = scale;
+        let metrics = Metrics::new(metrics.font_size, metrics.line_height).scale(scale);
+
+        if let Some(mut editor) = editor {
+            editor.0.buffer_mut().set_metrics(font_system, metrics);
+            editor.0.buffer_mut().set_redraw(true);
+        }
+        if let Some(mut x_offset) = x_offset {
+            *x_offset = XOffset(None);
         }
     }
 }
