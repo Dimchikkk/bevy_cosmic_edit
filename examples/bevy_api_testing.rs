@@ -116,13 +116,13 @@ fn ev_test(
     mut evr_out: EventReader<TextHoverOut>,
     mut evr_type: EventReader<CosmicTextChanged>,
 ) {
-    for _ev in evr_on.iter() {
+    for _ev in evr_on.read() {
         println!("IN");
     }
-    for _ev in evr_out.iter() {
+    for _ev in evr_out.read() {
         println!("OUT");
     }
-    for _ev in evr_type.iter() {
+    for _ev in evr_type.read() {
         println!("TYPE");
     }
 }

@@ -753,7 +753,6 @@ mod tests {
         app.insert_resource(input);
         let mouse_input: Input<MouseButton> = Input::<MouseButton>::default();
         app.insert_resource(mouse_input);
-        app.add_asset::<Image>();
 
         app.add_event::<ReceivedCharacter>();
 

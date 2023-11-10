@@ -1,9 +1,8 @@
 use std::time::Duration;
 
 use bevy::{
-    asset::HandleId,
     prelude::*,
-    render::{render_resource::Extent3d, texture::DEFAULT_IMAGE_HANDLE},
+    render::render_resource::Extent3d,
     utils::HashMap,
     window::{PrimaryWindow, WindowScaleFactorChanged},
 };
@@ -149,7 +148,7 @@ pub(crate) fn render_texture(
         if let Some(bg_image) = background_image.0.clone() {
             if let Some(image) = images.get(&bg_image) {
                 let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
-                if image.size().x != size.0.x || image.size().y != size.0.y {
+                if image.size().x != size.0.x as u32 || image.size().y != size.0.y as u32 {
                     dynamic_image = dynamic_image.resize_to_fill(
                         size.0.x as u32,
                         size.0.y as u32,
@@ -220,15 +219,7 @@ pub(crate) fn new_image_from_default(
     mut images: ResMut<Assets<Image>>,
 ) {
     for mut canvas in query.iter_mut() {
-        if let Some(prev_image) = images.get_mut(&canvas) {
-            if *canvas == DEFAULT_IMAGE_HANDLE.typed() {
-                let prev_image = prev_image.clone();
-                let handle_id: HandleId = HandleId::random::<Image>();
-                let new_handle: Handle<Image> = Handle::weak(handle_id);
-                let new_handle = images.set(new_handle, prev_image);
-                *canvas = new_handle;
-            }
-        }
+        *canvas = images.add(Image::default());
     }
 }
 
@@ -472,14 +463,16 @@ pub(crate) fn hide_inactive_or_readonly_cursor(
 
 pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
-    mut metrics_q: Query<&mut CosmicMetrics, Added<CosmicMetrics>>,
+    mut cosmic_query: Query<&mut CosmicMetrics, Added<CosmicMetrics>>,
 ) {
     let scale = window_q.single().scale_factor() as f32;
 
-    for mut metrics in metrics_q.iter_mut() {
-        if metrics.scale_factor == DEFAULT_SCALE_PLACEHOLDER {
-            metrics.scale_factor = scale;
+    for mut metrics in &mut cosmic_query.iter_mut() {
+        if metrics.scale_factor != DEFAULT_SCALE_PLACEHOLDER {
+            continue;
         }
+
+        metrics.scale_factor = scale;
     }
 }
 
@@ -489,7 +482,7 @@ pub(crate) fn on_scale_factor_change(
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     if !scale_factor_changed.is_empty() {
-        let new_scale_factor = scale_factor_changed.iter().last().unwrap().scale_factor as f32;
+        let new_scale_factor = scale_factor_changed.read().last().unwrap().scale_factor as f32;
         for (mut editor, metrics, mut x_offset) in &mut cosmic_query.iter_mut() {
             let font_system = &mut font_system.0;
             let metrics =
