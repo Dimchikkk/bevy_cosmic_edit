@@ -366,9 +366,8 @@ pub(crate) fn input_kb(
                     editor.0.set_select_opt(None);
                 }
             }
-            #[cfg(target_arch = "wasm32")]
-            editor.0.action(&mut font_system.0, Action::Backspace);
             *is_deleting = true;
+            editor.0.action(&mut font_system.0, Action::Backspace);
         }
 
         if keys.just_released(KeyCode::Back) {
