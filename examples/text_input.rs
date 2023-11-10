@@ -149,7 +149,6 @@ fn main() {
                         title: "bevy • text_input".into(),
                         present_mode: PresentMode::AutoVsync,
                         fit_canvas_to_parent: true,
-                        prevent_default_event_handling: false,
                         ..default()
                     }),
                     ..default()
