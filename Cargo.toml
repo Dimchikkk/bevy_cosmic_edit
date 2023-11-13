@@ -34,6 +34,8 @@ bevy = { version = "0.12", default-features = false, features = [
   "bevy_winit",
   "png",
   "x11",
+  "bevy_pbr",
+  "tonemapping_luts"
 ] }
 cosmic-text = { version = "0.10" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
