@@ -6,7 +6,7 @@ mod render;
 
 use std::{collections::VecDeque, path::PathBuf};
 
-use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE, transform::TransformSystem};
+use bevy::{prelude::*, transform::TransformSystem};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
     Weight as FontWeight,
@@ -20,10 +20,10 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
-    blink_cursor, cosmic_edit_redraw_buffer, freeze_cursor_blink, hide_inactive_or_readonly_cursor,
-    hide_password_text, on_scale_factor_change, restore_password_text, restore_placeholder_text,
-    set_initial_scale, show_placeholder, CursorBlinkTimer, CursorVisibility, PasswordValues,
-    SwashCacheState,
+    blink_cursor, freeze_cursor_blink, hide_inactive_or_readonly_cursor, hide_password_text,
+    on_scale_factor_change, restore_password_text, restore_placeholder_text, set_initial_scale,
+    show_placeholder, CosmicPadding, CosmicRenderSet, CosmicWidgetSize, CursorBlinkTimer,
+    CursorVisibility, PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -221,15 +221,9 @@ impl Default for PasswordInput {
 }
 
 #[derive(Component)]
-pub struct CosmicCanvas(pub Handle<Image>);
+pub struct CosmicSource(pub Entity);
 
-impl Default for CosmicCanvas {
-    fn default() -> Self {
-        CosmicCanvas(DEFAULT_IMAGE_HANDLE.typed())
-    }
-}
-
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct CosmicEditBundle {
     // cosmic bits
     pub fill_color: FillColor,
@@ -241,7 +235,36 @@ pub struct CosmicEditBundle {
     pub max_chars: CosmicMaxChars,
     pub text_setter: CosmicText,
     pub mode: CosmicMode,
-    pub canvas: CosmicCanvas,
+    pub sprite_bundle: SpriteBundle,
+    // render bits
+    pub padding: CosmicPadding,
+    pub widget_size: CosmicWidgetSize,
+}
+
+impl Default for CosmicEditBundle {
+    fn default() -> Self {
+        CosmicEditBundle {
+            fill_color: Default::default(),
+            text_position: Default::default(),
+            metrics: Default::default(),
+            attrs: Default::default(),
+            background_image: Default::default(),
+            max_lines: Default::default(),
+            max_chars: Default::default(),
+            text_setter: Default::default(),
+            mode: Default::default(),
+            sprite_bundle: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::ONE * 128.0),
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            padding: Default::default(),
+            widget_size: Default::default(),
+        }
+    }
 }
 
 #[derive(Bundle)]
@@ -305,8 +328,21 @@ impl Plugin for CosmicEditPlugin {
             freeze_cursor_blink,
             hide_inactive_or_readonly_cursor,
             clear_inactive_selection,
-            render::update_handle_ui,
-            render::update_handle_sprite,
+        );
+
+        let render_systems = (
+            render::new_image_from_default.in_set(CosmicRenderSet::Setup),
+            render::set_size_from_ui.in_set(CosmicRenderSet::Setup),
+            render::set_size_from_transform.in_set(CosmicRenderSet::Setup),
+            render::cosmic_reshape.in_set(CosmicRenderSet::Shaping),
+            render::cosmic_widget_size.in_set(CosmicRenderSet::Sizing),
+            render::cosmic_buffer_size.in_set(CosmicRenderSet::Sizing),
+            render::auto_height
+                .after(CosmicRenderSet::Sizing)
+                .before(CosmicRenderSet::Draw),
+            render::cosmic_padding.in_set(CosmicRenderSet::Padding),
+            render::set_cursor.in_set(CosmicRenderSet::Cursor),
+            render::render_texture.in_set(CosmicRenderSet::Draw),
         );
 
         app.add_systems(
@@ -314,8 +350,7 @@ impl Plugin for CosmicEditPlugin {
             (
                 set_initial_scale,
                 (cosmic_editor_builder, on_scale_factor_change).after(set_initial_scale),
-                render::cosmic_ui_to_canvas,
-                render::cosmic_sprite_to_canvas,
+                render::swap_target_handle,
             ),
         )
         .add_systems(
@@ -329,12 +364,25 @@ impl Plugin for CosmicEditPlugin {
             )
                 .chain(),
         )
+        .configure_sets(
+            PostUpdate,
+            (
+                CosmicRenderSet::Setup,
+                CosmicRenderSet::Shaping,
+                CosmicRenderSet::Sizing,
+                CosmicRenderSet::Cursor,
+                CosmicRenderSet::Padding,
+                CosmicRenderSet::Draw,
+            )
+                .chain()
+                .after(TransformSystem::TransformPropagate),
+        )
         .add_systems(
             PostUpdate,
             (
                 hide_password_text,
                 show_placeholder,
-                cosmic_edit_redraw_buffer.after(TransformSystem::TransformPropagate),
+                render_systems,
                 apply_deferred, // Prevents one-frame inputs adding placeholder to editor
                 restore_password_text,
                 restore_placeholder_text,
@@ -706,7 +754,6 @@ mod tests {
         app.insert_resource(input);
         let mouse_input: Input<MouseButton> = Input::<MouseButton>::default();
         app.insert_resource(mouse_input);
-        app.add_asset::<Image>();
 
         app.add_event::<ReceivedCharacter>();
 

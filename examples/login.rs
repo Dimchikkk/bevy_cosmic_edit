@@ -21,6 +21,90 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
 
     commands.spawn(Camera2dBundle::default());
 
+    let login_editor = commands
+        .spawn(CosmicEditBundle {
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            sprite_bundle: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(300.0, 50.0)),
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Username".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert(UsernameTag)
+        .id();
+
+    let password_editor = commands
+        .spawn(CosmicEditBundle {
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Password".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert(PasswordTag)
+        .insert(PasswordInput::default())
+        .id();
+
+    let submit_editor = commands
+        .spawn(CosmicEditBundle {
+            max_lines: CosmicMaxLines(1),
+            metrics: CosmicMetrics {
+                font_size: 25.0,
+                line_height: 25.0,
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            attrs: CosmicAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::WHITE)),
+            )),
+            text_setter: CosmicText::OneStyle("Submit".into()),
+            fill_color: FillColor(Color::GREEN),
+            ..default()
+        })
+        .insert(ReadOnly)
+        .id();
+
+    let display_editor = commands
+        .spawn(CosmicEditBundle {
+            metrics: CosmicMetrics {
+                scale_factor: window.scale_factor() as f32,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CosmicEditPlaceholderBundle {
+            text_setter: PlaceholderText(CosmicText::OneStyle("Output".into())),
+            attrs: PlaceholderAttrs(AttrsOwned::new(
+                Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
+            )),
+        })
+        .insert((ReadOnly, DisplayTag))
+        .id();
+
+    commands.insert_resource(Focus(Some(login_editor)));
+
+    // Spawn UI
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -34,15 +118,7 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
             ..default()
         })
         .with_children(|root| {
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
+            root.spawn(ButtonBundle {
                 style: Style {
                     // Size and position of text box
                     width: Val::Px(300.),
@@ -53,23 +129,9 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 background_color: BackgroundColor(Color::WHITE),
                 ..default()
             })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Username".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert(UsernameTag);
+            .insert(CosmicSource(login_editor));
 
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
+            root.spawn(ButtonBundle {
                 style: Style {
                     // Size and position of text box
                     width: Val::Px(300.),
@@ -80,31 +142,9 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 background_color: BackgroundColor(Color::WHITE),
                 ..default()
             })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Password".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert(PasswordTag)
-            .insert(PasswordInput::default());
+            .insert(CosmicSource(password_editor));
 
-            root.spawn(CosmicEditBundle {
-                max_lines: CosmicMaxLines(1),
-                metrics: CosmicMetrics {
-                    font_size: 25.0,
-                    line_height: 25.0,
-                    scale_factor: window.scale_factor() as f32,
-                    ..default()
-                },
-                attrs: CosmicAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::WHITE)),
-                )),
-                text_setter: CosmicText::OneStyle("Submit".into()),
-                fill_color: FillColor(Color::GREEN),
-                ..default()
-            })
-            .insert(ButtonBundle {
+            root.spawn(ButtonBundle {
                 style: Style {
                     // Size and position of text box
                     width: Val::Px(150.),
@@ -119,16 +159,9 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 ..default()
             })
             .insert(SubmitButton)
-            .insert(ReadOnly);
+            .insert(CosmicSource(submit_editor));
 
-            root.spawn(CosmicEditBundle {
-                metrics: CosmicMetrics {
-                    scale_factor: window.scale_factor() as f32,
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(ButtonBundle {
+            root.spawn(ButtonBundle {
                 style: Style {
                     // Size and position of text box
                     width: Val::Px(300.),
@@ -139,13 +172,7 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 background_color: BackgroundColor(Color::WHITE),
                 ..default()
             })
-            .insert(CosmicEditPlaceholderBundle {
-                text_setter: PlaceholderText(CosmicText::OneStyle("Output".into())),
-                attrs: PlaceholderAttrs(AttrsOwned::new(
-                    Attrs::new().color(bevy_color_to_cosmic(Color::rgb_u8(128, 128, 128))),
-                )),
-            })
-            .insert((ReadOnly, DisplayTag));
+            .insert(CosmicSource(display_editor));
         });
 }
 
@@ -161,22 +188,19 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, Entity),
-        (
-            Changed<Interaction>,
-            (With<CosmicEditor>, Without<ReadOnly>),
-        ),
+        (&Interaction, &CosmicSource),
+        (Changed<Interaction>, Without<ReadOnly>),
     >,
 ) {
-    for (interaction, entity) in interaction_query.iter_mut() {
+    for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(entity)));
+            commands.insert_resource(Focus(Some(source.0)));
         }
     }
 }
 
 fn print_changed_input(mut evr_type: EventReader<CosmicTextChanged>) {
-    for ev in evr_type.iter() {
+    for ev in evr_type.read() {
         println!("Changed: {}", ev.0 .1);
     }
 }

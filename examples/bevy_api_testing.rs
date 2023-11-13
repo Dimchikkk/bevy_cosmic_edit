@@ -4,26 +4,13 @@ use bevy_cosmic_edit::*;
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
-    // spawn a new CosmicEditBundle
+    // UI editor
     let ui_editor = commands
         .spawn(CosmicEditBundle {
             attrs: CosmicAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             max_lines: CosmicMaxLines(1),
-            ..default()
-        })
-        .insert(ButtonBundle {
-            style: Style {
-                // Size and position of text box
-                width: Val::Px(300.),
-                height: Val::Px(50.),
-                left: Val::Px(100.),
-                top: Val::Px(100.),
-                // needs to be set to prevent a bug where nothing is displayed
-                ..default()
-            },
-            background_color: BackgroundColor(Color::WHITE),
             ..default()
         })
         .insert(CosmicEditPlaceholderBundle {
@@ -34,9 +21,25 @@ fn setup(mut commands: Commands) {
         })
         .id();
 
-    commands.spawn((
-        CosmicEditBundle { ..default() },
-        SpriteBundle {
+    commands
+        .spawn(ButtonBundle {
+            style: Style {
+                // Size and position of text box
+                width: Val::Px(300.),
+                height: Val::Px(50.),
+                left: Val::Px(100.),
+                top: Val::Px(100.),
+                ..default()
+            },
+            // needs to be set to prevent a bug where nothing is displayed
+            background_color: BackgroundColor(Color::WHITE),
+            ..default()
+        })
+        .insert(CosmicSource(ui_editor));
+
+    // Sprite editor
+    commands.spawn((CosmicEditBundle {
+        sprite_bundle: SpriteBundle {
             // Sets size of text box
             sprite: Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),
@@ -46,7 +49,8 @@ fn setup(mut commands: Commands) {
             transform: Transform::from_xyz(0., 100., 0.),
             ..default()
         },
-    ));
+        ..default()
+    },));
 
     commands.insert_resource(Focus(Some(ui_editor)));
 }
@@ -63,16 +67,13 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, Entity),
-        (
-            Changed<Interaction>,
-            (With<CosmicEditor>, Without<ReadOnly>),
-        ),
+        (&Interaction, &CosmicSource),
+        (Changed<Interaction>, Without<ReadOnly>),
     >,
 ) {
-    for (interaction, entity) in interaction_query.iter_mut() {
+    for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(entity)));
+            commands.insert_resource(Focus(Some(source.0)));
         }
     }
 }
@@ -82,7 +83,7 @@ fn change_active_editor_sprite(
     windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<Input<MouseButton>>,
     mut cosmic_edit_query: Query<
-        (&mut Sprite, &GlobalTransform, Entity),
+        (&mut Sprite, &GlobalTransform, &Visibility, Entity),
         (With<CosmicEditor>, Without<ReadOnly>),
     >,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -90,8 +91,11 @@ fn change_active_editor_sprite(
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
     if buttons.just_pressed(MouseButton::Left) {
-        for (sprite, node_transform, entity) in &mut cosmic_edit_query.iter_mut() {
-            let size = sprite.custom_size.unwrap_or(Vec2::new(1., 1.));
+        for (sprite, node_transform, visibility, entity) in &mut cosmic_edit_query.iter_mut() {
+            if visibility == Visibility::Hidden {
+                continue;
+            }
+            let size = sprite.custom_size.unwrap_or(Vec2::ONE);
             let x_min = node_transform.affine().translation.x - size.x / 2.;
             let y_min = node_transform.affine().translation.y - size.y / 2.;
             let x_max = node_transform.affine().translation.x + size.x / 2.;
@@ -112,13 +116,13 @@ fn ev_test(
     mut evr_out: EventReader<TextHoverOut>,
     mut evr_type: EventReader<CosmicTextChanged>,
 ) {
-    for _ev in evr_on.iter() {
+    for _ev in evr_on.read() {
         println!("IN");
     }
-    for _ev in evr_out.iter() {
+    for _ev in evr_out.read() {
         println!("OUT");
     }
-    for _ev in evr_type.iter() {
+    for _ev in evr_type.read() {
         println!("TYPE");
     }
 }

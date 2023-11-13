@@ -207,8 +207,8 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         )],
     ];
 
-    let cosmic_edit_1 = (
-        CosmicEditBundle {
+    let cosmic_edit_1 = commands
+        .spawn(CosmicEditBundle {
             text_position: bevy_cosmic_edit::CosmicTextPosition::Center,
             attrs: CosmicAttrs(AttrsOwned::new(attrs)),
             metrics: CosmicMetrics {
@@ -218,24 +218,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             },
             text_setter: CosmicText::MultiStyle(lines),
             ..default()
-        },
-        ButtonBundle {
-            style: Style {
-                width: Val::Percent(50.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            background_color: BackgroundColor(Color::WHITE),
-            ..default()
-        },
-    );
+        })
+        .id();
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
     attrs_2.color_opt = Some(bevy_color_to_cosmic(Color::PURPLE));
 
-    let cosmic_edit_2 = (
-        CosmicEditBundle {
+    let cosmic_edit_2 = commands
+        .spawn(CosmicEditBundle {
             attrs: CosmicAttrs(AttrsOwned::new(attrs_2)),
             metrics: CosmicMetrics {
                 font_size: 28.,
@@ -245,27 +236,38 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_position: CosmicTextPosition::Center,
             text_setter: CosmicText::OneStyle("Widget 2.\nClick on me =>".to_string()),
             ..default()
-        },
-        ButtonBundle {
-            background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
-            style: Style {
-                width: Val::Percent(50.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            ..default()
-        },
-    );
+        })
+        .id();
 
-    let mut id = None;
     // Spawn the CosmicEditUiBundles as children of root
     commands.entity(root).with_children(|parent| {
-        id = Some(parent.spawn(cosmic_edit_1).id());
-        parent.spawn(cosmic_edit_2);
+        parent
+            .spawn(ButtonBundle {
+                style: Style {
+                    width: Val::Percent(50.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::WHITE),
+                ..default()
+            })
+            .insert(CosmicSource(cosmic_edit_1));
+
+        parent
+            .spawn(ButtonBundle {
+                background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
+                style: Style {
+                    width: Val::Percent(50.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(CosmicSource(cosmic_edit_2));
     });
 
     // Set active editor
-    commands.insert_resource(Focus(id));
+    commands.insert_resource(Focus(Some(cosmic_edit_1)));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
@@ -280,16 +282,13 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
-        (&Interaction, Entity),
-        (
-            Changed<Interaction>,
-            (With<CosmicEditor>, Without<ReadOnly>),
-        ),
+        (&Interaction, &CosmicSource),
+        (Changed<Interaction>, Without<ReadOnly>),
     >,
 ) {
-    for (interaction, entity) in interaction_query.iter_mut() {
+    for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(entity)));
+            commands.insert_resource(Focus(Some(source.0)));
         }
     }
 }

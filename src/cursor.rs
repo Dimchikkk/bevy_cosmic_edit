@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicEditor, CosmicTextChanged};
+use crate::{CosmicEditor, CosmicSource, CosmicTextChanged};
 
 #[cfg(feature = "multicam")]
 use crate::CosmicPrimaryCamera;
@@ -45,7 +45,7 @@ type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransfor
 
 pub fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_edit_query: Query<(&mut Sprite, &GlobalTransform), With<CosmicEditor>>,
+    mut cosmic_edit_query: Query<(&mut Sprite, &Visibility, &GlobalTransform), With<CosmicEditor>>,
     camera_q: CameraQuery,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
@@ -55,8 +55,11 @@ pub fn hover_sprites(
     *hovered = false;
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
-    for (sprite, node_transform) in &mut cosmic_edit_query.iter_mut() {
-        let size = sprite.custom_size.unwrap_or(Vec2::new(1., 1.));
+    for (sprite, visibility, node_transform) in &mut cosmic_edit_query.iter_mut() {
+        if visibility == Visibility::Hidden {
+            continue;
+        }
+        let size = sprite.custom_size.unwrap_or(Vec2::ONE);
         let x_min = node_transform.affine().translation.x - size.x / 2.;
         let y_min = node_transform.affine().translation.y - size.y / 2.;
         let x_max = node_transform.affine().translation.x + size.x / 2.;
@@ -82,7 +85,7 @@ pub fn hover_sprites(
 }
 
 pub fn hover_ui(
-    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicEditor>)>,
+    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicSource>)>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {

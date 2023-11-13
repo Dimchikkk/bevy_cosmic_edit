@@ -14,7 +14,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             background_image: CosmicBackground(Some(bg_image_handle)),
             ..default()
         })
-        .insert(ButtonBundle {
+        .id();
+
+    commands
+        .spawn(ButtonBundle {
             style: Style {
                 // Size and position of text box
                 width: Val::Px(300.),
@@ -26,7 +29,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             background_color: Color::WHITE.into(),
             ..default()
         })
-        .id();
+        .insert(CosmicSource(editor));
+
     commands.insert_resource(Focus(Some(editor)));
 }
 
