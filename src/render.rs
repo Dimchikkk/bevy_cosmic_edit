@@ -524,6 +524,7 @@ pub(crate) fn swap_target_handle(
                 dest_ui.texture = source_handle.clone_weak();
             }
         }
+
     }
 }
 

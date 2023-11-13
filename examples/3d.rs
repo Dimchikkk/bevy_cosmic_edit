@@ -23,6 +23,7 @@ fn setup(
             CosmicEditBundle {
                 text_setter: CosmicText::OneStyle("It is a period of civil wars in the galaxy. A brave alliance of underground freedom fighters has challenged the tyranny and oppression of the awesome GALACTIC EMPIRE.
 Striking from a fortress hidden among the billion stars of the galaxy, rebel spaceships have won their first victory in a battle with the powerful Imperial Starfleet. The EMPIRE fears that another defeat could bring a thousand more solar systems into the rebellion, and Imperial control over the galaxy would be lost forever.
+
 To crush the rebellion once and for all, the EMPIRE is constructing a sinister new battle station. Powerful enough to destroy an entire planet, its completion spells certain doom for the champions of freedom.".into()),
                 fill_color: FillColor(Color::NONE),
                 attrs: CosmicAttrs(AttrsOwned::new(Attrs::new().color(CosmicColor::rgba(255,200,0,255)))),
@@ -57,6 +58,7 @@ To crush the rebellion once and for all, the EMPIRE is constructing a sinister n
             ..default()
         },
         CosmicSource(editor),
+
     ));
 
     commands.spawn(Camera3dBundle {
@@ -70,6 +72,7 @@ fn set_texture(
     canvas_q: Query<&Handle<Image>, With<CosmicEditor>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+
     for handle in plane_q.iter() {
         if let Some(mut material) = materials.get_mut(handle) {
             if let Ok(canvas) = canvas_q.get_single() {
