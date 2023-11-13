@@ -58,7 +58,6 @@ To crush the rebellion once and for all, the EMPIRE is constructing a sinister n
             ..default()
         },
         CosmicSource(editor),
-
     ));
 
     commands.spawn(Camera3dBundle {
@@ -72,7 +71,6 @@ fn set_texture(
     canvas_q: Query<&Handle<Image>, With<CosmicEditor>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-
     for handle in plane_q.iter() {
         if let Some(mut material) = materials.get_mut(handle) {
             if let Ok(canvas) = canvas_q.get_single() {
