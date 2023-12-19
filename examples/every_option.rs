@@ -77,7 +77,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 }
 
 pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
-    cosmic_text::Color::rgba(
+    CosmicColor::rgba(
         (color.r() * 255.) as u8,
         (color.g() * 255.) as u8,
         (color.b() * 255.) as u8,

@@ -1,8 +1,5 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::{
-    AttrsOwned, CosmicAttrs, CosmicEditBundle, CosmicEditPlugin, CosmicEditor, CosmicFontConfig,
-    CosmicMetrics, CosmicSource, CosmicText, CosmicTextPosition, Focus,
-};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
@@ -14,9 +11,9 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     };
     commands.spawn(camera_bundle);
 
-    let mut attrs = cosmic_text::Attrs::new();
-    attrs = attrs.family(cosmic_text::Family::Name("Victor Mono"));
-    attrs = attrs.color(cosmic_text::Color::rgb(0x94, 0x00, 0xD3));
+    let mut attrs = Attrs::new();
+    attrs = attrs.family(Family::Name("Victor Mono"));
+    attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
     let scale_factor = primary_window.scale_factor() as f32;
 
