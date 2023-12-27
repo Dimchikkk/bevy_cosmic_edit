@@ -76,6 +76,9 @@ pub(crate) fn cosmic_widget_size(
     mut query: Query<(&mut CosmicWidgetSize, &Sprite), Changed<Sprite>>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
+    if windows.iter().len() == 0 {
+        return;
+    }
     let scale = windows.single().scale_factor() as f32;
     for (mut size, sprite) in query.iter_mut() {
         size.0 = sprite.custom_size.unwrap().ceil() * scale;
@@ -278,6 +281,10 @@ pub(crate) fn auto_height(
     mut style_q: Query<(&mut Style, &CosmicSource)>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
+    if windows.iter().len() == 0 {
+        return;
+    }
+
     let scale = windows.single().scale_factor() as f32;
 
     for (entity, mut sprite, mode, mut cosmic_editor, size) in query.iter_mut() {

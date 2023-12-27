@@ -21,6 +21,9 @@ pub fn change_cursor(
     mouse_buttons: Res<Input<MouseButton>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
+    if windows.iter().len() == 0 {
+        return;
+    }
     let mut window = windows.single_mut();
     if !evr_hover_in.is_empty() {
         window.cursor.icon = CursorIcon::Text;
@@ -53,6 +56,9 @@ pub fn hover_sprites(
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
     *hovered = false;
+    if windows.iter().len() == 0 {
+        return;
+    }
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
     for (sprite, visibility, node_transform) in &mut cosmic_edit_query.iter_mut() {

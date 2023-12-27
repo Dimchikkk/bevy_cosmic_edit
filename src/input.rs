@@ -83,6 +83,10 @@ pub(crate) fn input_mouse(
         *click_count = 0;
     }
 
+    if windows.iter().len() == 0 {
+        return;
+    }
+
     let primary_window = windows.single();
     let scale_factor = primary_window.scale_factor() as f32;
     let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
