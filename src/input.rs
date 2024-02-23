@@ -66,9 +66,9 @@ pub(crate) fn input_mouse(
 ) {
     click_timer.0.tick(time.delta());
 
-    if active_editor.0.is_none() {
+    let Some(active_editor_entity) = active_editor.0 else {
         return;
-    }
+    };
 
     if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
         *click_count = 0;
@@ -83,21 +83,16 @@ pub(crate) fn input_mouse(
         *click_count = 0;
     }
 
-    if windows.iter().len() == 0 {
+    let Ok(primary_window) = windows.get_single() else {
         return;
-    }
+    };
 
-    let primary_window = windows.single();
     let scale_factor = primary_window.scale_factor() as f32;
-    let (camera, camera_transform) = camera_q.iter().find(|(c, _)| c.is_active).unwrap();
-
-    for (mut editor, sprite_transform, text_position, entity, x_offset, sprite) in
-        &mut editor_q.iter_mut()
-    {
-        if active_editor.0 != Some(entity) {
-            continue;
-        }
-
+    let Some((camera, camera_transform)) = camera_q.iter().find(|(c, _)| c.is_active) else {
+        return;
+    };
+    
+    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) = editor_q.get_mut(active_editor_entity) {
         let mut is_ui_node = false;
         let mut transform = sprite_transform;
         let (mut width, mut height) =
@@ -245,7 +240,11 @@ pub(crate) fn input_kb(
     mut edits_duration: Local<Option<Duration>>,
     _channel: Option<Res<WasmPasteAsyncChannel>>,
 ) {
-    for (
+    let Some(active_editor_entity) = active_editor.0 else {
+        return;
+    };
+
+    if let Ok((
         mut editor,
         mut edit_history,
         attrs,
@@ -254,12 +253,8 @@ pub(crate) fn input_kb(
         entity,
         readonly_opt,
         password_opt,
-    ) in &mut cosmic_edit_query.iter_mut()
+    )) = cosmic_edit_query.get_mut(active_editor_entity)
     {
-        if active_editor.0 != Some(entity) {
-            continue;
-        }
-
         let readonly = readonly_opt.is_some();
 
         let attrs = &attrs.0;
