@@ -91,8 +91,10 @@ pub(crate) fn input_mouse(
     let Some((camera, camera_transform)) = camera_q.iter().find(|(c, _)| c.is_active) else {
         return;
     };
-    
-    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) = editor_q.get_mut(active_editor_entity) {
+
+    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) =
+        editor_q.get_mut(active_editor_entity)
+    {
         let mut is_ui_node = false;
         let mut transform = sprite_transform;
         let (mut width, mut height) =
