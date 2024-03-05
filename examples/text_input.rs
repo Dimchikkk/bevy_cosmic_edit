@@ -103,12 +103,12 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
 fn handle_enter(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut query_dest: Query<(Entity, &CosmicSource)>,
     mut query_source: Query<(Entity, &CosmicEditor, &CosmicMode)>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    if keys.just_pressed(KeyCode::Return) {
+    if keys.just_pressed(KeyCode::Enter) {
         let scale_factor = windows.single().scale_factor() as f32;
         for (entity, editor, mode) in query_source.iter_mut() {
             // Remove UI elements
@@ -148,7 +148,7 @@ fn main() {
                     primary_window: Some(Window {
                         title: "bevy • text_input".into(),
                         present_mode: PresentMode::AutoVsync,
-                        fit_canvas_to_parent: true,
+                        // TODO reimplement fit to parent
                         ..default()
                     }),
                     ..default()

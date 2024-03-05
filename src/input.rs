@@ -45,8 +45,8 @@ pub struct WasmPasteAsyncChannel {
 pub(crate) fn input_mouse(
     windows: Query<&Window, With<PrimaryWindow>>,
     active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
-    buttons: Res<Input<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mut editor_q: Query<(
         &mut CosmicEditor,
         &GlobalTransform,
@@ -224,7 +224,7 @@ pub(crate) fn input_mouse(
 // TODO: split copy/paste into own fn, separate fn for wasm
 pub(crate) fn input_kb(
     active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
@@ -295,14 +295,14 @@ pub(crate) fn input_kb(
         #[cfg(not(target_os = "macos"))]
         let should_jump = command;
 
-        if should_jump && keys.just_pressed(KeyCode::Left) {
+        if should_jump && keys.just_pressed(KeyCode::ArrowLeft) {
             editor.0.action(&mut font_system.0, Action::PreviousWord);
             if !shift {
                 editor.0.set_select_opt(None);
             }
             return;
         }
-        if should_jump && keys.just_pressed(KeyCode::Right) {
+        if should_jump && keys.just_pressed(KeyCode::ArrowRight) {
             editor.0.action(&mut font_system.0, Action::NextWord);
             if !shift {
                 editor.0.set_select_opt(None);
@@ -330,28 +330,28 @@ pub(crate) fn input_kb(
             return;
         }
 
-        if keys.just_pressed(KeyCode::Left) {
+        if keys.just_pressed(KeyCode::ArrowLeft) {
             editor.0.action(&mut font_system.0, Action::Left);
             if !shift {
                 editor.0.set_select_opt(None);
             }
             return;
         }
-        if keys.just_pressed(KeyCode::Right) {
+        if keys.just_pressed(KeyCode::ArrowRight) {
             editor.0.action(&mut font_system.0, Action::Right);
             if !shift {
                 editor.0.set_select_opt(None);
             }
             return;
         }
-        if keys.just_pressed(KeyCode::Up) {
+        if keys.just_pressed(KeyCode::ArrowUp) {
             editor.0.action(&mut font_system.0, Action::Up);
             if !shift {
                 editor.0.set_select_opt(None);
             }
             return;
         }
-        if keys.just_pressed(KeyCode::Down) {
+        if keys.just_pressed(KeyCode::ArrowDown) {
             editor.0.action(&mut font_system.0, Action::Down);
             if !shift {
                 editor.0.set_select_opt(None);
@@ -359,7 +359,7 @@ pub(crate) fn input_kb(
             return;
         }
 
-        if keys.just_pressed(KeyCode::Back) & !readonly {
+        if keys.just_pressed(KeyCode::Backspace) & !readonly {
             // fix for issue #8
             if let Some(select) = editor.0.select_opt() {
                 if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
@@ -371,7 +371,7 @@ pub(crate) fn input_kb(
             editor.0.action(&mut font_system.0, Action::Backspace);
         }
 
-        if keys.just_released(KeyCode::Back) {
+        if keys.just_released(KeyCode::Backspace) {
             *is_deleting = false;
         }
         if keys.just_pressed(KeyCode::Delete) && !readonly {
@@ -380,7 +380,7 @@ pub(crate) fn input_kb(
         if keys.just_pressed(KeyCode::Escape) {
             editor.0.action(&mut font_system.0, Action::Escape);
         }
-        if command && keys.just_pressed(KeyCode::A) {
+        if command && keys.just_pressed(KeyCode::KeyA) {
             editor.0.action(&mut font_system.0, Action::BufferEnd);
             let current_cursor = editor.0.cursor();
             editor.0.set_select_opt(Some(Cursor {
@@ -424,7 +424,7 @@ pub(crate) fn input_kb(
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Ok(mut clipboard) = arboard::Clipboard::new() {
-                if command && keys.just_pressed(KeyCode::C) {
+                if command && keys.just_pressed(KeyCode::KeyC) {
                     if password_opt.is_some() {
                         return;
                     }
@@ -433,7 +433,7 @@ pub(crate) fn input_kb(
                         return;
                     }
                 }
-                if command && keys.just_pressed(KeyCode::X) && !readonly {
+                if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
                     if password_opt.is_some() {
                         return;
                     }
@@ -443,7 +443,7 @@ pub(crate) fn input_kb(
                     }
                     is_clipboard = true;
                 }
-                if command && keys.just_pressed(KeyCode::V) && !readonly {
+                if command && keys.just_pressed(KeyCode::KeyV) && !readonly {
                     if let Ok(text) = clipboard.get_text() {
                         for c in text.chars() {
                             if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
@@ -470,7 +470,7 @@ pub(crate) fn input_kb(
 
         #[cfg(target_arch = "wasm32")]
         {
-            if command && keys.just_pressed(KeyCode::C) {
+            if command && keys.just_pressed(KeyCode::KeyC) {
                 if password_opt.is_some() {
                     return;
                 }
@@ -480,7 +480,7 @@ pub(crate) fn input_kb(
                 }
             }
 
-            if command && keys.just_pressed(KeyCode::X) && !readonly {
+            if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
                 if password_opt.is_some() {
                     return;
                 }
@@ -490,7 +490,7 @@ pub(crate) fn input_kb(
                 }
                 is_clipboard = true;
             }
-            if command && keys.just_pressed(KeyCode::V) && !readonly {
+            if command && keys.just_pressed(KeyCode::KeyV) && !readonly {
                 let tx = _channel.unwrap().tx.clone();
                 let _task = AsyncComputeTaskPool::get().spawn(async move {
                     let promise = read_clipboard_wasm();
@@ -508,9 +508,13 @@ pub(crate) fn input_kb(
             }
         }
 
+        if readonly {
+            return;
+        }
+
         let mut is_edit = is_clipboard;
         let mut is_return = false;
-        if keys.just_pressed(KeyCode::Return) && !readonly {
+        if keys.just_pressed(KeyCode::Enter) {
             is_return = true;
             if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
                 && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
@@ -521,19 +525,21 @@ pub(crate) fn input_kb(
             }
         }
 
-        if !(is_clipboard || is_return || readonly) {
+        if !(is_clipboard || is_return) {
             for char_ev in char_evr.read() {
                 is_edit = true;
                 if *is_deleting {
                     editor.0.action(&mut font_system.0, Action::Backspace);
                 } else if !command && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0) {
-                    if password_opt.is_some() && char_ev.char.len_utf8() > 1 {
+                    if password_opt.is_some() && char_ev.char.len() > 1 {
                         println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",char_ev.char);
                         continue;
                     }
-                    editor
-                        .0
-                        .action(&mut font_system.0, Action::Insert(char_ev.char));
+                    let b = char_ev.char.as_bytes();
+                    for c in b {
+                        let c: char = (*c).into();
+                        editor.0.action(&mut font_system.0, Action::Insert(c));
+                    }
                 }
             }
         }
@@ -541,9 +547,10 @@ pub(crate) fn input_kb(
         // skip event + history if undo/redo keys pressed
 
         let requested_redo = keypress_redo(&keys);
-        let requested_undo = command && keys.just_pressed(KeyCode::Z);
+        let requested_undo =
+            command && (keys.pressed(KeyCode::KeyZ) || keys.just_pressed(KeyCode::KeyZ));
 
-        if !is_edit || readonly || requested_redo || requested_undo {
+        if requested_redo || requested_undo || !is_edit {
             return;
         }
 
@@ -563,7 +570,7 @@ pub(crate) fn input_kb(
     }
 }
 
-fn keypress_command(keys: &Input<KeyCode>) -> bool {
+fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
     #[cfg(target_os = "macos")]
     let command = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
 
@@ -586,23 +593,23 @@ fn keypress_command(keys: &Input<KeyCode>) -> bool {
     command
 }
 
-fn keypress_redo(keys: &Input<KeyCode>) -> bool {
+fn keypress_redo(keys: &ButtonInput<KeyCode>) -> bool {
     let command = keypress_command(keys);
     let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
     #[cfg(not(target_os = "windows"))]
-    let requested_redo = command && shift && keys.just_pressed(KeyCode::Z);
+    let requested_redo = command && shift && keys.just_pressed(KeyCode::KeyZ);
 
     // TODO: windows OS detection for wasm here
     #[cfg(target_os = "windows")]
-    let requested_redo = command && keys.just_pressed(KeyCode::Y);
+    let requested_redo = command && keys.just_pressed(KeyCode::KeyY);
 
     requested_redo
 }
 
 pub(crate) fn undo_redo(
     active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut editor_q: Query<
         (&mut CosmicEditor, &CosmicAttrs, &mut CosmicEditHistory),
         Without<ReadOnly>,
@@ -624,7 +631,7 @@ pub(crate) fn undo_redo(
     let attrs = &attrs.0;
 
     let requested_redo = keypress_redo(&keys);
-    let requested_undo = command & keys.just_pressed(KeyCode::Z);
+    let requested_undo = command && keys.just_pressed(KeyCode::KeyZ);
 
     if !(requested_redo || requested_undo) {
         return;

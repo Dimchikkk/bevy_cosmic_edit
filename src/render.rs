@@ -415,17 +415,17 @@ pub(crate) fn freeze_cursor_blink(
     mut visibility: ResMut<CursorVisibility>,
     mut timer: ResMut<CursorBlinkTimer>,
     active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     char_evr: EventReader<ReceivedCharacter>,
     mut editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
     let inputs = [
-        KeyCode::Left,
-        KeyCode::Right,
-        KeyCode::Up,
-        KeyCode::Down,
-        KeyCode::Back,
-        KeyCode::Return,
+        KeyCode::ArrowLeft,
+        KeyCode::ArrowRight,
+        KeyCode::ArrowUp,
+        KeyCode::ArrowDown,
+        KeyCode::Backspace,
+        KeyCode::Enter,
     ];
     if !keys.any_pressed(inputs) && char_evr.is_empty() {
         return;

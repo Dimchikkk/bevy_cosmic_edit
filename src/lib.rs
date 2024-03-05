@@ -321,9 +321,6 @@ impl Plugin for CosmicEditPlugin {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
         let main_unordered = (
-            init_history,
-            input_kb,
-            undo_redo,
             blink_cursor,
             freeze_cursor_blink,
             hide_inactive_or_readonly_cursor,
@@ -356,6 +353,7 @@ impl Plugin for CosmicEditPlugin {
             PreUpdate,
             (
                 update_buffer_text,
+                init_history,
                 main_unordered,
                 hide_password_text,
                 input_mouse,
@@ -363,6 +361,7 @@ impl Plugin for CosmicEditPlugin {
             )
                 .chain(),
         )
+        .add_systems(Update, (input_kb, undo_redo).chain())
         .configure_sets(
             PostUpdate,
             (
@@ -749,9 +748,9 @@ mod tests {
         )));
         app.add_systems(Update, test_spawn_cosmic_edit_system);
 
-        let input = Input::<KeyCode>::default();
+        let input = ButtonInput::<KeyCode>::default();
         app.insert_resource(input);
-        let mouse_input: Input<MouseButton> = Input::<MouseButton>::default();
+        let mouse_input: ButtonInput<MouseButton> = ButtonInput::<MouseButton>::default();
         app.insert_resource(mouse_input);
 
         app.add_event::<ReceivedCharacter>();
