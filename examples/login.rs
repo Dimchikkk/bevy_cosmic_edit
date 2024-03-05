@@ -243,7 +243,7 @@ fn submit_button(
                 );
             }
             Interaction::Hovered => {
-                window.single_mut().cursor.icon = CursorIcon::Hand;
+                window.single_mut().cursor.icon = CursorIcon::Pointer;
             }
         }
     }

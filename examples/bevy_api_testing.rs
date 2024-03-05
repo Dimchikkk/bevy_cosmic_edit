@@ -81,7 +81,7 @@ fn change_active_editor_ui(
 fn change_active_editor_sprite(
     mut commands: Commands,
     windows: Query<&Window, With<PrimaryWindow>>,
-    buttons: Res<Input<MouseButton>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mut cosmic_edit_query: Query<
         (&mut Sprite, &GlobalTransform, &Visibility, Entity),
         (With<CosmicEditor>, Without<ReadOnly>),

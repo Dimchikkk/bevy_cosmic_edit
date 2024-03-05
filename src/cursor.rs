@@ -18,7 +18,7 @@ pub fn change_cursor(
     evr_hover_out: EventReader<TextHoverOut>,
     evr_text_changed: EventReader<CosmicTextChanged>,
     evr_mouse_motion: EventReader<MouseMotion>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     if windows.iter().len() == 0 {

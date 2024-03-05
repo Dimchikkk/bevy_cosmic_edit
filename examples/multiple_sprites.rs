@@ -1,11 +1,12 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
     let camera_bundle = Camera2dBundle {
-        camera_2d: Camera2d {
+        camera: Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
+            ..default()
         },
         ..default()
     };
@@ -83,7 +84,7 @@ fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
 fn change_active_editor_sprite(
     mut commands: Commands,
     windows: Query<&Window, With<PrimaryWindow>>,
-    buttons: Res<Input<MouseButton>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mut cosmic_edit_query: Query<
         (&mut Sprite, &GlobalTransform, Entity),
         (With<CosmicEditor>, Without<ReadOnly>),

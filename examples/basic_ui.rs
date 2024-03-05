@@ -1,11 +1,12 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let primary_window = windows.single();
     let camera_bundle = Camera2dBundle {
-        camera_2d: Camera2d {
+        camera: Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
+            ..default()
         },
         ..default()
     };

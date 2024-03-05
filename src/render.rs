@@ -79,7 +79,7 @@ pub(crate) fn cosmic_widget_size(
     if windows.iter().len() == 0 {
         return;
     }
-    let scale = windows.single().scale_factor() as f32;
+    let scale = windows.single().scale_factor();
     for (mut size, sprite) in query.iter_mut() {
         size.0 = sprite.custom_size.unwrap().ceil() * scale;
     }
@@ -285,7 +285,7 @@ pub(crate) fn auto_height(
         return;
     }
 
-    let scale = windows.single().scale_factor() as f32;
+    let scale = windows.single().scale_factor();
 
     for (entity, mut sprite, mode, mut cosmic_editor, size) in query.iter_mut() {
         if mode == &CosmicMode::AutoHeight {
@@ -415,17 +415,17 @@ pub(crate) fn freeze_cursor_blink(
     mut visibility: ResMut<CursorVisibility>,
     mut timer: ResMut<CursorBlinkTimer>,
     active_editor: Res<Focus>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     char_evr: EventReader<ReceivedCharacter>,
     mut editor_q: Query<&mut CosmicEditor, Without<ReadOnly>>,
 ) {
     let inputs = [
-        KeyCode::Left,
-        KeyCode::Right,
-        KeyCode::Up,
-        KeyCode::Down,
-        KeyCode::Back,
-        KeyCode::Return,
+        KeyCode::ArrowLeft,
+        KeyCode::ArrowRight,
+        KeyCode::ArrowUp,
+        KeyCode::ArrowDown,
+        KeyCode::Backspace,
+        KeyCode::Enter,
     ];
     if !keys.any_pressed(inputs) && char_evr.is_empty() {
         return;
@@ -472,7 +472,7 @@ pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicMetrics, Added<CosmicMetrics>>,
 ) {
-    let scale = window_q.single().scale_factor() as f32;
+    let scale = window_q.single().scale_factor();
 
     for mut metrics in &mut cosmic_query.iter_mut() {
         if metrics.scale_factor != DEFAULT_SCALE_PLACEHOLDER {
