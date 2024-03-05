@@ -87,7 +87,7 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    let scale_factor = primary_window.scale_factor() as f32;
+    let scale_factor = primary_window.scale_factor();
     let Some((camera, camera_transform)) = camera_q.iter().find(|(c, _)| c.is_active) else {
         return;
     };
