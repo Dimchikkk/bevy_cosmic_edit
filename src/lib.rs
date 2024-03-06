@@ -20,10 +20,10 @@ use input::{input_kb, input_mouse, undo_redo, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use render::{
-    blink_cursor, freeze_cursor_blink, hide_inactive_or_readonly_cursor, hide_password_text,
-    on_scale_factor_change, restore_password_text, restore_placeholder_text, set_initial_scale,
-    show_placeholder, CosmicPadding, CosmicRenderSet, CosmicWidgetSize, CursorBlinkTimer,
-    CursorVisibility, PasswordValues, SwashCacheState,
+    blink_cursor, freeze_cursor_blink, hide_password_text, on_scale_factor_change,
+    restore_password_text, restore_placeholder_text, set_initial_scale, show_placeholder,
+    CosmicPadding, CosmicRenderSet, CosmicWidgetSize, CursorBlinkTimer, CursorVisibility,
+    PasswordValues, SwashCacheState,
 };
 
 #[cfg(feature = "multicam")]
@@ -103,10 +103,13 @@ pub struct ReadOnly; // tag component
 #[derive(Component, Debug)]
 struct XOffset(Option<(f32, f32)>);
 
-#[derive(Component)]
-pub struct CosmicEditor(pub Editor);
+#[derive(Component, Deref, DerefMut)]
+pub struct CosmicEditor(pub Editor<'static>);
 
-impl CosmicEditor {
+#[derive(Component, Deref, DerefMut)]
+pub struct CosmicBuffer(pub Buffer);
+
+impl CosmicBuffer {
     pub fn set_text(
         &mut self,
         text: CosmicText,
@@ -114,20 +117,15 @@ impl CosmicEditor {
         font_system: &mut FontSystem,
     ) -> &mut Self {
         // TODO: invoke trim_text here
-        let editor = &mut self.0;
-        editor.buffer_mut().lines.clear();
+        self.lines.clear();
         match text {
             CosmicText::OneStyle(text) => {
-                editor.buffer_mut().set_text(
+                self.0.set_text(
                     font_system,
                     text.as_str(),
                     attrs.as_attrs(),
                     Shaping::Advanced,
                 );
-                let mut cursor = editor.cursor();
-                cursor.line = editor.buffer_mut().lines.len() - 1;
-                cursor.index = editor.buffer_mut().lines[cursor.line].text().len();
-                editor.set_cursor(cursor);
             }
             CosmicText::MultiStyle(lines) => {
                 for line in lines {
@@ -139,18 +137,15 @@ impl CosmicEditor {
                         let end = line_text.len();
                         attrs_list.add_span(start..end, attrs.as_attrs());
                     }
-                    editor.buffer_mut().lines.push(BufferLine::new(
-                        line_text,
-                        attrs_list,
-                        Shaping::Advanced,
-                    ));
+                    self.lines
+                        .push(BufferLine::new(line_text, attrs_list, Shaping::Advanced));
                 }
             }
         }
         self
     }
 
-    /// Retrieves the cosmic text content from an editor.
+    /// Retrieves the cosmic text content from a buffer.
     ///
     /// # Arguments
     ///
@@ -160,11 +155,10 @@ impl CosmicEditor {
     ///
     /// A `String` containing the cosmic text content.
     pub fn get_text(&self) -> String {
-        let buffer = self.0.buffer();
         let mut text = String::new();
-        let line_count = buffer.lines.len();
+        let line_count = self.lines.len();
 
-        for (i, line) in buffer.lines.iter().enumerate() {
+        for (i, line) in self.lines.iter().enumerate() {
             text.push_str(line.text());
 
             if i < line_count - 1 {
@@ -321,10 +315,10 @@ impl Plugin for CosmicEditPlugin {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
         let main_unordered = (
-            blink_cursor,
-            freeze_cursor_blink,
-            hide_inactive_or_readonly_cursor,
-            clear_inactive_selection,
+            // blink_cursor,
+            // freeze_cursor_blink,
+            // hide_inactive_or_readonly_cursor,
+            // clear_inactive_selection,
         );
 
         let render_systems = (
@@ -345,23 +339,32 @@ impl Plugin for CosmicEditPlugin {
             First,
             (
                 set_initial_scale,
-                (cosmic_editor_builder, on_scale_factor_change).after(set_initial_scale),
+                (cosmic_buffer_builder, on_scale_factor_change),
                 render::swap_target_handle,
-            ),
+            )
+                .chain(),
         )
         .add_systems(
             PreUpdate,
             (
-                update_buffer_text,
-                init_history,
-                main_unordered,
-                hide_password_text,
+                // update_buffer_text,
+                // init_history,
+                // main_unordered,
+                // hide_password_text,
                 input_mouse,
-                restore_password_text,
+                // restore_password_text,
             )
                 .chain(),
         )
-        .add_systems(Update, (input_kb, undo_redo).chain())
+        .add_systems(
+            Update,
+            (
+                add_editor_to_active,
+                input_kb,
+                //undo_redo,
+            )
+                .chain(),
+        )
         .configure_sets(
             PostUpdate,
             (
@@ -378,12 +381,12 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(
             PostUpdate,
             (
-                hide_password_text,
-                show_placeholder,
+                // hide_password_text,
+                // show_placeholder,
                 render_systems,
-                apply_deferred, // Prevents one-frame inputs adding placeholder to editor
-                restore_password_text,
-                restore_placeholder_text,
+                // apply_deferred, // Prevents one-frame inputs adding placeholder to editor
+                // restore_password_text,
+                // restore_placeholder_text,
             )
                 .chain(),
         )
@@ -425,12 +428,13 @@ impl Plugin for CosmicEditPlugin {
 }
 
 fn save_edit_history(
+    buffer: &Buffer,
     editor: &mut Editor,
     attrs: &AttrsOwned,
     edit_history: &mut CosmicEditHistory,
 ) {
     let edits = &edit_history.edits;
-    let current_lines = get_text_spans(editor.buffer(), attrs.clone());
+    let current_lines = get_text_spans(buffer, attrs.clone());
     let current_edit = edit_history.current_edit;
     let mut new_edits = VecDeque::new();
     new_edits.extend(edits.iter().take(current_edit + 1).cloned());
@@ -450,15 +454,22 @@ fn save_edit_history(
 }
 
 fn init_history(
-    mut q: Query<(&mut CosmicEditor, &CosmicAttrs, &mut CosmicEditHistory), Added<CosmicEditor>>,
+    mut q: Query<
+        (
+            &CosmicBuffer,
+            &mut CosmicEditor,
+            &CosmicAttrs,
+            &mut CosmicEditHistory,
+        ),
+        Added<CosmicEditor>,
+    >,
 ) {
-    for (mut editor, attrs, mut history) in q.iter_mut() {
-        save_edit_history(&mut editor.0, &attrs.0, &mut history);
+    for (buffer, mut editor, attrs, mut history) in q.iter_mut() {
+        save_edit_history(buffer, &mut editor, &attrs.0, &mut history);
     }
 }
 
-/// Adds the font system to each editor when added
-fn cosmic_editor_builder(
+fn cosmic_buffer_builder(
     mut added_editors: Query<(Entity, &CosmicMetrics), Added<CosmicText>>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut commands: Commands,
@@ -470,15 +481,30 @@ fn cosmic_editor_builder(
         );
         // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
         buffer.set_redraw(true);
-        let mut editor = Editor::new(buffer);
 
-        let mut cursor = editor.cursor();
-        cursor.color = Some(cosmic_text::Color::rgba(0, 0, 0, 0));
-        editor.set_cursor(cursor);
+        println!("adding buffer...");
 
-        commands.entity(entity).insert(CosmicEditor(editor));
+        commands.entity(entity).insert(CosmicBuffer(buffer));
         commands.entity(entity).insert(CosmicEditHistory::default());
         commands.entity(entity).insert(XOffset(None));
+    }
+}
+
+fn add_editor_to_active(
+    mut commands: Commands,
+    active_editor: Res<Focus>,
+    q: Query<&CosmicBuffer, Without<CosmicEditor>>,
+) {
+    if let Some(e) = active_editor.0 {
+        let Ok(b) = q.get(e) else {
+            println!("query has no buffer w/o/ editor!");
+            return;
+        };
+        println!("Add editor");
+        let editor = Editor::new(b.0.clone());
+        commands.entity(e).insert(CosmicEditor(editor));
+    } else {
+        println!("no focus {:?}", active_editor.0);
     }
 }
 
@@ -539,7 +565,7 @@ pub fn get_node_cursor_pos(
 fn update_buffer_text(
     mut editor_q: Query<
         (
-            &mut CosmicEditor,
+            &mut CosmicBuffer,
             &mut CosmicText,
             &CosmicAttrs,
             &CosmicMaxChars,
@@ -549,9 +575,9 @@ fn update_buffer_text(
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut editor, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
+    for (mut buffer, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
         let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
-        editor.set_text(text, attrs.0.clone(), &mut font_system.0);
+        buffer.set_text(text, attrs.0.clone(), &mut font_system.0);
     }
 }
 
@@ -703,13 +729,13 @@ fn clear_inactive_selection(
     mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
     active_editor: Res<Focus>,
 ) {
-    if !active_editor.is_changed() || active_editor.0.is_none() {
+    if !active_editor.is_changed() || active_editor.is_none() {
         return;
     }
 
     for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.0.unwrap() {
-            editor.0.set_select_opt(None);
+        if e != active_editor.unwrap() {
+            editor.set_selection(cosmic_text::Selection::None);
         }
     }
 }
@@ -757,11 +783,9 @@ mod tests {
 
         app.update();
 
-        let mut text_nodes_query = app.world.query::<&CosmicEditor>();
+        let mut text_nodes_query = app.world.query::<&CosmicBuffer>();
         for cosmic_editor in text_nodes_query.iter(&app.world) {
             insta::assert_debug_snapshot!(cosmic_editor
-                .0
-                .buffer()
                 .lines
                 .iter()
                 .map(|line| line.text())

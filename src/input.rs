@@ -10,7 +10,7 @@ use bevy::{
     prelude::*,
     window::PrimaryWindow,
 };
-use cosmic_text::{Action, AttrsList, BufferLine, Cursor, Edit, Shaping};
+use cosmic_text::{Action, AttrsList, BufferLine, Cursor, Edit, Motion, Selection, Shaping};
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Promise;
@@ -21,9 +21,9 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::{
     get_node_cursor_pos, get_timestamp, get_x_offset_center, get_y_offset_center,
-    save_edit_history, CosmicAttrs, CosmicEditHistory, CosmicEditor, CosmicFontSystem,
-    CosmicMaxChars, CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, Focus,
-    PasswordInput, ReadOnly, XOffset,
+    save_edit_history, CosmicAttrs, CosmicBuffer, CosmicEditHistory, CosmicEditor,
+    CosmicFontSystem, CosmicMaxChars, CosmicMaxLines, CosmicSource, CosmicTextChanged,
+    CosmicTextPosition, Focus, PasswordInput, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -49,6 +49,7 @@ pub(crate) fn input_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
     mut editor_q: Query<(
         &mut CosmicEditor,
+        &CosmicBuffer,
         &GlobalTransform,
         &CosmicTextPosition,
         Entity,
@@ -92,7 +93,7 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) =
+    if let Ok((mut editor, buffer, sprite_transform, text_position, entity, x_offset, sprite)) =
         editor_q.get_mut(active_editor_entity)
     {
         let mut is_ui_node = false;
@@ -114,22 +115,21 @@ pub(crate) fn input_mouse(
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         // if shift key is pressed
-        let already_has_selection = editor.0.select_opt().is_some();
+        let already_has_selection = editor.selection() != Selection::None;
         if shift && !already_has_selection {
-            let cursor = editor.0.cursor();
-            editor.0.set_select_opt(Some(cursor));
+            let cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(cursor));
         }
 
         let (padding_x, padding_y) = match text_position {
             CosmicTextPosition::Center => (
-                get_x_offset_center(width * scale_factor, editor.0.buffer()),
-                get_y_offset_center(height * scale_factor, editor.0.buffer()),
+                get_x_offset_center(width * scale_factor, buffer),
+                get_y_offset_center(height * scale_factor, buffer),
             ),
             CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => (
-                *padding,
-                get_y_offset_center(height * scale_factor, editor.0.buffer()),
-            ),
+            CosmicTextPosition::Left { padding } => {
+                (*padding, get_y_offset_center(height * scale_factor, buffer))
+            }
         };
         let point = |node_cursor_pos: (f32, f32)| {
             (
@@ -150,25 +150,26 @@ pub(crate) fn input_mouse(
                 let (mut x, y) = point(node_cursor_pos);
                 x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
                 if shift {
-                    editor.0.action(&mut font_system.0, Action::Drag { x, y });
+                    editor.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
                     match *click_count {
                         1 => {
-                            editor.0.action(&mut font_system.0, Action::Click { x, y });
+                            editor.action(&mut font_system.0, Action::Click { x, y });
                         }
                         2 => {
                             // select word
-                            editor.0.action(&mut font_system.0, Action::LeftWord);
-                            let cursor = editor.0.cursor();
-                            editor.0.set_select_opt(Some(cursor));
-                            editor.0.action(&mut font_system.0, Action::RightWord);
+                            editor.action(&mut font_system.0, Action::Motion(Motion::LeftWord));
+                            let cursor = editor.cursor();
+                            editor.set_selection(Selection::Normal(cursor));
+                            editor.action(&mut font_system.0, Action::Motion(Motion::RightWord));
                         }
                         3 => {
                             // select paragraph
-                            editor.0.action(&mut font_system.0, Action::ParagraphStart);
-                            let cursor = editor.0.cursor();
-                            editor.0.set_select_opt(Some(cursor));
-                            editor.0.action(&mut font_system.0, Action::ParagraphEnd);
+                            editor
+                                .action(&mut font_system.0, Action::Motion(Motion::ParagraphStart));
+                            let cursor = editor.cursor();
+                            editor.set_selection(Selection::Normal(cursor));
+                            editor.action(&mut font_system.0, Action::Motion(Motion::ParagraphEnd));
                         }
                         _ => {}
                     }
@@ -189,9 +190,9 @@ pub(crate) fn input_mouse(
                 let (mut x, y) = point(node_cursor_pos);
                 x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
                 if active_editor.is_changed() && !shift {
-                    editor.0.action(&mut font_system.0, Action::Click { x, y });
+                    editor.action(&mut font_system.0, Action::Click { x, y });
                 } else {
-                    editor.0.action(&mut font_system.0, Action::Drag { x, y });
+                    editor.action(&mut font_system.0, Action::Drag { x, y });
                 }
             }
             return;
@@ -200,7 +201,7 @@ pub(crate) fn input_mouse(
         for ev in scroll_evr.read() {
             match ev.unit {
                 MouseScrollUnit::Line => {
-                    editor.0.action(
+                    editor.action(
                         &mut font_system.0,
                         Action::Scroll {
                             lines: -ev.y as i32,
@@ -208,8 +209,8 @@ pub(crate) fn input_mouse(
                     );
                 }
                 MouseScrollUnit::Pixel => {
-                    let line_height = editor.0.buffer().metrics().line_height;
-                    editor.0.action(
+                    let line_height = buffer.metrics().line_height;
+                    editor.action(
                         &mut font_system.0,
                         Action::Scroll {
                             lines: -(ev.y / line_height) as i32,
@@ -228,6 +229,7 @@ pub(crate) fn input_kb(
     mut char_evr: EventReader<ReceivedCharacter>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
+        &mut CosmicBuffer,
         &mut CosmicEditHistory,
         &CosmicAttrs,
         &CosmicMaxLines,
@@ -248,6 +250,7 @@ pub(crate) fn input_kb(
 
     if let Ok((
         mut editor,
+        buffer,
         mut edit_history,
         attrs,
         max_lines,
@@ -284,10 +287,10 @@ pub(crate) fn input_kb(
         let option = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
 
         // if shift key is pressed
-        let already_has_selection = editor.0.select_opt().is_some();
+        let already_has_selection = editor.selection() != Selection::None;
         if shift && !already_has_selection {
-            let cursor = editor.0.cursor();
-            editor.0.set_select_opt(Some(cursor));
+            let cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(cursor));
         }
 
         #[cfg(target_os = "macos")]
@@ -296,126 +299,123 @@ pub(crate) fn input_kb(
         let should_jump = command;
 
         if should_jump && keys.just_pressed(KeyCode::ArrowLeft) {
-            editor.0.action(&mut font_system.0, Action::PreviousWord);
+            editor.action(&mut font_system.0, Action::Motion(Motion::PreviousWord));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if should_jump && keys.just_pressed(KeyCode::ArrowRight) {
-            editor.0.action(&mut font_system.0, Action::NextWord);
+            editor.action(&mut font_system.0, Action::Motion(Motion::NextWord));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if should_jump && keys.just_pressed(KeyCode::Home) {
-            editor.0.action(&mut font_system.0, Action::BufferStart);
-            // there's a bug with cosmic text where it doesn't update the visual cursor for this action
-            // TODO: fix upstream
-            editor.0.buffer_mut().set_redraw(true);
+            editor.action(&mut font_system.0, Action::Motion(Motion::BufferStart));
+            editor.set_redraw(true);
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if should_jump && keys.just_pressed(KeyCode::End) {
-            editor.0.action(&mut font_system.0, Action::BufferEnd);
-            // there's a bug with cosmic text where it doesn't update the visual cursor for this action
-            // TODO: fix upstream
-            editor.0.buffer_mut().set_redraw(true);
+            editor.action(&mut font_system.0, Action::Motion(Motion::BufferEnd));
+            editor.set_redraw(true);
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
 
         if keys.just_pressed(KeyCode::ArrowLeft) {
-            editor.0.action(&mut font_system.0, Action::Left);
+            editor.action(&mut font_system.0, Action::Motion(Motion::Left));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::ArrowRight) {
-            editor.0.action(&mut font_system.0, Action::Right);
+            editor.action(&mut font_system.0, Action::Motion(Motion::Right));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::ArrowUp) {
-            editor.0.action(&mut font_system.0, Action::Up);
+            editor.action(&mut font_system.0, Action::Motion(Motion::Up));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::ArrowDown) {
-            editor.0.action(&mut font_system.0, Action::Down);
+            editor.action(&mut font_system.0, Action::Motion(Motion::Down));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
 
         if keys.just_pressed(KeyCode::Backspace) & !readonly {
             // fix for issue #8
-            if let Some(select) = editor.0.select_opt() {
-                if editor.0.cursor().line == select.line && editor.0.cursor().index == select.index
-                {
-                    editor.0.set_select_opt(None);
-                }
+            let select = editor.selection();
+            if select != Selection::None {
+                // TODO: fix zero-width selections if needed
+                //
+                // if editor.cursor().line == select.line && editor.cursor().index == select.index {
+                //     editor.set_selection(Selection::None);
+                // }
             }
             *is_deleting = true;
-            editor.0.action(&mut font_system.0, Action::Backspace);
+            editor.action(&mut font_system.0, Action::Backspace);
         }
 
         if keys.just_released(KeyCode::Backspace) {
             *is_deleting = false;
         }
         if keys.just_pressed(KeyCode::Delete) && !readonly {
-            editor.0.action(&mut font_system.0, Action::Delete);
+            editor.action(&mut font_system.0, Action::Delete);
         }
         if keys.just_pressed(KeyCode::Escape) {
-            editor.0.action(&mut font_system.0, Action::Escape);
+            editor.action(&mut font_system.0, Action::Escape);
         }
         if command && keys.just_pressed(KeyCode::KeyA) {
-            editor.0.action(&mut font_system.0, Action::BufferEnd);
-            let current_cursor = editor.0.cursor();
-            editor.0.set_select_opt(Some(Cursor {
+            editor.action(&mut font_system.0, Action::Motion(Motion::BufferEnd));
+            let current_cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(Cursor {
                 line: 0,
                 index: 0,
                 affinity: current_cursor.affinity,
-                color: current_cursor.color,
             }));
             return;
         }
         if keys.just_pressed(KeyCode::Home) {
-            editor.0.action(&mut font_system.0, Action::Home);
+            editor.action(&mut font_system.0, Action::Motion(Motion::Home));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::End) {
-            editor.0.action(&mut font_system.0, Action::End);
+            editor.action(&mut font_system.0, Action::Motion(Motion::End));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::PageUp) {
-            editor.0.action(&mut font_system.0, Action::PageUp);
+            editor.action(&mut font_system.0, Action::Motion(Motion::PageUp));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
         if keys.just_pressed(KeyCode::PageDown) {
-            editor.0.action(&mut font_system.0, Action::PageDown);
+            editor.action(&mut font_system.0, Action::Motion(Motion::PageDown));
             if !shift {
-                editor.0.set_select_opt(None);
+                editor.set_selection(Selection::None);
             }
             return;
         }
@@ -428,7 +428,7 @@ pub(crate) fn input_kb(
                     if password_opt.is_some() {
                         return;
                     }
-                    if let Some(text) = editor.0.copy_selection() {
+                    if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         return;
                     }
@@ -437,28 +437,26 @@ pub(crate) fn input_kb(
                     if password_opt.is_some() {
                         return;
                     }
-                    if let Some(text) = editor.0.copy_selection() {
+                    if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
-                        editor.0.delete_selection();
+                        editor.delete_selection();
                     }
                     is_clipboard = true;
                 }
                 if command && keys.just_pressed(KeyCode::KeyV) && !readonly {
                     if let Ok(text) = clipboard.get_text() {
                         for c in text.chars() {
-                            if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                            if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
                                 if c == 0xA as char {
-                                    if max_lines.0 == 0
-                                        || editor.0.buffer().lines.len() < max_lines.0
-                                    {
-                                        editor.0.action(&mut font_system.0, Action::Insert(c));
+                                    if max_lines.0 == 0 || buffer.lines.len() < max_lines.0 {
+                                        editor.action(&mut font_system.0, Action::Insert(c));
                                     }
                                 } else {
                                     if password_opt.is_some() && c.len_utf8() > 1 {
                                         println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
                                         continue;
                                     }
-                                    editor.0.action(&mut font_system.0, Action::Insert(c));
+                                    editor.action(&mut font_system.0, Action::Insert(c));
                                 }
                             }
                         }
@@ -474,7 +472,7 @@ pub(crate) fn input_kb(
                 if password_opt.is_some() {
                     return;
                 }
-                if let Some(text) = editor.0.copy_selection() {
+                if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     return;
                 }
@@ -484,9 +482,9 @@ pub(crate) fn input_kb(
                 if password_opt.is_some() {
                     return;
                 }
-                if let Some(text) = editor.0.copy_selection() {
+                if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
-                    editor.0.delete_selection();
+                    editor.delete_selection();
                 }
                 is_clipboard = true;
             }
@@ -516,12 +514,12 @@ pub(crate) fn input_kb(
         let mut is_return = false;
         if keys.just_pressed(KeyCode::Enter) {
             is_return = true;
-            if (max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0)
-                && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
+            if (max_lines.0 == 0 || buffer.lines.len() < max_lines.0)
+                && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
             {
                 // to have new line on wasm rather than E
                 is_edit = true;
-                editor.0.action(&mut font_system.0, Action::Insert('\n'));
+                editor.action(&mut font_system.0, Action::Insert('\n'));
             }
         }
 
@@ -529,8 +527,8 @@ pub(crate) fn input_kb(
             for char_ev in char_evr.read() {
                 is_edit = true;
                 if *is_deleting {
-                    editor.0.action(&mut font_system.0, Action::Backspace);
-                } else if !command && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0) {
+                    editor.action(&mut font_system.0, Action::Backspace);
+                } else if !command && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0) {
                     if password_opt.is_some() && char_ev.char.len() > 1 {
                         println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",char_ev.char);
                         continue;
@@ -538,7 +536,8 @@ pub(crate) fn input_kb(
                     let b = char_ev.char.as_bytes();
                     for c in b {
                         let c: char = (*c).into();
-                        editor.0.action(&mut font_system.0, Action::Insert(c));
+                        editor.action(&mut font_system.0, Action::Insert(c));
+                        editor.set_redraw(true);
                     }
                 }
             }
@@ -554,17 +553,17 @@ pub(crate) fn input_kb(
             return;
         }
 
-        evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
+        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
 
         if let Some(last_edit_duration) = *edits_duration {
             if Duration::from_millis(now_ms as u64) - last_edit_duration
                 > Duration::from_millis(150)
             {
-                save_edit_history(&mut editor.0, attrs, &mut edit_history);
+                save_edit_history(&buffer, &mut editor, attrs, &mut edit_history);
                 *edits_duration = Some(Duration::from_millis(now_ms as u64));
             }
         } else {
-            save_edit_history(&mut editor.0, attrs, &mut edit_history);
+            save_edit_history(&buffer, &mut editor, attrs, &mut edit_history);
             *edits_duration = Some(Duration::from_millis(now_ms as u64));
         }
     }
@@ -611,7 +610,12 @@ pub(crate) fn undo_redo(
     active_editor: Res<Focus>,
     keys: Res<ButtonInput<KeyCode>>,
     mut editor_q: Query<
-        (&mut CosmicEditor, &CosmicAttrs, &mut CosmicEditHistory),
+        (
+            &mut CosmicBuffer,
+            &mut CosmicEditor,
+            &CosmicAttrs,
+            &mut CosmicEditHistory,
+        ),
         Without<ReadOnly>,
     >,
     mut evw_changed: EventWriter<CosmicTextChanged>,
@@ -621,7 +625,7 @@ pub(crate) fn undo_redo(
         None => return,
     };
 
-    let (mut editor, attrs, mut edit_history) = match editor_q.get_mut(entity) {
+    let (mut buffer, mut editor, attrs, mut edit_history) = match editor_q.get_mut(entity) {
         Ok(components) => components,
         Err(_) => return,
     };
@@ -659,7 +663,7 @@ pub(crate) fn undo_redo(
     };
 
     if let Some(current_edit) = edits.get(index) {
-        editor.0.buffer_mut().lines.clear();
+        buffer.lines.clear();
         for line in current_edit.lines.iter() {
             let mut line_text = String::new();
             let mut attrs_list = AttrsList::new(attrs.as_attrs());
@@ -669,17 +673,15 @@ pub(crate) fn undo_redo(
                 let end = line_text.len();
                 attrs_list.add_span(start..end, attrs.as_attrs());
             }
-            editor.0.buffer_mut().lines.push(BufferLine::new(
-                line_text,
-                attrs_list,
-                Shaping::Advanced,
-            ));
+            buffer
+                .lines
+                .push(BufferLine::new(line_text, attrs_list, Shaping::Advanced));
         }
-        editor.0.set_cursor(current_edit.cursor);
-        editor.0.set_select_opt(None); // prevent auto selection of redo-inserted text
-        editor.0.buffer_mut().set_redraw(true);
+        editor.set_cursor(current_edit.cursor);
+        editor.set_selection(Selection::None); // prevent auto selection of redo-inserted text
+        editor.set_redraw(true);
         edit_history.current_edit = index;
-        evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
+        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
     }
 }
 
@@ -734,8 +736,8 @@ pub fn poll_wasm_paste(
                 for c in text.chars() {
                     if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
                         if c == 0xA as char {
-                            if max_lines.0 == 0 || editor.0.buffer().lines.len() < max_lines.0 {
-                                editor.0.action(&mut font_system.0, Action::Insert(c));
+                            if max_lines.0 == 0 || editor.buffer().lines.len() < max_lines.0 {
+                                editor.action(&mut font_system.0, Action::Insert(c));
                             }
                         } else {
                             if password_opt.is_some() && c.len_utf8() > 1 {
@@ -743,13 +745,13 @@ pub fn poll_wasm_paste(
                                 println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
                                 continue;
                             }
-                            editor.0.action(&mut font_system.0, Action::Insert(c));
+                            editor.action(&mut font_system.0, Action::Insert(c));
                         }
                     }
                 }
 
                 evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-                save_edit_history(&mut editor.0, attrs, &mut edit_history);
+                save_edit_history(&mut editor, attrs, &mut edit_history);
             }
         }
         Err(_) => {}

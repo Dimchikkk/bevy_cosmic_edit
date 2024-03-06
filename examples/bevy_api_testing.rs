@@ -11,6 +11,7 @@ fn setup(mut commands: Commands) {
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             max_lines: CosmicMaxLines(1),
+            text_setter: CosmicText::OneStyle("Banananana".into()),
             ..default()
         })
         .insert(CosmicEditPlaceholderBundle {
@@ -39,6 +40,7 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((CosmicEditBundle {
+        text_setter: CosmicText::OneStyle("Bavy time".into()),
         sprite_bundle: SpriteBundle {
             // Sets size of text box
             sprite: Sprite {
@@ -52,7 +54,8 @@ fn setup(mut commands: Commands) {
         ..default()
     },));
 
-    commands.insert_resource(Focus(Some(ui_editor)));
+    // commands.insert_resource(Focus(Some(ui_editor)));
+    commands.insert_resource(Focus(None));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

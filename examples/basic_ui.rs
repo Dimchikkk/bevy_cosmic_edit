@@ -52,20 +52,35 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         // texture to the editor's rendered image
         .insert(CosmicSource(cosmic_edit));
 
-    commands.insert_resource(Focus(Some(cosmic_edit)));
+    // TODO: fix Focus-on-setup
+    //
+    // commands.insert_resource(Focus(Some(cosmic_edit)));
 }
 
-fn print_text(
-    text_inputs_q: Query<&CosmicEditor, With<CosmicEditor>>,
-    mut previous_value: Local<String>,
-) {
+fn print_text(text_inputs_q: Query<&CosmicEditor>, mut previous_value: Local<Vec<String>>) {
     for text_input in text_inputs_q.iter() {
-        let current_text = text_input.get_text();
+        let current_text: Vec<String> = text_input.with_buffer(|buf| {
+            buf.lines
+                .iter()
+                .map(|bl| bl.text().to_string())
+                .collect::<Vec<_>>()
+        });
         if current_text == *previous_value {
             return;
         }
         *previous_value = current_text.clone();
-        info!("Widget text: {}", current_text);
+        info!("Widget text: {:?}", current_text);
+    }
+}
+
+fn select_editor(
+    i: Res<ButtonInput<MouseButton>>,
+    q: Query<Entity, With<CosmicBuffer>>,
+    mut focus: ResMut<Focus>,
+) {
+    if i.just_pressed(MouseButton::Left) {
+        let e = q.single();
+        focus.0 = Some(e);
     }
 }
 
@@ -84,6 +99,6 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
-        .add_systems(Update, print_text)
+        .add_systems(Update, (print_text, select_editor))
         .run();
 }

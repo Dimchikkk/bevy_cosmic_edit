@@ -104,7 +104,7 @@ fn text_swapper(
     }
 
     let editor = editor_q.single();
-    println!("X OFFSET: {}", get_x_offset_center(50., editor.0.buffer()));
+    println!("X OFFSET: {}", get_x_offset_center(50., editor.buffer()));
 }
 
 fn main() {
