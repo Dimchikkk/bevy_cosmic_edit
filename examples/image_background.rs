@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(CosmicSource(editor));
 
-    commands.insert_resource(Focus(Some(editor)));
+    commands.insert_resource(FocusedWidget(Some(editor)));
 }
 
 pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

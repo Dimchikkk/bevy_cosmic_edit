@@ -267,7 +267,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     });
 
     // Set active editor
-    commands.insert_resource(Focus(Some(cosmic_edit_1)));
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit_1)));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
@@ -288,7 +288,7 @@ fn change_active_editor_ui(
 ) {
     for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(source.0)));
+            commands.insert_resource(FocusedWidget(Some(source.0)));
         }
     }
 }

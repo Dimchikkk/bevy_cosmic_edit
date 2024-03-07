@@ -1,11 +1,10 @@
-use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::*;
+use bevy::prelude::*;
+use bevy_cosmic_edit::{focus::FocusedWidget, *};
 
-fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
-    let primary_window = windows.single();
+fn setup(mut commands: Commands, mut focus: ResMut<FocusedWidget>) {
     let camera_bundle = Camera2dBundle {
         camera: Camera {
-            clear_color: ClearColorConfig::Custom(Color::WHITE),
+            clear_color: ClearColorConfig::Custom(Color::PINK),
             ..default()
         },
         ..default()
@@ -16,20 +15,12 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    let scale_factor = primary_window.scale_factor() as f32;
-
     let cosmic_edit = commands
-        .spawn(CosmicEditBundle {
-            metrics: CosmicMetrics {
-                font_size: 14.,
-                line_height: 18.,
-                scale_factor,
-            },
+        .spawn((CosmicEditBundle {
             text_position: CosmicTextPosition::Center,
             attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
-        })
+        },))
         .id();
 
     commands
@@ -53,8 +44,11 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         .insert(CosmicSource(cosmic_edit));
 
     // TODO: fix Focus-on-setup
+    // Setup doesn't trigger Added<>?
     //
-    // commands.insert_resource(Focus(Some(cosmic_edit)));
+    //
+    // commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
+    focus.0 = Some(cosmic_edit);
 }
 
 fn print_text(text_inputs_q: Query<&CosmicEditor>, mut previous_value: Local<Vec<String>>) {
@@ -76,11 +70,17 @@ fn print_text(text_inputs_q: Query<&CosmicEditor>, mut previous_value: Local<Vec
 fn select_editor(
     i: Res<ButtonInput<MouseButton>>,
     q: Query<Entity, With<CosmicBuffer>>,
-    mut focus: ResMut<Focus>,
+    mut focus: ResMut<FocusedWidget>,
 ) {
     if i.just_pressed(MouseButton::Left) {
         let e = q.single();
         focus.0 = Some(e);
+    }
+}
+
+fn deselect_editor(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
+    if i.just_pressed(KeyCode::Escape) {
+        focus.0 = None;
     }
 }
 
@@ -99,6 +99,6 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
-        .add_systems(Update, (print_text, select_editor))
+        .add_systems(Update, (print_text, select_editor, deselect_editor))
         .run();
 }

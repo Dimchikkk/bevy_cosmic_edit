@@ -102,7 +102,7 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
         .insert((ReadOnly, DisplayTag))
         .id();
 
-    commands.insert_resource(Focus(Some(login_editor)));
+    commands.insert_resource(FocusedWidget(Some(login_editor)));
 
     // Spawn UI
     commands
@@ -194,7 +194,7 @@ fn change_active_editor_ui(
 ) {
     for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(source.0)));
+            commands.insert_resource(FocusedWidget(Some(source.0)));
         }
     }
 }

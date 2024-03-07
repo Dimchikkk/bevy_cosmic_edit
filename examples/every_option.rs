@@ -68,7 +68,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         })
         .insert(CosmicSource(editor));
 
-    commands.insert_resource(Focus(Some(editor)));
+    commands.insert_resource(FocusedWidget(Some(editor)));
 
     commands.insert_resource(TextChangeTimer(Timer::from_seconds(
         1.,

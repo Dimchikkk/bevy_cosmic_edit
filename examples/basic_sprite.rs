@@ -39,7 +39,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let cosmic_edit = commands.spawn(cosmic_edit).id();
 
-    commands.insert_resource(Focus(Some(cosmic_edit)));
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {

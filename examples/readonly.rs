@@ -52,7 +52,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             .insert(CosmicSource(cosmic_edit));
     });
 
-    commands.insert_resource(Focus(Some(cosmic_edit)));
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {

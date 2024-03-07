@@ -1,7 +1,5 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use std::time::Duration;
-
 #[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;
 
@@ -10,7 +8,7 @@ use bevy::{
     prelude::*,
     window::PrimaryWindow,
 };
-use cosmic_text::{Action, AttrsList, BufferLine, Cursor, Edit, Motion, Selection, Shaping};
+use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Promise;
@@ -20,10 +18,9 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use crate::{
-    get_node_cursor_pos, get_timestamp, get_x_offset_center, get_y_offset_center,
-    save_edit_history, CosmicAttrs, CosmicBuffer, CosmicEditHistory, CosmicEditor,
+    get_node_cursor_pos, get_x_offset_center, get_y_offset_center, CosmicBuffer, CosmicEditor,
     CosmicFontSystem, CosmicMaxChars, CosmicMaxLines, CosmicSource, CosmicTextChanged,
-    CosmicTextPosition, Focus, PasswordInput, ReadOnly, XOffset,
+    CosmicTextPosition, FocusedWidget, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -44,7 +41,7 @@ pub struct WasmPasteAsyncChannel {
 
 pub(crate) fn input_mouse(
     windows: Query<&Window, With<PrimaryWindow>>,
-    active_editor: Res<Focus>,
+    active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut editor_q: Query<(
@@ -222,16 +219,17 @@ pub(crate) fn input_mouse(
     }
 }
 
+#[derive(Component)]
+pub struct PasswordInput; // PLACEHOLDER bc this fn uses it's presence
+
 // TODO: split copy/paste into own fn, separate fn for wasm
 pub(crate) fn input_kb(
-    active_editor: Res<Focus>,
+    active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicBuffer,
-        &mut CosmicEditHistory,
-        &CosmicAttrs,
         &CosmicMaxLines,
         &CosmicMaxChars,
         Entity,
@@ -241,30 +239,16 @@ pub(crate) fn input_kb(
     mut evw_changed: EventWriter<CosmicTextChanged>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut is_deleting: Local<bool>,
-    mut edits_duration: Local<Option<Duration>>,
     _channel: Option<Res<WasmPasteAsyncChannel>>,
 ) {
     let Some(active_editor_entity) = active_editor.0 else {
         return;
     };
 
-    if let Ok((
-        mut editor,
-        buffer,
-        mut edit_history,
-        attrs,
-        max_lines,
-        max_chars,
-        entity,
-        readonly_opt,
-        password_opt,
-    )) = cosmic_edit_query.get_mut(active_editor_entity)
+    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt, password_opt)) =
+        cosmic_edit_query.get_mut(active_editor_entity)
     {
         let readonly = readonly_opt.is_some();
-
-        let attrs = &attrs.0;
-
-        let now_ms = get_timestamp();
 
         let command = keypress_command(&keys);
 
@@ -543,29 +527,11 @@ pub(crate) fn input_kb(
             }
         }
 
-        // skip event + history if undo/redo keys pressed
-
-        let requested_redo = keypress_redo(&keys);
-        let requested_undo =
-            command && (keys.pressed(KeyCode::KeyZ) || keys.just_pressed(KeyCode::KeyZ));
-
-        if requested_redo || requested_undo || !is_edit {
+        if !is_edit {
             return;
         }
 
         evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
-
-        if let Some(last_edit_duration) = *edits_duration {
-            if Duration::from_millis(now_ms as u64) - last_edit_duration
-                > Duration::from_millis(150)
-            {
-                save_edit_history(&buffer, &mut editor, attrs, &mut edit_history);
-                *edits_duration = Some(Duration::from_millis(now_ms as u64));
-            }
-        } else {
-            save_edit_history(&buffer, &mut editor, attrs, &mut edit_history);
-            *edits_duration = Some(Duration::from_millis(now_ms as u64));
-        }
     }
 }
 
@@ -590,99 +556,6 @@ fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
     };
 
     command
-}
-
-fn keypress_redo(keys: &ButtonInput<KeyCode>) -> bool {
-    let command = keypress_command(keys);
-    let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-
-    #[cfg(not(target_os = "windows"))]
-    let requested_redo = command && shift && keys.just_pressed(KeyCode::KeyZ);
-
-    // TODO: windows OS detection for wasm here
-    #[cfg(target_os = "windows")]
-    let requested_redo = command && keys.just_pressed(KeyCode::KeyY);
-
-    requested_redo
-}
-
-pub(crate) fn undo_redo(
-    active_editor: Res<Focus>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut editor_q: Query<
-        (
-            &mut CosmicBuffer,
-            &mut CosmicEditor,
-            &CosmicAttrs,
-            &mut CosmicEditHistory,
-        ),
-        Without<ReadOnly>,
-    >,
-    mut evw_changed: EventWriter<CosmicTextChanged>,
-) {
-    let entity = match active_editor.0 {
-        Some(entity) => entity,
-        None => return,
-    };
-
-    let (mut buffer, mut editor, attrs, mut edit_history) = match editor_q.get_mut(entity) {
-        Ok(components) => components,
-        Err(_) => return,
-    };
-
-    let command = keypress_command(&keys);
-
-    let attrs = &attrs.0;
-
-    let requested_redo = keypress_redo(&keys);
-    let requested_undo = command && keys.just_pressed(KeyCode::KeyZ);
-
-    if !(requested_redo || requested_undo) {
-        return;
-    }
-
-    let edits = &edit_history.edits;
-
-    if edits.is_empty() {
-        return;
-    }
-
-    // use not redo rather than undo, cos undo will be true when redo is
-    if !requested_redo && edit_history.current_edit == 0 {
-        return;
-    }
-
-    if requested_redo && edit_history.current_edit == edits.len() - 1 {
-        return;
-    }
-
-    let index = if requested_redo {
-        edit_history.current_edit + 1
-    } else {
-        edit_history.current_edit - 1
-    };
-
-    if let Some(current_edit) = edits.get(index) {
-        buffer.lines.clear();
-        for line in current_edit.lines.iter() {
-            let mut line_text = String::new();
-            let mut attrs_list = AttrsList::new(attrs.as_attrs());
-            for (text, attrs) in line.iter() {
-                let start = line_text.len();
-                line_text.push_str(text);
-                let end = line_text.len();
-                attrs_list.add_span(start..end, attrs.as_attrs());
-            }
-            buffer
-                .lines
-                .push(BufferLine::new(line_text, attrs_list, Shaping::Advanced));
-        }
-        editor.set_cursor(current_edit.cursor);
-        editor.set_selection(Selection::None); // prevent auto selection of redo-inserted text
-        editor.set_redraw(true);
-        edit_history.current_edit = index;
-        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
-    }
 }
 
 #[cfg(target_arch = "wasm32")]

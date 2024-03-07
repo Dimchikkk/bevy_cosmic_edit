@@ -67,7 +67,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
 
     let id = commands.spawn(cosmic_edit_1).id();
 
-    commands.insert_resource(Focus(Some(id)));
+    commands.insert_resource(FocusedWidget(Some(id)));
 
     commands.spawn(cosmic_edit_2);
 }
@@ -103,7 +103,7 @@ fn change_active_editor_sprite(
             if let Some(pos) = window.cursor_position() {
                 if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                     if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        commands.insert_resource(Focus(Some(entity)))
+                        commands.insert_resource(FocusedWidget(Some(entity)))
                     };
                 }
             };

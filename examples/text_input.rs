@@ -98,7 +98,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         primary_window.scale_factor() as f32,
         "".to_string(),
     );
-    commands.insert_resource(Focus(Some(editor)));
+    commands.insert_resource(FocusedWidget(Some(editor)));
 }
 
 fn handle_enter(
@@ -122,10 +122,10 @@ fn handle_enter(
             commands.entity(entity).despawn_recursive();
             if *mode == CosmicMode::AutoHeight {
                 let editor = create_editable_widget(&mut commands, scale_factor, text);
-                commands.insert_resource(Focus(Some(editor)));
+                commands.insert_resource(FocusedWidget(Some(editor)));
             } else {
                 let editor = create_readonly_widget(&mut commands, scale_factor, text);
-                commands.insert_resource(Focus(Some(editor)));
+                commands.insert_resource(FocusedWidget(Some(editor)));
             };
         }
     }

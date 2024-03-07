@@ -1,12 +1,17 @@
 #![allow(clippy::type_complexity)]
 
+mod buffer;
 mod cursor;
+pub mod focus;
 mod input;
+mod layout;
 mod render;
 
 use std::{collections::VecDeque, path::PathBuf};
 
 use bevy::{prelude::*, transform::TransformSystem};
+pub use buffer::CosmicBuffer;
+use buffer::{add_font_system, set_initial_scale, set_redraw, swap_target_handle};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
     Weight as FontWeight,
@@ -16,21 +21,22 @@ use cosmic_text::{
 };
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
-use input::{input_kb, input_mouse, undo_redo, ClickTimer};
+use focus::{add_editor_to_focused, drop_editor_unfocused, FocusedWidget};
+use input::{input_kb, input_mouse, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
-use render::{
-    blink_cursor, freeze_cursor_blink, hide_password_text, on_scale_factor_change,
-    restore_password_text, restore_placeholder_text, set_initial_scale, show_placeholder,
-    CosmicPadding, CosmicRenderSet, CosmicWidgetSize, CursorBlinkTimer, CursorVisibility,
-    PasswordValues, SwashCacheState,
+use layout::{
+    auto_height, new_image_from_default, on_scale_factor_change, reshape, set_buffer_size,
+    set_cursor, set_padding, set_sprite_size_from_ui, set_widget_size, CosmicPadding,
+    CosmicWidgetSize,
 };
+use render::{render_texture, SwashCacheState};
 
 #[cfg(feature = "multicam")]
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
 
-#[derive(Clone, Component, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum CosmicText {
     OneStyle(String),
     MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
@@ -74,101 +80,17 @@ pub enum CosmicTextPosition {
 #[derive(Event, Debug)]
 pub struct CosmicTextChanged(pub (Entity, String));
 
-// TODO docs
-const DEFAULT_SCALE_PLACEHOLDER: f32 = 0.696969;
-
-#[derive(Clone, Component)]
-pub struct CosmicMetrics {
-    pub font_size: f32,
-    pub line_height: f32,
-    pub scale_factor: f32,
-}
-
-impl Default for CosmicMetrics {
-    fn default() -> Self {
-        Self {
-            font_size: 12.,
-            line_height: 12.,
-            scale_factor: DEFAULT_SCALE_PLACEHOLDER,
-        }
-    }
-}
-
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
 
 #[derive(Component)]
 pub struct ReadOnly; // tag component
 
 #[derive(Component, Debug)]
-struct XOffset(Option<(f32, f32)>);
+pub struct XOffset(Option<(f32, f32)>);
 
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor(pub Editor<'static>);
-
-#[derive(Component, Deref, DerefMut)]
-pub struct CosmicBuffer(pub Buffer);
-
-impl CosmicBuffer {
-    pub fn set_text(
-        &mut self,
-        text: CosmicText,
-        attrs: AttrsOwned,
-        font_system: &mut FontSystem,
-    ) -> &mut Self {
-        // TODO: invoke trim_text here
-        self.lines.clear();
-        match text {
-            CosmicText::OneStyle(text) => {
-                self.0.set_text(
-                    font_system,
-                    text.as_str(),
-                    attrs.as_attrs(),
-                    Shaping::Advanced,
-                );
-            }
-            CosmicText::MultiStyle(lines) => {
-                for line in lines {
-                    let mut line_text = String::new();
-                    let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                    for (text, attrs) in line.iter() {
-                        let start = line_text.len();
-                        line_text.push_str(text);
-                        let end = line_text.len();
-                        attrs_list.add_span(start..end, attrs.as_attrs());
-                    }
-                    self.lines
-                        .push(BufferLine::new(line_text, attrs_list, Shaping::Advanced));
-                }
-            }
-        }
-        self
-    }
-
-    /// Retrieves the cosmic text content from a buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * none, takes the rust magic ref to self
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the cosmic text content.
-    pub fn get_text(&self) -> String {
-        let mut text = String::new();
-        let line_count = self.lines.len();
-
-        for (i, line) in self.lines.iter().enumerate() {
-            text.push_str(line.text());
-
-            if i < line_count - 1 {
-                text.push('\n');
-            }
-        }
-
-        text
-    }
-}
 
 #[derive(Component)]
 pub struct CosmicAttrs(pub AttrsOwned);
@@ -183,36 +105,13 @@ impl Default for CosmicAttrs {
 pub struct CosmicBackground(pub Option<Handle<Image>>);
 
 #[derive(Component, Default)]
+pub struct FillColor(pub Color);
+
+#[derive(Component, Default)]
 pub struct CosmicMaxLines(pub usize);
 
 #[derive(Component, Default)]
 pub struct CosmicMaxChars(pub usize);
-
-#[derive(Component, Default)]
-pub struct FillColor(pub Color);
-
-#[derive(Component, Default)]
-pub struct PlaceholderText(pub CosmicText);
-
-#[derive(Component)]
-pub struct PlaceholderAttrs(pub AttrsOwned);
-
-impl Default for PlaceholderAttrs {
-    fn default() -> Self {
-        Self(AttrsOwned::new(
-            Attrs::new().color(CosmicColor::rgb(128, 128, 128)),
-        ))
-    }
-}
-
-#[derive(Component)]
-pub struct PasswordInput(pub char);
-
-impl Default for PasswordInput {
-    fn default() -> Self {
-        PasswordInput("•".chars().next().unwrap())
-    }
-}
 
 #[derive(Component)]
 pub struct CosmicSource(pub Entity);
@@ -220,17 +119,19 @@ pub struct CosmicSource(pub Entity);
 #[derive(Bundle)]
 pub struct CosmicEditBundle {
     // cosmic bits
+    pub buffer: CosmicBuffer,
+    // render bits
     pub fill_color: FillColor,
-    pub text_position: CosmicTextPosition,
-    pub metrics: CosmicMetrics,
     pub attrs: CosmicAttrs,
     pub background_image: CosmicBackground,
+    pub sprite_bundle: SpriteBundle,
+    // restriction bits
     pub max_lines: CosmicMaxLines,
     pub max_chars: CosmicMaxChars,
-    pub text_setter: CosmicText,
+    // layout bits
+    pub x_offset: XOffset,
     pub mode: CosmicMode,
-    pub sprite_bundle: SpriteBundle,
-    // render bits
+    pub text_position: CosmicTextPosition,
     pub padding: CosmicPadding,
     pub widget_size: CosmicWidgetSize,
 }
@@ -238,14 +139,13 @@ pub struct CosmicEditBundle {
 impl Default for CosmicEditBundle {
     fn default() -> Self {
         CosmicEditBundle {
+            buffer: Default::default(),
             fill_color: Default::default(),
             text_position: Default::default(),
-            metrics: Default::default(),
             attrs: Default::default(),
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
-            text_setter: Default::default(),
             mode: Default::default(),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
@@ -255,17 +155,11 @@ impl Default for CosmicEditBundle {
                 visibility: Visibility::Hidden,
                 ..default()
             },
+            x_offset: XOffset(None),
             padding: Default::default(),
             widget_size: Default::default(),
         }
     }
-}
-
-#[derive(Bundle)]
-pub struct CosmicEditPlaceholderBundle {
-    /// set this to update placeholder text
-    pub text_setter: PlaceholderText,
-    pub attrs: PlaceholderAttrs,
 }
 
 #[derive(Clone)]
@@ -279,10 +173,6 @@ pub struct CosmicEditHistory {
     pub edits: VecDeque<EditHistoryItem>,
     pub current_edit: usize,
 }
-
-/// Resource struct that keeps track of the currently active editor entity.
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct Focus(pub Option<Entity>);
 
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
@@ -314,89 +204,44 @@ impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
-        let main_unordered = (
-            // blink_cursor,
-            // freeze_cursor_blink,
-            // hide_inactive_or_readonly_cursor,
-            // clear_inactive_selection,
-        );
-
-        let render_systems = (
-            render::new_image_from_default.in_set(CosmicRenderSet::Setup),
-            render::set_size_from_ui.in_set(CosmicRenderSet::Setup),
-            render::cosmic_reshape.in_set(CosmicRenderSet::Shaping),
-            render::cosmic_widget_size.in_set(CosmicRenderSet::Sizing),
-            render::cosmic_buffer_size.in_set(CosmicRenderSet::Sizing),
-            render::auto_height
-                .after(CosmicRenderSet::Sizing)
-                .before(CosmicRenderSet::Draw),
-            render::cosmic_padding.in_set(CosmicRenderSet::Padding),
-            render::set_cursor.in_set(CosmicRenderSet::Cursor),
-            render::render_texture.in_set(CosmicRenderSet::Draw),
-        );
+        let layout_systems = (
+            (new_image_from_default, set_sprite_size_from_ui),
+            (set_widget_size, set_buffer_size),
+            auto_height,
+            set_padding,
+            set_cursor,
+        )
+            .chain();
 
         app.add_systems(
             First,
             (
+                add_font_system,
                 set_initial_scale,
-                (cosmic_buffer_builder, on_scale_factor_change),
-                render::swap_target_handle,
+                set_redraw,
+                swap_target_handle,
+                on_scale_factor_change,
             )
                 .chain(),
         )
-        .add_systems(
-            PreUpdate,
-            (
-                // update_buffer_text,
-                // init_history,
-                // main_unordered,
-                // hide_password_text,
-                input_mouse,
-                // restore_password_text,
-            )
-                .chain(),
-        )
+        .add_systems(PreUpdate, (input_mouse,).chain())
         .add_systems(
             Update,
             (
-                add_editor_to_active,
+                drop_editor_unfocused,
+                add_editor_to_focused,
                 input_kb,
-                //undo_redo,
+                reshape,
             )
                 .chain(),
-        )
-        .configure_sets(
-            PostUpdate,
-            (
-                CosmicRenderSet::Setup,
-                CosmicRenderSet::Shaping,
-                CosmicRenderSet::Sizing,
-                CosmicRenderSet::Cursor,
-                CosmicRenderSet::Padding,
-                CosmicRenderSet::Draw,
-            )
-                .chain()
-                .after(TransformSystem::TransformPropagate),
         )
         .add_systems(
             PostUpdate,
-            (
-                // hide_password_text,
-                // show_placeholder,
-                render_systems,
-                // apply_deferred, // Prevents one-frame inputs adding placeholder to editor
-                // restore_password_text,
-                // restore_placeholder_text,
-            )
-                .chain(),
+            (layout_systems, render_texture)
+                .chain()
+                .after(TransformSystem::TransformPropagate),
         )
-        .init_resource::<Focus>()
-        .init_resource::<PasswordValues>()
-        .insert_resource(CursorBlinkTimer(Timer::from_seconds(
-            0.53,
-            TimerMode::Repeating,
-        )))
-        .insert_resource(CursorVisibility(true))
+        .init_resource::<FocusedWidget>()
         .insert_resource(SwashCacheState {
             swash_cache: SwashCache::new(),
         })
@@ -424,87 +269,6 @@ impl Plugin for CosmicEditPlugin {
             app.insert_resource(WasmPasteAsyncChannel { tx, rx })
                 .add_systems(Update, poll_wasm_paste);
         }
-    }
-}
-
-fn save_edit_history(
-    buffer: &Buffer,
-    editor: &mut Editor,
-    attrs: &AttrsOwned,
-    edit_history: &mut CosmicEditHistory,
-) {
-    let edits = &edit_history.edits;
-    let current_lines = get_text_spans(buffer, attrs.clone());
-    let current_edit = edit_history.current_edit;
-    let mut new_edits = VecDeque::new();
-    new_edits.extend(edits.iter().take(current_edit + 1).cloned());
-    // remove old edits
-    if new_edits.len() > 1000 {
-        new_edits.drain(0..100);
-    }
-    new_edits.push_back(EditHistoryItem {
-        cursor: editor.cursor(),
-        lines: current_lines,
-    });
-    let len = new_edits.len();
-    *edit_history = CosmicEditHistory {
-        edits: new_edits,
-        current_edit: len - 1,
-    };
-}
-
-fn init_history(
-    mut q: Query<
-        (
-            &CosmicBuffer,
-            &mut CosmicEditor,
-            &CosmicAttrs,
-            &mut CosmicEditHistory,
-        ),
-        Added<CosmicEditor>,
-    >,
-) {
-    for (buffer, mut editor, attrs, mut history) in q.iter_mut() {
-        save_edit_history(buffer, &mut editor, &attrs.0, &mut history);
-    }
-}
-
-fn cosmic_buffer_builder(
-    mut added_editors: Query<(Entity, &CosmicMetrics), Added<CosmicText>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-    mut commands: Commands,
-) {
-    for (entity, metrics) in added_editors.iter_mut() {
-        let mut buffer = Buffer::new(
-            &mut font_system.0,
-            Metrics::new(metrics.font_size, metrics.line_height).scale(metrics.scale_factor),
-        );
-        // buffer.set_wrap(&mut font_system.0, cosmic_text::Wrap::None);
-        buffer.set_redraw(true);
-
-        println!("adding buffer...");
-
-        commands.entity(entity).insert(CosmicBuffer(buffer));
-        commands.entity(entity).insert(CosmicEditHistory::default());
-        commands.entity(entity).insert(XOffset(None));
-    }
-}
-
-fn add_editor_to_active(
-    mut commands: Commands,
-    active_editor: Res<Focus>,
-    q: Query<&CosmicBuffer, Without<CosmicEditor>>,
-) {
-    if let Some(e) = active_editor.0 {
-        let Ok(b) = q.get(e) else {
-            println!("query has no buffer w/o/ editor!");
-            return;
-        };
-        println!("Add editor");
-        let editor = Editor::new(b.0.clone());
-        commands.entity(e).insert(CosmicEditor(editor));
-    } else {
-        println!("no focus {:?}", active_editor.0);
     }
 }
 
@@ -561,27 +325,7 @@ pub fn get_node_cursor_pos(
     })
 }
 
-/// Updates editor buffer when text component changes
-fn update_buffer_text(
-    mut editor_q: Query<
-        (
-            &mut CosmicBuffer,
-            &mut CosmicText,
-            &CosmicAttrs,
-            &CosmicMaxChars,
-            &CosmicMaxLines,
-        ),
-        Changed<CosmicText>,
-    >,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    for (mut buffer, text, attrs, max_chars, max_lines) in editor_q.iter_mut() {
-        let text = trim_text(text.to_owned(), max_chars.0, max_lines.0);
-        buffer.set_text(text, attrs.0.clone(), &mut font_system.0);
-    }
-}
-
-fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
+fn _trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
     if max_chars == 0 && max_lines == 0 {
         // no limits, no work to do
         return text;
@@ -663,6 +407,7 @@ fn trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText
         }
     }
 }
+
 /// Returns texts from a MultiStyle buffer
 pub fn get_text_spans(
     buffer: &Buffer,
@@ -725,21 +470,6 @@ pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
     ((widget_width - text_width) / 2.0) as i32
 }
 
-fn clear_inactive_selection(
-    mut cosmic_editor_q: Query<(Entity, &mut CosmicEditor)>,
-    active_editor: Res<Focus>,
-) {
-    if !active_editor.is_changed() || active_editor.is_none() {
-        return;
-    }
-
-    for (e, mut editor) in &mut cosmic_editor_q.iter_mut() {
-        if e != active_editor.unwrap() {
-            editor.set_selection(cosmic_text::Selection::None);
-        }
-    }
-}
-
 #[cfg(target_arch = "wasm32")]
 pub fn get_timestamp() -> f64 {
     js_sys::Date::now()
@@ -757,9 +487,10 @@ pub fn get_timestamp() -> f64 {
 mod tests {
     use crate::*;
 
+    use self::buffer::CosmicBuffer;
+
     fn test_spawn_cosmic_edit_system(mut commands: Commands) {
         commands.spawn(CosmicEditBundle {
-            text_setter: CosmicText::OneStyle("Blah".into()),
             ..Default::default()
         });
     }

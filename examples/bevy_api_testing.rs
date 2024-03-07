@@ -11,7 +11,6 @@ fn setup(mut commands: Commands) {
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             max_lines: CosmicMaxLines(1),
-            text_setter: CosmicText::OneStyle("Banananana".into()),
             ..default()
         })
         .insert(CosmicEditPlaceholderBundle {
@@ -40,7 +39,6 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((CosmicEditBundle {
-        text_setter: CosmicText::OneStyle("Bavy time".into()),
         sprite_bundle: SpriteBundle {
             // Sets size of text box
             sprite: Sprite {
@@ -55,7 +53,7 @@ fn setup(mut commands: Commands) {
     },));
 
     // commands.insert_resource(Focus(Some(ui_editor)));
-    commands.insert_resource(Focus(None));
+    commands.insert_resource(FocusedWidget(None));
 }
 
 fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
@@ -76,7 +74,7 @@ fn change_active_editor_ui(
 ) {
     for (interaction, source) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(Focus(Some(source.0)));
+            commands.insert_resource(FocusedWidget(Some(source.0)));
         }
     }
 }
@@ -106,7 +104,7 @@ fn change_active_editor_sprite(
             if let Some(pos) = window.cursor_position() {
                 if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                     if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        commands.insert_resource(Focus(Some(entity)))
+                        commands.insert_resource(FocusedWidget(Some(entity)))
                     };
                 }
             };
