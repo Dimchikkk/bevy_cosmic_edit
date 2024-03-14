@@ -7,11 +7,11 @@ mod input;
 mod layout;
 mod render;
 
-use std::{collections::VecDeque, path::PathBuf};
+use std::{collections::VecDeque, path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, transform::TransformSystem};
-pub use buffer::CosmicBuffer;
 use buffer::{add_font_system, set_initial_scale, set_redraw, swap_target_handle};
+pub use buffer::{get_x_offset_center, get_y_offset_center, CosmicBuffer};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
     Weight as FontWeight,
@@ -30,7 +30,7 @@ use layout::{
     set_cursor, set_padding, set_sprite_size_from_ui, set_widget_size, CosmicPadding,
     CosmicWidgetSize,
 };
-use render::{render_texture, SwashCacheState};
+use render::{blink_cursor, render_texture, SwashCacheState};
 
 #[cfg(feature = "multicam")]
 #[derive(Component)]
@@ -90,7 +90,22 @@ pub struct ReadOnly; // tag component
 pub struct XOffset(Option<(f32, f32)>);
 
 #[derive(Component, Deref, DerefMut)]
-pub struct CosmicEditor(pub Editor<'static>);
+pub struct CosmicEditor {
+    #[deref]
+    pub editor: Editor<'static>,
+    pub cursor_visible: bool,
+    pub cursor_timer: Timer,
+}
+
+impl CosmicEditor {
+    fn new(editor: Editor<'static>) -> Self {
+        Self {
+            editor,
+            cursor_visible: true,
+            cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
+        }
+    }
+}
 
 #[derive(Component)]
 pub struct CosmicAttrs(pub AttrsOwned);
@@ -232,6 +247,7 @@ impl Plugin for CosmicEditPlugin {
                 add_editor_to_focused,
                 input_kb,
                 reshape,
+                blink_cursor,
             )
                 .chain(),
         )
@@ -406,68 +422,6 @@ fn _trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicTex
             CosmicText::MultiStyle(trimmed_styles)
         }
     }
-}
-
-/// Returns texts from a MultiStyle buffer
-pub fn get_text_spans(
-    buffer: &Buffer,
-    default_attrs: AttrsOwned,
-) -> Vec<Vec<(String, AttrsOwned)>> {
-    let mut spans = Vec::new();
-    for line in buffer.lines.iter() {
-        let mut line_spans = Vec::new();
-        let line_text = line.text();
-        let line_attrs = line.attrs_list();
-        if line_attrs.spans().is_empty() {
-            line_spans.push((line_text.to_string(), default_attrs.clone()));
-        } else {
-            let mut current_pos = 0;
-            for span in line_attrs.spans() {
-                let span_range = span.0;
-                let span_attrs = span.1.clone();
-                let start_index = span_range.start;
-                let end_index = span_range.end;
-                if start_index > current_pos {
-                    // Add the text between the current position and the start of the span
-                    let non_span_text = line_text[current_pos..start_index].to_string();
-                    line_spans.push((non_span_text, default_attrs.clone()));
-                }
-                let span_text = line_text[start_index..end_index].to_string();
-                line_spans.push((span_text.clone(), span_attrs));
-                current_pos = end_index;
-            }
-            if current_pos < line_text.len() {
-                // Add the remaining text after the last span
-                let remaining_text = line_text[current_pos..].to_string();
-                line_spans.push((remaining_text, default_attrs.clone()));
-            }
-        }
-        spans.push(line_spans);
-    }
-    spans
-}
-
-fn get_text_size(buffer: &Buffer) -> (f32, f32) {
-    if buffer.layout_runs().count() == 0 {
-        return (0., buffer.metrics().line_height);
-    }
-    let width = buffer
-        .layout_runs()
-        .map(|run| run.line_w)
-        .reduce(f32::max)
-        .unwrap();
-    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    (width, height)
-}
-
-pub fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
-    let (_, text_height) = get_text_size(buffer);
-    ((widget_height - text_height) / 2.0) as i32
-}
-
-pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
-    let (text_width, _) = get_text_size(buffer);
-    ((widget_width - text_width) / 2.0) as i32
 }
 
 #[cfg(target_arch = "wasm32")]

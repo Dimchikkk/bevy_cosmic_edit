@@ -18,9 +18,10 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use crate::{
-    get_node_cursor_pos, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBuffer,
-    CosmicEditHistory, CosmicEditor, CosmicFontSystem, CosmicMaxChars, CosmicMaxLines,
-    CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly, XOffset,
+    buffer::{get_x_offset_center, get_y_offset_center},
+    get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
+    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly,
+    XOffset,
 };
 
 #[derive(Resource)]
@@ -136,6 +137,9 @@ pub(crate) fn input_mouse(
         };
 
         if buttons.just_pressed(MouseButton::Left) {
+            editor.cursor_visible = true;
+            editor.cursor_timer.reset();
+
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
                 transform,
@@ -248,6 +252,10 @@ pub(crate) fn input_kb(
     if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt, password_opt)) =
         cosmic_edit_query.get_mut(active_editor_entity)
     {
+        if keys.get_just_pressed().len() != 0 {
+            editor.cursor_visible = true;
+            editor.cursor_timer.reset();
+        }
         let readonly = readonly_opt.is_some();
 
         let command = keypress_command(&keys);

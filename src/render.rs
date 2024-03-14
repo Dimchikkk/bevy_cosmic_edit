@@ -13,6 +13,16 @@ pub(crate) struct SwashCacheState {
     pub swash_cache: SwashCache,
 }
 
+pub fn blink_cursor(mut q: Query<&mut CosmicEditor>, time: Res<Time>) {
+    for mut e in q.iter_mut() {
+        e.cursor_timer.tick(time.delta());
+        if e.cursor_timer.just_finished() {
+            e.cursor_visible = !e.cursor_visible;
+            e.set_redraw(true);
+        }
+    }
+}
+
 fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color: Color) {
     // TODO: perftest this fn against previous iteration
     let a_a = color.a() as u32;
@@ -135,22 +145,23 @@ pub(crate) fn render_texture(
 
         // Draw glyphs
         if let Some(mut editor) = editor {
-            // if !editor.redraw() {
-            //     continue;
-            // }
+            if !editor.redraw() {
+                continue;
+            }
+            let cursor_opacity = if editor.cursor_visible { 255 } else { 0 };
             editor.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.swash_cache,
                 font_color,
-                Color::rgba(255, 0, 255, 255),
+                Color::rgba(0, 0, 255, cursor_opacity),
                 Color::rgba(255, 0, 255, 255),
                 draw_closure,
             );
             editor.set_redraw(false);
         } else {
-            // if !buffer.redraw() {
-            //     continue;
-            // }
+            if !buffer.redraw() {
+                continue;
+            }
             buffer.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.swash_cache,

@@ -18,7 +18,7 @@ pub(crate) fn add_editor_to_focused(
         };
         let mut editor = Editor::new(b.0.clone());
         editor.set_redraw(true);
-        commands.entity(e).insert(CosmicEditor(editor));
+        commands.entity(e).insert(CosmicEditor::new(editor));
     }
 }
 

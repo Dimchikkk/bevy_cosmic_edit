@@ -73,6 +73,45 @@ impl CosmicBuffer {
 
         text
     }
+    /// Returns texts from a MultiStyle buffer
+    pub fn get_text_spans(&self, default_attrs: AttrsOwned) -> Vec<Vec<(String, AttrsOwned)>> {
+        // TODO: untested!
+
+        let buffer = self;
+
+        let mut spans = Vec::new();
+        for line in buffer.lines.iter() {
+            let mut line_spans = Vec::new();
+            let line_text = line.text();
+            let line_attrs = line.attrs_list();
+            if line_attrs.spans().is_empty() {
+                line_spans.push((line_text.to_string(), default_attrs.clone()));
+            } else {
+                let mut current_pos = 0;
+                for span in line_attrs.spans() {
+                    let span_range = span.0;
+                    let span_attrs = span.1.clone();
+                    let start_index = span_range.start;
+                    let end_index = span_range.end;
+                    if start_index > current_pos {
+                        // Add the text between the current position and the start of the span
+                        let non_span_text = line_text[current_pos..start_index].to_string();
+                        line_spans.push((non_span_text, default_attrs.clone()));
+                    }
+                    let span_text = line_text[start_index..end_index].to_string();
+                    line_spans.push((span_text.clone(), span_attrs));
+                    current_pos = end_index;
+                }
+                if current_pos < line_text.len() {
+                    // Add the remaining text after the last span
+                    let remaining_text = line_text[current_pos..].to_string();
+                    line_spans.push((remaining_text, default_attrs.clone()));
+                }
+            }
+            spans.push(line_spans);
+        }
+        spans
+    }
 }
 
 pub fn add_font_system(
@@ -129,4 +168,29 @@ pub(crate) fn swap_target_handle(
             }
         }
     }
+}
+
+// TODO put this on impl CosmicBuffer
+
+pub fn get_text_size(buffer: &Buffer) -> (f32, f32) {
+    if buffer.layout_runs().count() == 0 {
+        return (0., buffer.metrics().line_height);
+    }
+    let width = buffer
+        .layout_runs()
+        .map(|run| run.line_w)
+        .reduce(f32::max)
+        .unwrap();
+    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
+    (width, height)
+}
+
+pub fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
+    let (_, text_height) = get_text_size(buffer);
+    ((widget_height - text_height) / 2.0) as i32
+}
+
+pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
+    let (text_width, _) = get_text_size(buffer);
+    ((widget_width - text_width) / 2.0) as i32
 }

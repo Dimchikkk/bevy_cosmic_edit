@@ -5,6 +5,8 @@ use bevy::{
 };
 use cosmic_text::Affinity;
 
+use self::buffer::{get_text_size, get_x_offset_center, get_y_offset_center};
+
 #[derive(Component, Default)]
 pub struct CosmicPadding(pub Vec2);
 
