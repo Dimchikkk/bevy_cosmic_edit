@@ -25,16 +25,18 @@ pub(crate) fn add_editor_to_focused(
 pub(crate) fn drop_editor_unfocused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
-    mut q: Query<(Entity, &mut CosmicBuffer), With<CosmicEditor>>,
+    mut q: Query<(Entity, &mut CosmicBuffer, &CosmicEditor)>,
 ) {
     if active_editor.0 == None {
-        for (e, mut b) in q.iter_mut() {
+        for (e, mut b, ed) in q.iter_mut() {
+            b.lines = ed.with_buffer(|buf| buf.lines.clone());
             b.set_redraw(true);
             commands.entity(e).remove::<CosmicEditor>();
         }
     } else if let Some(focused) = active_editor.0 {
-        for (e, mut b) in q.iter_mut() {
+        for (e, mut b, ed) in q.iter_mut() {
             if e != focused {
+                b.lines = ed.with_buffer(|buf| buf.lines.clone());
                 b.set_redraw(true);
                 commands.entity(e).remove::<CosmicEditor>();
             }

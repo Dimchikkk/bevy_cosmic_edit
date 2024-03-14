@@ -1,7 +1,12 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{focus::FocusedWidget, *};
+use cosmic_text::Metrics;
 
-fn setup(mut commands: Commands, mut focus: ResMut<FocusedWidget>) {
+fn setup(
+    mut commands: Commands,
+    mut focus: ResMut<FocusedWidget>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
     let camera_bundle = Camera2dBundle {
         camera: Camera {
             clear_color: ClearColorConfig::Custom(Color::PINK),
@@ -17,6 +22,11 @@ fn setup(mut commands: Commands, mut focus: ResMut<FocusedWidget>) {
 
     let cosmic_edit = commands
         .spawn((CosmicEditBundle {
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).set_text(
+                CosmicText::OneStyle("Banana".into()),
+                AttrsOwned::new(Attrs::new()),
+                &mut font_system,
+            ),
             text_position: CosmicTextPosition::Center,
             attrs: CosmicAttrs(AttrsOwned::new(attrs)),
             ..default()
@@ -48,7 +58,7 @@ fn setup(mut commands: Commands, mut focus: ResMut<FocusedWidget>) {
     //
     //
     // commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
-    focus.0 = Some(cosmic_edit);
+    // focus.0 = Some(cosmic_edit);
 }
 
 fn print_text(text_inputs_q: Query<&CosmicEditor>, mut previous_value: Local<Vec<String>>) {

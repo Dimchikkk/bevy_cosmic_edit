@@ -16,11 +16,11 @@ impl CosmicBuffer {
     }
 
     pub fn set_text(
-        &mut self,
+        mut self,
         text: CosmicText,
         attrs: AttrsOwned,
         font_system: &mut FontSystem,
-    ) -> &mut Self {
+    ) -> Self {
         // TODO: invoke trim_text here
         self.lines.clear();
         match text {
@@ -80,6 +80,9 @@ pub fn add_font_system(
     mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
 ) {
     for mut b in q.iter_mut() {
+        if b.lines.len() != 0 {
+            continue;
+        }
         b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
         b.set_redraw(true);
     }
