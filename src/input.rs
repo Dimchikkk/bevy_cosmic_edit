@@ -18,9 +18,9 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use crate::{
-    get_node_cursor_pos, get_x_offset_center, get_y_offset_center, CosmicBuffer, CosmicEditor,
-    CosmicFontSystem, CosmicMaxChars, CosmicMaxLines, CosmicSource, CosmicTextChanged,
-    CosmicTextPosition, FocusedWidget, ReadOnly, XOffset,
+    get_node_cursor_pos, get_x_offset_center, get_y_offset_center, CosmicAttrs, CosmicBuffer,
+    CosmicEditHistory, CosmicEditor, CosmicFontSystem, CosmicMaxChars, CosmicMaxLines,
+    CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -353,6 +353,7 @@ pub(crate) fn input_kb(
                 // }
             }
             *is_deleting = true;
+            #[cfg(target_arch = "wasm32")]
             editor.action(&mut font_system.0, Action::Backspace);
         }
 
@@ -586,6 +587,7 @@ pub fn poll_wasm_paste(
     mut editor_q: Query<
         (
             &mut CosmicEditor,
+            &mut CosmicBuffer,
             &CosmicAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
@@ -601,15 +603,22 @@ pub fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, attrs, max_chars, max_lines, mut edit_history, password_opt)) =
-                editor_q.get_mut(entity)
+            if let Ok((
+                mut editor,
+                mut buffer,
+                attrs,
+                max_chars,
+                max_lines,
+                mut edit_history,
+                password_opt,
+            )) = editor_q.get_mut(entity)
             {
                 let text = inlet.text;
                 let attrs = &attrs.0;
                 for c in text.chars() {
-                    if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
+                    if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
                         if c == 0xA as char {
-                            if max_lines.0 == 0 || editor.buffer().lines.len() < max_lines.0 {
+                            if max_lines.0 == 0 || buffer.lines.len() < max_lines.0 {
                                 editor.action(&mut font_system.0, Action::Insert(c));
                             }
                         } else {
@@ -623,8 +632,8 @@ pub fn poll_wasm_paste(
                     }
                 }
 
-                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
-                save_edit_history(&mut editor, attrs, &mut edit_history);
+                evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
+                // save_edit_history(&mut editor, attrs, &mut edit_history);
             }
         }
         Err(_) => {}
