@@ -23,18 +23,30 @@ pub fn set_padding(
         &CosmicTextPosition,
         &CosmicBuffer,
         &CosmicWidgetSize,
+        Option<&CosmicEditor>,
     )>,
 ) {
-    for (mut padding, position, buffer, size) in query.iter_mut() {
+    for (mut padding, position, buffer, size, editor_opt) in query.iter_mut() {
+        // TODO: At least one of these clones is uneccessary
+        let mut buffer = buffer.0.clone();
+
+        if let Some(editor) = editor_opt {
+            buffer = editor.with_buffer(|b| b.clone());
+        }
+
+        if !buffer.redraw() {
+            continue;
+        }
+
         padding.0 = match position {
             CosmicTextPosition::Center => Vec2::new(
-                get_x_offset_center(size.0.x, buffer) as f32,
-                get_y_offset_center(size.0.y, buffer) as f32,
+                get_x_offset_center(size.0.x, &buffer) as f32,
+                get_y_offset_center(size.0.y, &buffer) as f32,
             ),
             CosmicTextPosition::TopLeft { padding } => Vec2::new(*padding as f32, *padding as f32),
             CosmicTextPosition::Left { padding } => Vec2::new(
                 *padding as f32,
-                get_y_offset_center(size.0.y, buffer) as f32,
+                get_y_offset_center(size.0.y, &buffer) as f32,
             ),
         }
     }
