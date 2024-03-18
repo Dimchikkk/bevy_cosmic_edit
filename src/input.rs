@@ -599,7 +599,6 @@ pub fn poll_wasm_paste(
             &CosmicAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
-            &mut CosmicEditHistory,
             Option<&PasswordInput>,
         ),
         Without<ReadOnly>,
@@ -611,15 +610,8 @@ pub fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((
-                mut editor,
-                mut buffer,
-                attrs,
-                max_chars,
-                max_lines,
-                mut edit_history,
-                password_opt,
-            )) = editor_q.get_mut(entity)
+            if let Ok((mut editor, mut buffer, attrs, max_chars, max_lines, password_opt)) =
+                editor_q.get_mut(entity)
             {
                 let text = inlet.text;
                 let attrs = &attrs.0;
@@ -641,7 +633,6 @@ pub fn poll_wasm_paste(
                 }
 
                 evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
-                // save_edit_history(&mut editor, attrs, &mut edit_history);
             }
         }
         Err(_) => {}

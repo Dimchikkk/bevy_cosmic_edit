@@ -7,21 +7,19 @@ mod input;
 mod layout;
 mod render;
 
-use std::{collections::VecDeque, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, transform::TransformSystem};
 use buffer::{add_font_system, set_initial_scale, set_redraw, swap_target_handle};
 pub use buffer::{get_x_offset_center, get_y_offset_center, CosmicBuffer};
 pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Style as FontStyle,
-    Weight as FontWeight,
+    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Metrics,
+    Style as FontStyle, Weight as FontWeight,
 };
-use cosmic_text::{
-    AttrsList, Buffer, BufferLine, Editor, FontSystem, Metrics, Shaping, SwashCache,
-};
+use cosmic_text::{AttrsList, Buffer, BufferLine, Editor, FontSystem, Shaping, SwashCache};
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
-use focus::{add_editor_to_focused, drop_editor_unfocused, FocusedWidget};
+pub use focus::*;
 use input::{input_kb, input_mouse, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
@@ -175,18 +173,6 @@ impl Default for CosmicEditBundle {
             widget_size: Default::default(),
         }
     }
-}
-
-#[derive(Clone)]
-pub struct EditHistoryItem {
-    pub cursor: Cursor,
-    pub lines: Vec<Vec<(String, AttrsOwned)>>,
-}
-
-#[derive(Component, Default)]
-pub struct CosmicEditHistory {
-    pub edits: VecDeque<EditHistoryItem>,
-    pub current_edit: usize,
 }
 
 /// Resource struct that holds configuration options for cosmic fonts.

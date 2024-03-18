@@ -1,12 +1,8 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{focus::FocusedWidget, *};
-use cosmic_text::Metrics;
+use bevy_cosmic_edit::*;
+use util::{change_active_editor_ui, deselect_editor_on_esc, print_editor_text};
 
-fn setup(
-    mut commands: Commands,
-    mut focus: ResMut<FocusedWidget>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
+fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {
         camera: Camera {
             clear_color: ClearColorConfig::Custom(Color::PINK),
@@ -43,8 +39,6 @@ fn setup(
                     height: Val::Percent(100.),
                     ..default()
                 },
-                // Needs to be set to prevent a bug where nothing is displayed
-                background_color: Color::WHITE.into(),
                 ..default()
             },
         )
@@ -52,46 +46,6 @@ fn setup(
         // Plugin looks for UiImage and sets it's
         // texture to the editor's rendered image
         .insert(CosmicSource(cosmic_edit));
-
-    // TODO: fix Focus-on-setup
-    // Setup doesn't trigger Added<>?
-    //
-    //
-    // commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
-    // focus.0 = Some(cosmic_edit);
-}
-
-fn print_text(text_inputs_q: Query<&CosmicEditor>, mut previous_value: Local<Vec<String>>) {
-    for text_input in text_inputs_q.iter() {
-        let current_text: Vec<String> = text_input.with_buffer(|buf| {
-            buf.lines
-                .iter()
-                .map(|bl| bl.text().to_string())
-                .collect::<Vec<_>>()
-        });
-        if current_text == *previous_value {
-            return;
-        }
-        *previous_value = current_text.clone();
-        info!("Widget text: {:?}", current_text);
-    }
-}
-
-fn select_editor(
-    i: Res<ButtonInput<MouseButton>>,
-    q: Query<Entity, With<CosmicBuffer>>,
-    mut focus: ResMut<FocusedWidget>,
-) {
-    if i.just_pressed(MouseButton::Left) {
-        let e = q.single();
-        focus.0 = Some(e);
-    }
-}
-
-fn deselect_editor(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
-    if i.just_pressed(KeyCode::Escape) {
-        focus.0 = None;
-    }
 }
 
 fn main() {
@@ -109,6 +63,13 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
-        .add_systems(Update, (print_text, select_editor, deselect_editor))
+        .add_systems(
+            Update,
+            (
+                print_editor_text,
+                change_active_editor_ui,
+                deselect_editor_on_esc,
+            ),
+        )
         .run();
 }

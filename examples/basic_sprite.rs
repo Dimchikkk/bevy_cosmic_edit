@@ -1,7 +1,12 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
+use util::{change_active_editor_sprite, deselect_editor_on_esc, print_editor_text};
 
-fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
+fn setup(
+    mut commands: Commands,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
     let primary_window = windows.single();
     let camera_bundle = Camera2dBundle {
         camera: Camera {
@@ -16,17 +21,14 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    let scale_factor = primary_window.scale_factor() as f32;
-
     let cosmic_edit = (CosmicEditBundle {
-        metrics: CosmicMetrics {
-            font_size: 14.,
-            line_height: 18.,
-            scale_factor,
-        },
+        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).set_text(
+            CosmicText::OneStyle("😀😀😀 x => y".to_string()),
+            AttrsOwned::new(attrs),
+            &mut font_system,
+        ),
         text_position: CosmicTextPosition::Center,
         attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
@@ -37,9 +39,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         ..default()
     },);
 
-    let cosmic_edit = commands.spawn(cosmic_edit).id();
-
-    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
+    commands.spawn(cosmic_edit);
 }
 
 fn main() {
@@ -57,5 +57,13 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
+        .add_systems(
+            Update,
+            (
+                print_editor_text,
+                change_active_editor_sprite,
+                deselect_editor_on_esc,
+            ),
+        )
         .run();
 }

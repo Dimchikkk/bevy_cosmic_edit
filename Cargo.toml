@@ -1,3 +1,4 @@
+workspace = { members = ["util"] }
 [package]
 name = "bevy_cosmic_edit"
 version = "0.16.0"
@@ -46,6 +47,7 @@ web-sys = { version = "0.3.67", features = ["Clipboard", "Navigator", "Window"] 
 
 [dev-dependencies]
 insta = "1.29.0"
+util = {path="./util/"}
 
 [[example]]
 name = "text_input"
