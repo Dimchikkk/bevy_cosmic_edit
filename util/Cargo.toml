@@ -19,4 +19,4 @@ bevy = { version = "0.13", default-features = false, features = [
   "x11",
   "webgpu",
 ] }
-bevy_cosmic_edit = { path = "../" }
+bevy_cosmic_edit = { version = "*", path = "../" }
