@@ -24,9 +24,8 @@ use input::{input_kb, input_mouse, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use layout::{
-    auto_height, new_image_from_default, on_scale_factor_change, reshape, set_buffer_size,
-    set_cursor, set_padding, set_sprite_size_from_ui, set_widget_size, CosmicPadding,
-    CosmicWidgetSize,
+    new_image_from_default, on_scale_factor_change, reshape, set_buffer_size, set_cursor,
+    set_padding, set_sprite_size_from_ui, set_widget_size, CosmicPadding, CosmicWidgetSize,
 };
 use render::{blink_cursor, render_texture, SwashCacheState};
 
@@ -37,7 +36,6 @@ pub struct CosmicPrimaryCamera;
 #[derive(Clone, Component, PartialEq, Default)]
 pub enum CosmicMode {
     InfiniteLine,
-    AutoHeight,
     #[default]
     Wrap,
 }
@@ -72,7 +70,7 @@ pub struct CosmicFontSystem(pub FontSystem);
 #[derive(Component)]
 pub struct ReadOnly; // tag component
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default)]
 pub struct XOffset(Option<(f32, f32)>);
 
 #[derive(Component, Deref, DerefMut)]
@@ -196,7 +194,6 @@ impl Plugin for CosmicEditPlugin {
         let layout_systems = (
             (new_image_from_default, set_sprite_size_from_ui),
             (set_widget_size, set_buffer_size),
-            auto_height,
             set_padding,
             set_cursor,
         )

@@ -1,8 +1,8 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 use bevy_cosmic_edit::*;
+use util::{bevy_color_to_cosmic, change_active_editor_ui};
 
-fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
-    let primary_window = windows.single();
+fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2dBundle::default());
     let root = commands
         .spawn(NodeBundle {
@@ -23,14 +23,12 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     // spawn editor
     let cosmic_edit = commands
         .spawn(CosmicEditBundle {
-            default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
             text_position: CosmicTextPosition::Center,
-            metrics: CosmicMetrics {
-                font_size: 14.,
-                line_height: 18.,
-                scale_factor: primary_window.scale_factor() as f32,
-            },
-            text_setter: CosmicText::OneStyle("😀😀😀 x => y\nRead only widget".to_string()),
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "😀😀😀 x => y\nRead only widget",
+                attrs,
+            ),
             ..default()
         })
         .insert(ReadOnly)
@@ -51,17 +49,6 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             // add cosmic source
             .insert(CosmicSource(cosmic_edit));
     });
-
-    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
-}
-
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
-    CosmicColor::rgba(
-        (color.r() * 255.) as u8,
-        (color.g() * 255.) as u8,
-        (color.b() * 255.) as u8,
-        (color.a() * 255.) as u8,
-    )
 }
 
 fn main() {
@@ -79,5 +66,6 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
+        .add_systems(Update, change_active_editor_ui)
         .run();
 }

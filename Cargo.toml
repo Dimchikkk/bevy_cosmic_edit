@@ -48,6 +48,3 @@ web-sys = { version = "0.3.67", features = ["Clipboard", "Navigator", "Window"] 
 [dev-dependencies]
 insta = "1.29.0"
 util = {path="./util/"}
-
-[[example]]
-name = "text_input"

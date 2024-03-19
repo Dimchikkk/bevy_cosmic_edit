@@ -1,7 +1,12 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
+use util::{bevy_color_to_cosmic, change_active_editor_sprite};
 
-fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
+fn setup(
+    mut commands: Commands,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
     let primary_window = windows.single();
     let camera_bundle = Camera2dBundle {
         camera: Camera {
@@ -15,18 +20,15 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
-    let metrics = CosmicMetrics {
-        font_size: 14.,
-        line_height: 18.,
-        scale_factor: primary_window.scale_factor() as f32,
-    };
 
-    let cosmic_edit_1 = (CosmicEditBundle {
-        default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
-        metrics: metrics.clone(),
+    commands.spawn(CosmicEditBundle {
         text_position: CosmicTextPosition::Center,
         fill_color: FillColor(Color::ALICE_BLUE),
-        text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
+        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+            &mut font_system,
+            "😀😀😀 x => y",
+            attrs,
+        ),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2 {
@@ -39,14 +41,16 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             ..default()
         },
         ..default()
-    },);
+    });
 
-    let cosmic_edit_2 = (CosmicEditBundle {
-        default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
-        metrics,
+    commands.spawn(CosmicEditBundle {
         text_position: CosmicTextPosition::Center,
         fill_color: FillColor(Color::GRAY.with_a(0.5)),
-        text_setter: CosmicText::OneStyle("Widget_2. Click on me".to_string()),
+        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+            &mut font_system,
+            "Widget_2. Click on me",
+            attrs,
+        ),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2 {
@@ -63,52 +67,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             ..default()
         },
         ..default()
-    },);
-
-    let id = commands.spawn(cosmic_edit_1).id();
-
-    commands.insert_resource(FocusedWidget(Some(id)));
-
-    commands.spawn(cosmic_edit_2);
-}
-
-fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
-    CosmicColor::rgba(
-        (color.r() * 255.) as u8,
-        (color.g() * 255.) as u8,
-        (color.b() * 255.) as u8,
-        (color.a() * 255.) as u8,
-    )
-}
-
-fn change_active_editor_sprite(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    buttons: Res<ButtonInput<MouseButton>>,
-    mut cosmic_edit_query: Query<
-        (&mut Sprite, &GlobalTransform, Entity),
-        (With<CosmicEditor>, Without<ReadOnly>),
-    >,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
-) {
-    let window = windows.single();
-    let (camera, camera_transform) = camera_q.single();
-    if buttons.just_pressed(MouseButton::Left) {
-        for (sprite, node_transform, entity) in &mut cosmic_edit_query.iter_mut() {
-            let size = sprite.custom_size.unwrap_or(Vec2::new(1., 1.));
-            let x_min = node_transform.affine().translation.x - size.x / 2.;
-            let y_min = node_transform.affine().translation.y - size.y / 2.;
-            let x_max = node_transform.affine().translation.x + size.x / 2.;
-            let y_max = node_transform.affine().translation.y + size.y / 2.;
-            if let Some(pos) = window.cursor_position() {
-                if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
-                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        commands.insert_resource(FocusedWidget(Some(entity)))
-                    };
-                }
-            };
-        }
-    }
+    });
 }
 
 fn main() {

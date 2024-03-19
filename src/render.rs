@@ -5,7 +5,7 @@ use image::{imageops::FilterType, GenericImageView};
 use crate::{
     layout::{CosmicPadding, CosmicWidgetSize},
     CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, FillColor,
-    XOffset,
+    ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -13,7 +13,7 @@ pub(crate) struct SwashCacheState {
     pub swash_cache: SwashCache,
 }
 
-pub fn blink_cursor(mut q: Query<&mut CosmicEditor>, time: Res<Time>) {
+pub fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
     for mut e in q.iter_mut() {
         e.cursor_timer.tick(time.delta());
         if e.cursor_timer.just_finished() {
@@ -24,7 +24,6 @@ pub fn blink_cursor(mut q: Query<&mut CosmicEditor>, time: Res<Time>) {
 }
 
 fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color: Color) {
-    // TODO: perftest this fn against previous iteration
     let a_a = color.a() as u32;
     if a_a == 0 {
         // Do not draw if alpha is zero
@@ -75,6 +74,7 @@ pub(crate) fn render_texture(
         &CosmicWidgetSize,
         &CosmicPadding,
         &XOffset,
+        Option<&ReadOnly>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
@@ -90,6 +90,7 @@ pub(crate) fn render_texture(
         size,
         padding,
         x_offset,
+        readonly_opt,
     ) in query.iter_mut()
     {
         // Draw background
@@ -148,7 +149,11 @@ pub(crate) fn render_texture(
             if !editor.redraw() {
                 continue;
             }
-            let cursor_opacity = if editor.cursor_visible { 255 } else { 0 };
+            let cursor_opacity = if editor.cursor_visible && readonly_opt.is_none() {
+                255
+            } else {
+                0
+            };
             editor.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.swash_cache,

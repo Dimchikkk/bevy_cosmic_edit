@@ -5,7 +5,7 @@ use bevy::{
 };
 use cosmic_text::Affinity;
 
-use self::buffer::{get_text_size, get_x_offset_center, get_y_offset_center};
+use self::buffer::{get_x_offset_center, get_y_offset_center};
 
 #[derive(Component, Default)]
 pub struct CosmicPadding(pub Vec2);
@@ -85,7 +85,6 @@ pub fn set_buffer_size(
 
         let (buffer_width, buffer_height) = match mode {
             CosmicMode::InfiniteLine => (f32::MAX, size.0.y),
-            CosmicMode::AutoHeight => (size.0.x - padding_x, (i32::MAX / 2) as f32),
             CosmicMode::Wrap => (size.0.x - padding_x, size.0.y),
         };
 
@@ -142,48 +141,6 @@ pub fn set_cursor(
             if cursor_x < x_min {
                 let diff = x_min - cursor_x;
                 *x_offset = XOffset(Some((cursor_x, x_max - diff)));
-            }
-        }
-    }
-}
-
-pub fn auto_height(
-    mut query: Query<(
-        Entity,
-        &mut Sprite,
-        &CosmicMode,
-        &mut CosmicBuffer,
-        &CosmicWidgetSize,
-    )>,
-    mut style_q: Query<(&mut Style, &CosmicSource)>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    if windows.iter().len() == 0 {
-        return;
-    }
-
-    let scale = windows.single().scale_factor();
-
-    for (entity, mut sprite, mode, mut buffer, size) in query.iter_mut() {
-        if mode == &CosmicMode::AutoHeight {
-            let text_size = get_text_size(&buffer);
-            let text_height = (text_size.1 + 30.) / scale;
-            if text_height > size.0.y / scale {
-                let mut new_size = sprite.custom_size.unwrap();
-                new_size.y = text_height.ceil();
-                // TODO this gets set automatically in UI cases but needs to be done for all other cases.
-                // redundant work but easier to just set on all sprites
-                sprite.custom_size = Some(new_size);
-
-                buffer.set_redraw(true);
-
-                // TODO: bad loop nesting
-                for (mut style, source) in style_q.iter_mut() {
-                    if source.0 != entity {
-                        continue;
-                    }
-                    style.height = Val::Px(text_height.ceil());
-                }
             }
         }
     }
