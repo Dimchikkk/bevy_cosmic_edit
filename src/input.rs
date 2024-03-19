@@ -49,7 +49,6 @@ pub(crate) fn input_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
     mut editor_q: Query<(
         &mut CosmicEditor,
-        &CosmicBuffer,
         &GlobalTransform,
         &CosmicTextPosition,
         Entity,
@@ -93,9 +92,11 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((mut editor, buffer, sprite_transform, text_position, entity, x_offset, sprite)) =
+    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) =
         editor_q.get_mut(active_editor_entity)
     {
+        let buffer = editor.with_buffer(|b| b.clone());
+
         let mut is_ui_node = false;
         let mut transform = sprite_transform;
         let (mut width, mut height) =
@@ -123,13 +124,14 @@ pub(crate) fn input_mouse(
 
         let (padding_x, padding_y) = match text_position {
             CosmicTextPosition::Center => (
-                get_x_offset_center(width * scale_factor, buffer),
-                get_y_offset_center(height * scale_factor, buffer),
+                get_x_offset_center(width * scale_factor, &buffer),
+                get_y_offset_center(height * scale_factor, &buffer),
             ),
             CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => {
-                (*padding, get_y_offset_center(height * scale_factor, buffer))
-            }
+            CosmicTextPosition::Left { padding } => (
+                *padding,
+                get_y_offset_center(height * scale_factor, &buffer),
+            ),
         };
         let point = |node_cursor_pos: (f32, f32)| {
             (
