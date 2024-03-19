@@ -1,7 +1,7 @@
 workspace = { members = ["util"] }
 [package]
 name = "bevy_cosmic_edit"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Bevy cosmic-text multiline text input"

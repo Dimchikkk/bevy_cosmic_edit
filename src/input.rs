@@ -598,7 +598,7 @@ pub fn poll_wasm_paste(
         (
             &mut CosmicEditor,
             &mut CosmicBuffer,
-            &DefaultAttrs,
+            &crate::DefaultAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
             Option<&PasswordInput>,
