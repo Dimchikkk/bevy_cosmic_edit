@@ -20,8 +20,8 @@ use wasm_bindgen_futures::JsFuture;
 use crate::{
     buffer::{get_x_offset_center, get_y_offset_center},
     get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
-    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly,
-    XOffset,
+    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, DefaultAttrs,
+    FocusedWidget, ReadOnly, XOffset,
 };
 
 #[derive(Resource)]
@@ -596,7 +596,7 @@ pub fn poll_wasm_paste(
         (
             &mut CosmicEditor,
             &mut CosmicBuffer,
-            &CosmicAttrs,
+            &DefaultAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
             Option<&PasswordInput>,
