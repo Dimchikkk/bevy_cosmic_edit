@@ -4,8 +4,8 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     layout::{CosmicPadding, CosmicWidgetSize},
-    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, FillColor,
-    ReadOnly, XOffset,
+    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, CursorColor, DefaultAttrs,
+    FillColor, ReadOnly, SelectionColor, XOffset,
 };
 
 #[derive(Resource)]
@@ -70,6 +70,8 @@ pub(crate) fn render_texture(
         &DefaultAttrs,
         &CosmicBackground,
         &FillColor,
+        &CursorColor,
+        &SelectionColor,
         &Handle<Image>,
         &CosmicWidgetSize,
         &CosmicPadding,
@@ -86,6 +88,8 @@ pub(crate) fn render_texture(
         attrs,
         background_image,
         fill_color,
+        cursor_color,
+        selection_color,
         canvas,
         size,
         padding,
@@ -149,17 +153,33 @@ pub(crate) fn render_texture(
             if !editor.redraw() {
                 continue;
             }
+
             let cursor_opacity = if editor.cursor_visible && readonly_opt.is_none() {
-                255
+                (cursor_color.0.a() * 255.) as u8
             } else {
                 0
             };
+
+            let cursor_color = Color::rgba(
+                (cursor_color.r() * 255.) as u8,
+                (cursor_color.g() * 255.) as u8,
+                (cursor_color.b() * 255.) as u8,
+                cursor_opacity,
+            );
+
+            let selection_color = Color::rgba(
+                (selection_color.r() * 255.) as u8,
+                (selection_color.g() * 255.) as u8,
+                (selection_color.b() * 255.) as u8,
+                (selection_color.a() * 255.) as u8,
+            );
+
             editor.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.swash_cache,
                 font_color,
-                Color::rgba(0, 0, 255, cursor_opacity),
-                Color::rgba(255, 0, 255, 255),
+                cursor_color,
+                selection_color,
                 draw_closure,
             );
             editor.set_redraw(false);

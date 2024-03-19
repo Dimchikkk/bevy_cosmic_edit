@@ -105,8 +105,14 @@ impl Default for DefaultAttrs {
 #[derive(Component, Default)]
 pub struct CosmicBackground(pub Option<Handle<Image>>);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref)]
 pub struct FillColor(pub Color);
+
+#[derive(Component, Default, Deref)]
+pub struct CursorColor(pub Color);
+
+#[derive(Component, Default, Deref)]
+pub struct SelectionColor(pub Color);
 
 #[derive(Component, Default)]
 pub struct CosmicMaxLines(pub usize);
@@ -123,6 +129,8 @@ pub struct CosmicEditBundle {
     pub buffer: CosmicBuffer,
     // render bits
     pub fill_color: FillColor,
+    pub cursor_color: CursorColor,
+    pub selection_color: SelectionColor,
     pub default_attrs: DefaultAttrs,
     pub background_image: CosmicBackground,
     pub sprite_bundle: SpriteBundle,
@@ -142,6 +150,8 @@ impl Default for CosmicEditBundle {
         CosmicEditBundle {
             buffer: Default::default(),
             fill_color: Default::default(),
+            cursor_color: CursorColor(Color::BLACK),
+            selection_color: SelectionColor(Color::GRAY),
             text_position: Default::default(),
             default_attrs: Default::default(),
             background_image: Default::default(),
