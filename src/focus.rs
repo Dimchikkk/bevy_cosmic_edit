@@ -27,7 +27,7 @@ pub(crate) fn drop_editor_unfocused(
     active_editor: Res<FocusedWidget>,
     mut q: Query<(Entity, &mut CosmicBuffer, &CosmicEditor)>,
 ) {
-    if active_editor.0 == None {
+    if active_editor.0.is_none() {
         for (e, mut b, ed) in q.iter_mut() {
             b.lines = ed.with_buffer(|buf| buf.lines.clone());
             b.set_redraw(true);
