@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicBuffer, CosmicEditor, CosmicTextChanged};
+use crate::{CosmicBuffer, CosmicTextChanged};
 
 #[cfg(feature = "multicam")]
 use crate::CosmicPrimaryCamera;
@@ -48,7 +48,7 @@ type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransfor
 
 pub fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_edit_query: Query<(&mut Sprite, &Visibility, &GlobalTransform), With<CosmicEditor>>,
+    mut cosmic_edit_query: Query<(&mut Sprite, &Visibility, &GlobalTransform), With<CosmicBuffer>>,
     camera_q: CameraQuery,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
