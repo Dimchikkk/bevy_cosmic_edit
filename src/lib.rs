@@ -173,7 +173,7 @@ impl Default for CosmicFontConfig {
     fn default() -> Self {
         let fallback_font = include_bytes!("./font/FiraMono-Regular-subset.ttf");
         Self {
-            load_system_fonts: false,
+            load_system_fonts: true,
             font_bytes: Some(vec![fallback_font]),
             fonts_dir_path: None,
         }

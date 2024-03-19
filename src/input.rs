@@ -11,6 +11,8 @@ use bevy::{
 use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
+use crate::DefaultAttrs;
+#[cfg(target_arch = "wasm32")]
 use js_sys::Promise;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -596,7 +598,7 @@ pub fn poll_wasm_paste(
         (
             &mut CosmicEditor,
             &mut CosmicBuffer,
-            &CosmicAttrs,
+            &DefaultAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
             Option<&PasswordInput>,
@@ -623,8 +625,7 @@ pub fn poll_wasm_paste(
                             }
                         } else {
                             if password_opt.is_some() && c.len_utf8() > 1 {
-                                // TODO: console.log here instead
-                                println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
+                                info!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
                                 continue;
                             }
                             editor.action(&mut font_system.0, Action::Insert(c));

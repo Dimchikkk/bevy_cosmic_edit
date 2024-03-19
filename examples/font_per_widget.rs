@@ -151,18 +151,9 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 }
 
 fn main() {
-    let font_config = CosmicFontConfig {
-        fonts_dir_path: None,
-        font_bytes: None,
-        load_system_fonts: true,
-    };
-
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin {
-            font_config,
-            ..default()
-        })
+        .add_plugins(CosmicEditPlugin { ..default() })
         .add_systems(Startup, setup)
         .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
         .run();
