@@ -135,7 +135,7 @@ pub fn add_font_system(
     mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
 ) {
     for mut b in q.iter_mut() {
-        if b.lines.len() != 0 {
+        if !b.lines.is_empty() {
             continue;
         }
         b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
