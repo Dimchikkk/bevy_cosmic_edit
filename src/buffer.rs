@@ -10,43 +10,57 @@ impl Default for CosmicBuffer {
     }
 }
 
-impl CosmicBuffer {
+impl<'s, 'r> CosmicBuffer {
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
         Self(Buffer::new(font_system, metrics))
     }
 
-    pub fn set_text(
+    // Das a lotta boilerplate just to hide the shaping argument
+    pub fn with_text(
         mut self,
-        text: CosmicText,
-        attrs: AttrsOwned,
         font_system: &mut FontSystem,
+        text: &'s str,
+        attrs: Attrs<'r>,
     ) -> Self {
-        // TODO: invoke trim_text here
-        self.lines.clear();
-        match text {
-            CosmicText::OneStyle(text) => {
-                self.0.set_text(
-                    font_system,
-                    text.as_str(),
-                    attrs.as_attrs(),
-                    Shaping::Advanced,
-                );
-            }
-            CosmicText::MultiStyle(lines) => {
-                for line in lines {
-                    let mut line_text = String::new();
-                    let mut attrs_list = AttrsList::new(attrs.as_attrs());
-                    for (text, attrs) in line.iter() {
-                        let start = line_text.len();
-                        line_text.push_str(text);
-                        let end = line_text.len();
-                        attrs_list.add_span(start..end, attrs.as_attrs());
-                    }
-                    self.lines
-                        .push(BufferLine::new(line_text, attrs_list, Shaping::Advanced));
-                }
-            }
-        }
+        self.0.set_text(font_system, text, attrs, Shaping::Advanced);
+        self
+    }
+
+    pub fn with_rich_text<I>(
+        mut self,
+        font_system: &mut FontSystem,
+        spans: I,
+        attrs: Attrs<'r>,
+    ) -> Self
+    where
+        I: IntoIterator<Item = (&'s str, Attrs<'r>)>,
+    {
+        self.0
+            .set_rich_text(font_system, spans, attrs, Shaping::Advanced);
+        self
+    }
+
+    pub fn set_text(
+        &mut self,
+        font_system: &mut FontSystem,
+        text: &'s str,
+        attrs: Attrs<'r>,
+    ) -> &mut Self {
+        self.0.set_text(font_system, text, attrs, Shaping::Advanced);
+        self
+    }
+
+    pub fn set_rich_text<I>(
+        &mut self,
+        font_system: &mut FontSystem,
+        spans: I,
+        attrs: Attrs<'r>,
+    ) -> &mut Self
+    where
+        I: IntoIterator<Item = (&'s str, Attrs<'r>)>,
+    {
+        self.0
+            .set_rich_text(font_system, spans, attrs, Shaping::Advanced);
         self
     }
 

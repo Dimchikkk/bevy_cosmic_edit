@@ -13,10 +13,10 @@ use bevy::{prelude::*, transform::TransformSystem};
 use buffer::{add_font_system, set_initial_scale, set_redraw, swap_target_handle};
 pub use buffer::{get_x_offset_center, get_y_offset_center, CosmicBuffer};
 pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Metrics,
+    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Metrics, Shaping,
     Style as FontStyle, Weight as FontWeight,
 };
-use cosmic_text::{AttrsList, Buffer, BufferLine, Editor, FontSystem, Shaping, SwashCache};
+use cosmic_text::{Buffer, Editor, FontSystem, SwashCache};
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 pub use focus::*;
@@ -33,18 +33,6 @@ use render::{blink_cursor, render_texture, SwashCacheState};
 #[cfg(feature = "multicam")]
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum CosmicText {
-    OneStyle(String),
-    MultiStyle(Vec<Vec<(String, AttrsOwned)>>),
-}
-
-impl Default for CosmicText {
-    fn default() -> Self {
-        Self::OneStyle(String::new())
-    }
-}
 
 #[derive(Clone, Component, PartialEq, Default)]
 pub enum CosmicMode {
@@ -105,12 +93,12 @@ impl CosmicEditor {
     }
 }
 
-#[derive(Component)]
-pub struct CosmicAttrs(pub AttrsOwned);
+#[derive(Component, Deref, DerefMut)]
+pub struct DefaultAttrs(pub AttrsOwned);
 
-impl Default for CosmicAttrs {
+impl Default for DefaultAttrs {
     fn default() -> Self {
-        CosmicAttrs(AttrsOwned::new(Attrs::new()))
+        DefaultAttrs(AttrsOwned::new(Attrs::new()))
     }
 }
 
@@ -135,7 +123,7 @@ pub struct CosmicEditBundle {
     pub buffer: CosmicBuffer,
     // render bits
     pub fill_color: FillColor,
-    pub attrs: CosmicAttrs,
+    pub default_attrs: DefaultAttrs,
     pub background_image: CosmicBackground,
     pub sprite_bundle: SpriteBundle,
     // restriction bits
@@ -155,7 +143,7 @@ impl Default for CosmicEditBundle {
             buffer: Default::default(),
             fill_color: Default::default(),
             text_position: Default::default(),
-            attrs: Default::default(),
+            default_attrs: Default::default(),
             background_image: Default::default(),
             max_lines: Default::default(),
             max_chars: Default::default(),
@@ -325,89 +313,6 @@ pub fn get_node_cursor_pos(
                 })
         }
     })
-}
-
-fn _trim_text(text: CosmicText, max_chars: usize, max_lines: usize) -> CosmicText {
-    if max_chars == 0 && max_lines == 0 {
-        // no limits, no work to do
-        return text;
-    }
-
-    match text {
-        CosmicText::OneStyle(mut string) => {
-            if max_chars != 0 {
-                string.truncate(max_chars);
-            }
-
-            if max_lines == 0 {
-                return CosmicText::OneStyle(string);
-            }
-
-            let mut line_acc = 0;
-            let mut char_pos = 0;
-            for c in string.chars() {
-                char_pos += 1;
-                if c == 0xA as char {
-                    line_acc += 1;
-                    if line_acc >= max_lines {
-                        // break text to pos
-                        string.truncate(char_pos);
-                        break;
-                    }
-                }
-            }
-
-            CosmicText::OneStyle(string)
-        }
-        CosmicText::MultiStyle(lines) => {
-            let mut char_acc = 0;
-            let mut line_acc = 0;
-
-            let mut trimmed_styles = vec![];
-
-            for line in lines.iter() {
-                line_acc += 1;
-                char_acc += 1; // count newlines for consistent behaviour
-
-                if (line_acc >= max_lines && max_lines > 0)
-                    || (char_acc >= max_chars && max_chars > 0)
-                {
-                    break;
-                }
-
-                let mut strs = vec![];
-
-                for (string, attrs) in line.iter() {
-                    if char_acc >= max_chars && max_chars > 0 {
-                        break;
-                    }
-
-                    let mut string = string.clone();
-
-                    if max_chars > 0 {
-                        string.truncate(max_chars - char_acc);
-                        char_acc += string.len();
-                    }
-
-                    if max_lines > 0 {
-                        for c in string.chars() {
-                            if c == 0xA as char {
-                                line_acc += 1;
-                                char_acc += 1; // count newlines for consistent behaviour
-                                if line_acc >= max_lines {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    strs.push((string, attrs.clone()));
-                }
-                trimmed_styles.push(strs);
-            }
-            CosmicText::MultiStyle(trimmed_styles)
-        }
-    }
 }
 
 #[cfg(target_arch = "wasm32")]

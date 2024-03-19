@@ -12,7 +12,7 @@ fn create_editable_widget(commands: &mut Commands, scale_factor: f32, text: Stri
     let editor = commands
         .spawn((
             CosmicEditBundle {
-                attrs: CosmicAttrs(attrs.clone()),
+                default_attrs: DefaultAttrs(attrs.clone()),
                 metrics: CosmicMetrics {
                     font_size: 18.,
                     line_height: 18. * 1.2,
@@ -56,7 +56,7 @@ fn create_readonly_widget(commands: &mut Commands, scale_factor: f32, text: Stri
     let editor = commands
         .spawn((
             CosmicEditBundle {
-                attrs: CosmicAttrs(attrs.clone()),
+                default_attrs: DefaultAttrs(attrs.clone()),
                 metrics: CosmicMetrics {
                     font_size: 18.,
                     line_height: 18. * 1.2,

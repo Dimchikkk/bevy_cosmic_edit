@@ -75,7 +75,7 @@ fn setup(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
                 scale_factor: window.scale_factor() as f32,
                 ..default()
             },
-            attrs: CosmicAttrs(AttrsOwned::new(
+            default_attrs: DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::WHITE)),
             )),
             text_setter: CosmicText::OneStyle("Submit".into()),
@@ -216,7 +216,7 @@ fn submit_button(
         (With<PasswordTag>, Without<UsernameTag>, Without<DisplayTag>),
     >,
     mut display_q: Query<
-        (&mut CosmicEditor, &CosmicAttrs),
+        (&mut CosmicEditor, &DefaultAttrs),
         (With<DisplayTag>, Without<UsernameTag>, Without<PasswordTag>),
     >,
     mut font_system: ResMut<CosmicFontSystem>,

@@ -9,7 +9,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let editor = commands
         .spawn(CosmicEditBundle {
-            attrs: CosmicAttrs(AttrsOwned::new(
+            default_attrs: DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             background_image: CosmicBackground(Some(bg_image_handle)),

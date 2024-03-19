@@ -23,7 +23,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     // spawn editor
     let cosmic_edit = commands
         .spawn(CosmicEditBundle {
-            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+            default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
             text_position: CosmicTextPosition::Center,
             metrics: CosmicMetrics {
                 font_size: 14.,

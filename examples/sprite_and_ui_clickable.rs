@@ -11,7 +11,7 @@ fn setup(mut commands: Commands) {
     // UI editor
     let ui_editor = commands
         .spawn(CosmicEditBundle {
-            attrs: CosmicAttrs(AttrsOwned::new(
+            default_attrs: DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             max_lines: CosmicMaxLines(1),

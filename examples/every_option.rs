@@ -16,7 +16,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
             text_position: CosmicTextPosition::default(),
             fill_color: FillColor::default(),
             background_image: CosmicBackground::default(),
-            attrs: CosmicAttrs(attrs.clone()),
+            default_attrs: DefaultAttrs(attrs.clone()),
             metrics: CosmicMetrics {
                 font_size: 16.,
                 line_height: 16.,

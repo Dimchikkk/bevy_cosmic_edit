@@ -18,13 +18,12 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let cosmic_edit = commands
         .spawn((CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).set_text(
-                CosmicText::OneStyle("Banana".into()),
-                AttrsOwned::new(Attrs::new()),
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
                 &mut font_system,
+                vec![("Banana", attrs)],
+                attrs,
             ),
             text_position: CosmicTextPosition::Center,
-            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
             ..default()
         },))
         .id();

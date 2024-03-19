@@ -4,7 +4,7 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     layout::{CosmicPadding, CosmicWidgetSize},
-    CosmicAttrs, CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, FillColor,
+    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, FillColor,
     XOffset,
 };
 
@@ -68,7 +68,7 @@ pub(crate) fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
         &mut CosmicBuffer,
-        &CosmicAttrs,
+        &DefaultAttrs,
         &CosmicBackground,
         &FillColor,
         &Handle<Image>,

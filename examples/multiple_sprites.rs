@@ -22,7 +22,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     };
 
     let cosmic_edit_1 = (CosmicEditBundle {
-        attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+        default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
         metrics: metrics.clone(),
         text_position: CosmicTextPosition::Center,
         fill_color: FillColor(Color::ALICE_BLUE),
@@ -42,7 +42,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     },);
 
     let cosmic_edit_2 = (CosmicEditBundle {
-        attrs: CosmicAttrs(AttrsOwned::new(attrs)),
+        default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
         metrics,
         text_position: CosmicTextPosition::Center,
         fill_color: FillColor(Color::GRAY.with_a(0.5)),

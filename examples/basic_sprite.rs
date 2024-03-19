@@ -22,13 +22,12 @@ fn setup(
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
     let cosmic_edit = (CosmicEditBundle {
-        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).set_text(
-            CosmicText::OneStyle("😀😀😀 x => y".to_string()),
-            AttrsOwned::new(attrs),
+        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
+            "😀😀😀 x => y",
+            attrs,
         ),
         text_position: CosmicTextPosition::Center,
-        attrs: CosmicAttrs(AttrsOwned::new(attrs)),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
