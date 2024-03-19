@@ -162,6 +162,12 @@ pub fn set_redraw(mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>) {
     }
 }
 
+pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
+    for mut b in q.iter_mut() {
+        b.set_redraw(true);
+    }
+}
+
 pub(crate) fn swap_target_handle(
     source_q: Query<&Handle<Image>, With<CosmicBuffer>>,
     mut dest_q: Query<

@@ -38,7 +38,9 @@ fn setup(
         ..default()
     },);
 
-    commands.spawn(cosmic_edit);
+    let cosmic_edit = commands.spawn(cosmic_edit).id();
+
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {

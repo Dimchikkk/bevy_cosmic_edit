@@ -10,7 +10,9 @@ mod render;
 use std::{path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, transform::TransformSystem};
-use buffer::{add_font_system, set_initial_scale, set_redraw, swap_target_handle};
+use buffer::{
+    add_font_system, set_editor_redraw, set_initial_scale, set_redraw, swap_target_handle,
+};
 pub use buffer::{get_x_offset_center, get_y_offset_center, CosmicBuffer};
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Metrics, Shaping,
@@ -193,7 +195,8 @@ impl Plugin for CosmicEditPlugin {
 
         let layout_systems = (
             (new_image_from_default, set_sprite_size_from_ui),
-            (set_widget_size, set_buffer_size),
+            set_widget_size,
+            set_buffer_size,
             set_padding,
             set_cursor,
         )
@@ -205,26 +208,22 @@ impl Plugin for CosmicEditPlugin {
                 add_font_system,
                 set_initial_scale,
                 set_redraw,
+                set_editor_redraw,
                 swap_target_handle,
                 on_scale_factor_change,
             )
                 .chain(),
         )
         .add_systems(PreUpdate, (input_mouse,).chain())
-        .add_systems(
-            Update,
-            (
-                drop_editor_unfocused,
-                add_editor_to_focused,
-                input_kb,
-                reshape,
-                blink_cursor,
-            )
-                .chain(),
-        )
+        .add_systems(Update, (input_kb, reshape, blink_cursor).chain())
         .add_systems(
             PostUpdate,
-            (layout_systems, render_texture)
+            (
+                layout_systems,
+                drop_editor_unfocused,
+                add_editor_to_focused,
+                render_texture,
+            )
                 .chain()
                 .after(TransformSystem::TransformPropagate),
         )
