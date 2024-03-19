@@ -331,8 +331,17 @@ mod tests {
 
     use self::buffer::CosmicBuffer;
 
-    fn test_spawn_cosmic_edit_system(mut commands: Commands) {
+    fn test_spawn_cosmic_edit_system(
+        mut commands: Commands,
+        mut font_system: ResMut<CosmicFontSystem>,
+    ) {
+        let attrs = Attrs::new();
         commands.spawn(CosmicEditBundle {
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+                &mut font_system,
+                vec![("Blah", attrs)],
+                attrs,
+            ),
             ..Default::default()
         });
     }
