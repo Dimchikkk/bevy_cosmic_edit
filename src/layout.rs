@@ -20,13 +20,21 @@ pub fn reshape(mut query: Query<&mut CosmicEditor>, mut font_system: ResMut<Cosm
 }
 
 pub fn set_padding(
-    mut query: Query<(
-        &mut CosmicPadding,
-        &CosmicTextPosition,
-        &CosmicBuffer,
-        &CosmicWidgetSize,
-        Option<&CosmicEditor>,
-    )>,
+    mut query: Query<
+        (
+            &mut CosmicPadding,
+            &CosmicTextPosition,
+            &CosmicBuffer,
+            &CosmicWidgetSize,
+            Option<&CosmicEditor>,
+        ),
+        Or<(
+            With<CosmicEditor>,
+            Changed<CosmicTextPosition>,
+            Changed<CosmicBuffer>,
+            Changed<CosmicWidgetSize>,
+        )>,
+    >,
 ) {
     for (mut padding, position, buffer, size, editor_opt) in query.iter_mut() {
         // TODO: At least one of these clones is uneccessary
@@ -61,6 +69,7 @@ pub fn set_widget_size(
     if windows.iter().len() == 0 {
         return;
     }
+    // TODO: early return if sprite size is unchanged
     let scale = windows.single().scale_factor();
     for (mut size, sprite) in query.iter_mut() {
         size.0 = sprite.custom_size.unwrap().ceil() * scale;
@@ -68,12 +77,19 @@ pub fn set_widget_size(
 }
 
 pub fn set_buffer_size(
-    mut query: Query<(
-        &mut CosmicBuffer,
-        &CosmicMode,
-        &CosmicWidgetSize,
-        &CosmicTextPosition,
-    )>,
+    mut query: Query<
+        (
+            &mut CosmicBuffer,
+            &CosmicMode,
+            &CosmicWidgetSize,
+            &CosmicTextPosition,
+        ),
+        Or<(
+            Changed<CosmicMode>,
+            Changed<CosmicWidgetSize>,
+            Changed<CosmicTextPosition>,
+        )>,
+    >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mode, size, position) in query.iter_mut() {
@@ -148,7 +164,7 @@ pub fn set_cursor(
 
 pub fn set_sprite_size_from_ui(
     mut source_q: Query<&mut Sprite, With<CosmicBuffer>>,
-    dest_q: Query<(&Node, &CosmicSource)>,
+    dest_q: Query<(&Node, &CosmicSource), Changed<Node>>,
 ) {
     for (node, source) in dest_q.iter() {
         if let Ok(mut sprite) = source_q.get_mut(source.0) {
@@ -162,18 +178,19 @@ pub fn on_scale_factor_change(
     mut cosmic_query: Query<(&mut CosmicBuffer, &mut XOffset)>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    if !scale_factor_changed.is_empty() {
-        let new_scale_factor = scale_factor_changed.read().last().unwrap().scale_factor as f32;
-        for (mut buffer, mut x_offset) in &mut cosmic_query.iter_mut() {
-            let metrics = buffer.metrics();
-            let font_system = &mut font_system.0;
-            let metrics =
-                Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
+    if scale_factor_changed.is_empty() {
+        return;
+    }
 
-            buffer.set_metrics(font_system, metrics);
-            buffer.set_redraw(true);
+    let new_scale_factor = scale_factor_changed.read().last().unwrap().scale_factor as f32;
+    for (mut buffer, mut x_offset) in &mut cosmic_query.iter_mut() {
+        let metrics = buffer.metrics();
+        let font_system = &mut font_system.0;
+        let metrics = Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
 
-            *x_offset = XOffset(None);
-        }
+        buffer.set_metrics(font_system, metrics);
+        buffer.set_redraw(true);
+
+        *x_offset = XOffset(None);
     }
 }

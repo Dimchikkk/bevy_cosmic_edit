@@ -49,6 +49,7 @@ impl<'s, 'r> CosmicBuffer {
         attrs: Attrs<'r>,
     ) -> &mut Self {
         self.0.set_text(font_system, text, attrs, Shaping::Advanced);
+        self.set_redraw(true);
         self
     }
 
@@ -63,6 +64,7 @@ impl<'s, 'r> CosmicBuffer {
     {
         self.0
             .set_rich_text(font_system, spans, attrs, Shaping::Advanced);
+        self.set_redraw(true);
         self
     }
 
