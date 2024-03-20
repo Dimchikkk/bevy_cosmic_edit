@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicBuffer, CosmicTextChanged};
+use crate::{CosmicBuffer, CosmicSource, CosmicTextChanged};
 
 #[cfg(feature = "multicam")]
 use crate::CosmicPrimaryCamera;
@@ -65,6 +65,7 @@ pub fn hover_sprites(
         if visibility == Visibility::Hidden {
             continue;
         }
+
         let size = sprite.custom_size.unwrap_or(Vec2::ONE);
         let x_min = node_transform.affine().translation.x - size.x / 2.;
         let y_min = node_transform.affine().translation.y - size.y / 2.;
@@ -91,7 +92,7 @@ pub fn hover_sprites(
 }
 
 pub fn hover_ui(
-    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicBuffer>)>,
+    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicSource>)>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
