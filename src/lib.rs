@@ -26,8 +26,8 @@ use input::{input_kb, input_mouse, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use layout::{
-    new_image_from_default, on_scale_factor_change, reshape, set_buffer_size, set_cursor,
-    set_padding, set_sprite_size_from_ui, set_widget_size, CosmicPadding, CosmicWidgetSize,
+    new_image_from_default, reshape, set_buffer_size, set_cursor, set_padding,
+    set_sprite_size_from_ui, set_widget_size, CosmicPadding, CosmicWidgetSize,
 };
 use render::{blink_cursor, render_texture, SwashCacheState};
 
@@ -220,7 +220,6 @@ impl Plugin for CosmicEditPlugin {
                 set_redraw,
                 set_editor_redraw,
                 swap_target_handle,
-                on_scale_factor_change,
             )
                 .chain(),
         )

@@ -1,8 +1,5 @@
 use crate::*;
-use bevy::{
-    prelude::*,
-    window::{PrimaryWindow, WindowScaleFactorChanged},
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
 
 use self::buffer::{get_x_offset_center, get_y_offset_center};
@@ -170,27 +167,5 @@ pub fn set_sprite_size_from_ui(
         if let Ok(mut sprite) = source_q.get_mut(source.0) {
             sprite.custom_size = Some(node.size().ceil().max(Vec2::ONE));
         }
-    }
-}
-
-pub fn on_scale_factor_change(
-    mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
-    mut cosmic_query: Query<(&mut CosmicBuffer, &mut XOffset)>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    if scale_factor_changed.is_empty() {
-        return;
-    }
-
-    let new_scale_factor = scale_factor_changed.read().last().unwrap().scale_factor as f32;
-    for (mut buffer, mut x_offset) in &mut cosmic_query.iter_mut() {
-        let metrics = buffer.metrics();
-        let font_system = &mut font_system.0;
-        let metrics = Metrics::new(metrics.font_size, metrics.line_height).scale(new_scale_factor);
-
-        buffer.set_metrics(font_system, metrics);
-        buffer.set_redraw(true);
-
-        *x_offset = XOffset(None);
     }
 }
