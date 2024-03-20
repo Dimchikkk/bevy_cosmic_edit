@@ -15,14 +15,14 @@ Explore examples folder for basic usage.
 Native:
 
 ```rust
-cargo r --example text_input
+cargo r --example font_per_widget
 ```
 
 Wasm:
 
 ```rust
 cargo install wasm-server-runner
-RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example text_input
+RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example basic_ui
 ```
 
 ## Compatibility
