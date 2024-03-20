@@ -1,6 +1,7 @@
+workspace = { members = ["util"] }
 [package]
 name = "bevy_cosmic_edit"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Bevy cosmic-text multiline text input"
@@ -29,7 +30,7 @@ bevy = { version = "0.13", default-features = false, features = [
   "x11",
   "webgpu",
 ] }
-cosmic-text = { version = "0.10" }
+cosmic-text = { version = "0.11.2" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 crossbeam-channel = "0.5.8"
 image = "0.24.6"
@@ -46,6 +47,4 @@ web-sys = { version = "0.3.67", features = ["Clipboard", "Navigator", "Window"] 
 
 [dev-dependencies]
 insta = "1.29.0"
-
-[[example]]
-name = "text_input"
+util = {path="./util/"}

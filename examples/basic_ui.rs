@@ -1,11 +1,11 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 use bevy_cosmic_edit::*;
+use util::{change_active_editor_ui, deselect_editor_on_esc, print_editor_text};
 
-fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
-    let primary_window = windows.single();
+fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {
         camera: Camera {
-            clear_color: ClearColorConfig::Custom(Color::WHITE),
+            clear_color: ClearColorConfig::Custom(Color::PINK),
             ..default()
         },
         ..default()
@@ -16,20 +16,16 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    let scale_factor = primary_window.scale_factor() as f32;
-
     let cosmic_edit = commands
-        .spawn(CosmicEditBundle {
-            metrics: CosmicMetrics {
-                font_size: 14.,
-                line_height: 18.,
-                scale_factor,
-            },
+        .spawn((CosmicEditBundle {
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+                &mut font_system,
+                vec![("Banana", attrs)],
+                attrs,
+            ),
             text_position: CosmicTextPosition::Center,
-            attrs: CosmicAttrs(AttrsOwned::new(attrs)),
-            text_setter: CosmicText::OneStyle("😀😀😀 x => y".to_string()),
             ..default()
-        })
+        },))
         .id();
 
     commands
@@ -42,8 +38,6 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
                     height: Val::Percent(100.),
                     ..default()
                 },
-                // Needs to be set to prevent a bug where nothing is displayed
-                background_color: Color::WHITE.into(),
                 ..default()
             },
         )
@@ -52,21 +46,7 @@ fn setup(mut commands: Commands, windows: Query<&Window, With<PrimaryWindow>>) {
         // texture to the editor's rendered image
         .insert(CosmicSource(cosmic_edit));
 
-    commands.insert_resource(Focus(Some(cosmic_edit)));
-}
-
-fn print_text(
-    text_inputs_q: Query<&CosmicEditor, With<CosmicEditor>>,
-    mut previous_value: Local<String>,
-) {
-    for text_input in text_inputs_q.iter() {
-        let current_text = text_input.get_text();
-        if current_text == *previous_value {
-            return;
-        }
-        *previous_value = current_text.clone();
-        info!("Widget text: {}", current_text);
-    }
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {
@@ -84,6 +64,13 @@ fn main() {
             ..default()
         })
         .add_systems(Startup, setup)
-        .add_systems(Update, print_text)
+        .add_systems(
+            Update,
+            (
+                print_editor_text,
+                change_active_editor_ui,
+                deselect_editor_on_esc,
+            ),
+        )
         .run();
 }
