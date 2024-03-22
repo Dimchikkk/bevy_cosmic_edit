@@ -42,15 +42,16 @@ fn empty_editor_buffer_on_focus(
     // TODO: In order to hold placeholder until input, move XOffset to 0 and empty buffer on input
     for (mut editor, mut placeholder, attrs) in q.iter_mut() {
         if placeholder.active {
+            placeholder.active = false;
             editor.with_buffer_mut(|b| {
                 b.set_text(
                     &mut font_system,
                     "",
                     attrs.0.as_attrs(),
                     cosmic_text::Shaping::Advanced,
-                )
+                );
             });
-            placeholder.active = false;
+            editor.set_cursor(cosmic_text::Cursor::new(0, 0));
         }
     }
 }
