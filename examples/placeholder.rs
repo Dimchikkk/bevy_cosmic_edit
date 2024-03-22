@@ -52,8 +52,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         // Plugin looks for UiImage and sets it's
         // texture to the editor's rendered image
         .insert(CosmicSource(cosmic_edit));
-
-    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {
