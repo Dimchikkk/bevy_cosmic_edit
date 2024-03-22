@@ -7,9 +7,13 @@ mod input;
 mod layout;
 mod render;
 
+mod plugins;
+pub use plugins::*;
+
 use std::{path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, transform::TransformSystem};
+
 use buffer::{
     add_font_system, set_editor_redraw, set_initial_scale, set_redraw, swap_target_handle,
 };
@@ -264,7 +268,16 @@ impl Plugin for CosmicEditPlugin {
             app.insert_resource(WasmPasteAsyncChannel { tx, rx })
                 .add_systems(Update, poll_wasm_paste);
         }
+
+        add_feature_plugins(app);
     }
+}
+
+fn add_feature_plugins(app: &mut App) -> &mut App {
+    #[cfg(feature = "placeholder")]
+    app.add_plugins(plugins::placeholder::PlaceholderPlugin);
+
+    app
 }
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
