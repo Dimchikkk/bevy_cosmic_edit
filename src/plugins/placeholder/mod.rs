@@ -7,15 +7,23 @@ use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs};
 pub struct Placeholder {
     pub text: &'static str,
     pub attrs: Attrs<'static>,
-    pub active: bool,
+    active: bool,
+}
+
+impl Placeholder {
+    pub fn new(text: impl Into<&'static str>, attrs: Attrs<'static>) -> Self {
+        Self {
+            active: false,
+            text: text.into(),
+            attrs,
+        }
+    }
 }
 
 pub struct PlaceholderPlugin;
 
 impl Plugin for PlaceholderPlugin {
     fn build(&self, app: &mut App) {
-        info!("PlaceholderPlugin loaded.");
-
         app.add_systems(
             Update,
             (add_placeholder_to_buffer, empty_editor_buffer_on_focus),

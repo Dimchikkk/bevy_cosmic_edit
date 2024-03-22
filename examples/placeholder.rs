@@ -27,11 +27,10 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                     text_position: CosmicTextPosition::Center,
                     ..default()
                 },
-                Placeholder {
-                    active: false,
-                    attrs: attrs.color(bevy_color_to_cosmic(Color::GRAY)),
-                    text: "Placeholder",
-                },
+                Placeholder::new(
+                    "Placeholder",
+                    attrs.color(bevy_color_to_cosmic(Color::GRAY)),
+                ),
             ))
             .id();
 
