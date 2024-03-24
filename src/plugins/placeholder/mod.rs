@@ -68,7 +68,7 @@ fn remove_placeholder_on_input(
             return;
         }
 
-        editor.with_buffer_mut(|b| {
+        let new_string = editor.with_buffer_mut(|b| {
             let new_string = b.lines[0].clone().into_text().replace(placeholder.text, "");
             b.set_text(
                 &mut font_system,
@@ -76,9 +76,9 @@ fn remove_placeholder_on_input(
                 attrs.0.as_attrs(),
                 cosmic_text::Shaping::Advanced,
             );
+            new_string
         });
-        // TODO: multi byte char test
-        editor.set_cursor(cosmic_text::Cursor::new(0, 1));
+        editor.set_cursor(cosmic_text::Cursor::new(0, new_string.bytes().len()));
 
         placeholder.active = false;
     }
