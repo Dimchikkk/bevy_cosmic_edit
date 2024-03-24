@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
 
-use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs};
+use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs};
 
 #[derive(Component)]
 pub struct Placeholder {
@@ -26,7 +26,11 @@ impl Plugin for PlaceholderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (add_placeholder_to_buffer, empty_editor_buffer_on_focus),
+            (
+                add_placeholder_to_buffer,
+                move_cursor_to_start_of_placeholder,
+                remove_placeholder_on_input,
+            ),
         );
     }
 }
@@ -43,23 +47,39 @@ fn add_placeholder_to_buffer(
     }
 }
 
-fn empty_editor_buffer_on_focus(
-    mut q: Query<(&mut CosmicEditor, &mut Placeholder, &DefaultAttrs), Added<CosmicEditor>>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    // TODO: In order to hold placeholder until input, move XOffset to 0 and empty buffer on input
-    for (mut editor, mut placeholder, attrs) in q.iter_mut() {
+fn move_cursor_to_start_of_placeholder(mut q: Query<(&mut CosmicEditor, &mut Placeholder)>) {
+    for (mut editor, placeholder) in q.iter_mut() {
         if placeholder.active {
-            placeholder.active = false;
-            editor.with_buffer_mut(|b| {
-                b.set_text(
-                    &mut font_system,
-                    "",
-                    attrs.0.as_attrs(),
-                    cosmic_text::Shaping::Advanced,
-                );
-            });
             editor.set_cursor(cosmic_text::Cursor::new(0, 0));
         }
+    }
+}
+
+fn remove_placeholder_on_input(
+    mut q: Query<(&mut CosmicEditor, &mut Placeholder, &DefaultAttrs)>,
+    evr: EventReader<CosmicTextChanged>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut editor, mut placeholder, attrs) in q.iter_mut() {
+        if !placeholder.active {
+            return;
+        }
+        if evr.is_empty() {
+            return;
+        }
+
+        editor.with_buffer_mut(|b| {
+            let new_string = b.lines[0].clone().into_text().replace(placeholder.text, "");
+            b.set_text(
+                &mut font_system,
+                new_string.as_str(),
+                attrs.0.as_attrs(),
+                cosmic_text::Shaping::Advanced,
+            );
+        });
+        // TODO: multi byte char test
+        editor.set_cursor(cosmic_text::Cursor::new(0, 1));
+
+        placeholder.active = false;
     }
 }
