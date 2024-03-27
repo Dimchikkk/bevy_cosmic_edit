@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
 
-use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs};
+use crate::{
+    CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs, KbInput,
+};
 
 #[derive(Component)]
 pub struct Placeholder {
@@ -32,7 +34,8 @@ impl Plugin for PlaceholderPlugin {
                 move_cursor_to_start_of_placeholder,
                 remove_placeholder_on_input,
             )
-                .chain(),
+                .chain()
+                .after(KbInput),
         );
     }
 }
@@ -100,6 +103,9 @@ fn remove_placeholder_on_input(
 
         let new_string = editor.with_buffer_mut(|b| {
             let new_string = b.lines[0].clone().into_text().replace(placeholder.text, "");
+            if new_string.is_empty() {
+                return new_string;
+            }
             b.set_text(
                 &mut font_system,
                 new_string.as_str(),
@@ -108,6 +114,11 @@ fn remove_placeholder_on_input(
             );
             new_string
         });
+
+        if new_string.is_empty() {
+            return;
+        }
+
         editor.set_cursor(cosmic_text::Cursor::new(0, new_string.bytes().len()));
 
         placeholder.active = false;

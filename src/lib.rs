@@ -196,6 +196,9 @@ impl Default for CosmicFontConfig {
     }
 }
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KbInput;
+
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
@@ -228,7 +231,10 @@ impl Plugin for CosmicEditPlugin {
                 .chain(),
         )
         .add_systems(PreUpdate, (input_mouse,).chain())
-        .add_systems(Update, (input_kb, reshape, blink_cursor).chain())
+        .add_systems(
+            Update,
+            (input_kb, reshape, blink_cursor).chain().in_set(KbInput),
+        )
         .add_systems(
             PostUpdate,
             (
