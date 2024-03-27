@@ -42,6 +42,10 @@ fn add_placeholder_to_buffer(
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mut placeholder) in q.iter_mut() {
+        if placeholder.active {
+            return;
+        }
+
         if buffer.get_text().is_empty() {
             buffer.set_text(&mut font_system, placeholder.text, placeholder.attrs);
             placeholder.active = true;
@@ -54,6 +58,10 @@ fn add_placeholder_to_editor(
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut editor, mut placeholder) in q.iter_mut() {
+        if placeholder.active {
+            return;
+        }
+
         editor.with_buffer_mut(|buffer| {
             if buffer.lines[0].clone().into_text().is_empty() {
                 buffer.set_text(
