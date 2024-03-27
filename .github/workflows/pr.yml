@@ -62,7 +62,7 @@ jobs:
       - name: Fmt
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy -- -A clippy::type_complexity -A clippy::too_many_arguments -D warnings
+        run: cargo clippy --all-features -- -A clippy::type_complexity -A clippy::too_many_arguments -D warnings
   test-cosmic-edit:
     name: Test cosmic-edit
     runs-on: ubuntu-latest
