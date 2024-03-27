@@ -28,9 +28,11 @@ impl Plugin for PlaceholderPlugin {
             Update,
             (
                 add_placeholder_to_buffer,
+                add_placeholder_to_editor,
                 move_cursor_to_start_of_placeholder,
                 remove_placeholder_on_input,
-            ),
+            )
+                .chain(),
         );
     }
 }
@@ -44,6 +46,26 @@ fn add_placeholder_to_buffer(
             buffer.set_text(&mut font_system, placeholder.text, placeholder.attrs);
             placeholder.active = true;
         }
+    }
+}
+
+fn add_placeholder_to_editor(
+    mut q: Query<(&mut CosmicEditor, &mut Placeholder)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    for (mut editor, mut placeholder) in q.iter_mut() {
+        editor.with_buffer_mut(|buffer| {
+            if buffer.lines[0].clone().into_text().is_empty() {
+                buffer.set_text(
+                    &mut font_system,
+                    placeholder.text,
+                    placeholder.attrs,
+                    cosmic_text::Shaping::Advanced,
+                );
+                placeholder.active = true;
+                buffer.set_redraw(true);
+            }
+        })
     }
 }
 
