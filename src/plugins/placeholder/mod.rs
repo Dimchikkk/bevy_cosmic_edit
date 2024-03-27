@@ -106,6 +106,26 @@ fn remove_placeholder_on_input(
             if new_string.is_empty() {
                 return new_string;
             }
+
+            {
+                // begin hacky fix for delete key in empty placeholder widget
+
+                // TODO: test and probably fix to account for multi-byte chars
+                let p = placeholder.text.chars().next().unwrap();
+
+                let laceholder = placeholder.text.strip_prefix(p).unwrap();
+
+                if new_string.as_str() == laceholder {
+                    b.set_text(
+                        &mut font_system,
+                        placeholder.text,
+                        placeholder.attrs,
+                        cosmic_text::Shaping::Advanced,
+                    );
+                    return String::new();
+                }
+            } // end hacky fix
+
             b.set_text(
                 &mut font_system,
                 new_string.as_str(),
