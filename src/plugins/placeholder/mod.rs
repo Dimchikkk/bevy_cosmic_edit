@@ -62,10 +62,16 @@ fn add_placeholder_to_editor(
 ) {
     for (mut editor, mut placeholder) in q.iter_mut() {
         if placeholder.active {
-            return;
+            // PERF: Removing this guard fixes single char placeholder deletion
+            // BUT makes the check and buffer update run every frame
+            // return;
         }
 
         editor.with_buffer_mut(|buffer| {
+            if buffer.lines.len() > 1 {
+                return;
+            }
+
             if buffer.lines[0].clone().into_text().is_empty() {
                 buffer.set_text(
                     &mut font_system,
@@ -101,45 +107,95 @@ fn remove_placeholder_on_input(
             return;
         }
 
-        let new_string = editor.with_buffer_mut(|b| {
-            let new_string = b.lines[0].clone().into_text().replace(placeholder.text, "");
-            if new_string.is_empty() {
-                return new_string;
+        let mut lines = 0;
+
+        let last_line = editor.with_buffer_mut(|b| {
+            lines = b.lines.len();
+
+            if lines > 1 {
+                let mut full_text: String = b
+                    .lines
+                    .iter()
+                    .map(|l| {
+                        let mut s = l.clone().into_text().replace(placeholder.text, "");
+                        // Extra newline on enter to prevent reading as an empty buffer
+                        s.push('\n');
+                        s
+                    })
+                    .collect();
+
+                if lines > 2 {
+                    // for pasted text, remove trailing newline
+                    full_text = full_text
+                        .strip_suffix("\n")
+                        .expect("oop something broke in multiline placeholder removal")
+                        .to_string();
+                }
+
+                b.set_text(
+                    &mut font_system,
+                    full_text.as_str(),
+                    attrs.0.as_attrs(),
+                    cosmic_text::Shaping::Advanced,
+                );
+
+                let last_line = full_text.lines().last();
+
+                return match last_line {
+                    Some(line) => Some(line.to_string()),
+                    None => None,
+                };
+            }
+
+            let single_line = b.lines[0].clone().into_text().replace(placeholder.text, "");
+
+            if single_line.is_empty() {
+                return None;
             }
 
             {
                 // begin hacky fix for delete key in empty placeholder widget
 
-                // TODO: test and probably fix to account for multi-byte chars
-                let p = placeholder.text.chars().next().unwrap();
+                let p = placeholder
+                    .text
+                    .chars()
+                    .next()
+                    .expect("Couldn't get first char of placeholder.");
 
-                let laceholder = placeholder.text.strip_prefix(p).unwrap();
+                let laceholder = placeholder
+                    .text
+                    .strip_prefix(p)
+                    .expect("Couldn't remove first char of placeholder.");
 
-                if new_string.as_str() == laceholder {
+                if single_line.as_str() == laceholder {
                     b.set_text(
                         &mut font_system,
                         placeholder.text,
                         placeholder.attrs,
                         cosmic_text::Shaping::Advanced,
                     );
-                    return String::new();
+                    return None;
                 }
             } // end hacky fix
 
             b.set_text(
                 &mut font_system,
-                new_string.as_str(),
+                single_line.as_str(),
                 attrs.0.as_attrs(),
                 cosmic_text::Shaping::Advanced,
             );
-            new_string
+
+            Some(single_line)
         });
 
-        if new_string.is_empty() {
+        let Some(last_line) = last_line else {
             return;
-        }
+        };
 
-        editor.set_cursor(cosmic_text::Cursor::new(0, new_string.bytes().len()));
+        editor.set_cursor(cosmic_text::Cursor::new(
+            (lines - 1).max(0),
+            last_line.bytes().len(),
+        ));
 
         placeholder.active = false;
     }
