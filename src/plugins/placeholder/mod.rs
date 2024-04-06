@@ -127,7 +127,7 @@ fn remove_placeholder_on_input(
                 if lines > 2 {
                     // for pasted text, remove trailing newline
                     full_text = full_text
-                        .strip_suffix("\n")
+                        .strip_suffix('\n')
                         .expect("oop something broke in multiline placeholder removal")
                         .to_string();
                 }
@@ -141,10 +141,7 @@ fn remove_placeholder_on_input(
 
                 let last_line = full_text.lines().last();
 
-                return match last_line {
-                    Some(line) => Some(line.to_string()),
-                    None => None,
-                };
+                return last_line.map(|line| line.to_string());
             }
 
             let single_line = b.lines[0].clone().into_text().replace(placeholder.text, "");
