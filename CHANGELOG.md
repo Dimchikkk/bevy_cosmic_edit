@@ -1,5 +1,9 @@
 # Changelog 
 
+## Version 0.18.0 (2024)
+
+- Add text placeholder plugin
+
 ## Version 0.17.0 (2024)
 
 - Update to cosmic-text 0.11.2
