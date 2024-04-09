@@ -153,7 +153,7 @@ pub(crate) fn input_mouse(
                 camera_transform,
             ) {
                 let (mut x, y) = point(node_cursor_pos);
-                x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
+                x += x_offset.min as i32;
                 if shift {
                     editor.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
@@ -193,7 +193,7 @@ pub(crate) fn input_mouse(
                 camera_transform,
             ) {
                 let (mut x, y) = point(node_cursor_pos);
-                x += x_offset.0.unwrap_or((0., 0.)).0 as i32;
+                x += x_offset.min as i32;
                 if active_editor.is_changed() && !shift {
                     editor.action(&mut font_system.0, Action::Click { x, y });
                 } else {

@@ -140,7 +140,7 @@ pub(crate) fn render_texture(
                         &mut pixels,
                         size.0.x as i32,
                         size.0.y as i32,
-                        x + col + padding.0.x as i32 - x_offset.0.unwrap_or((0., 0.)).0 as i32,
+                        x + col + padding.0.x as i32 - x_offset.min as i32,
                         y + row + padding.0.y as i32,
                         color,
                     );

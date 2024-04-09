@@ -15,6 +15,7 @@ fn setup(mut commands: Commands) {
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
             max_lines: CosmicMaxLines(1),
+            mode: CosmicMode::InfiniteLine,
             ..default()
         })
         .id();

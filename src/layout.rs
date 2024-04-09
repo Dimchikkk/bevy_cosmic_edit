@@ -4,10 +4,10 @@ use cosmic_text::Affinity;
 
 use self::buffer::{get_x_offset_center, get_y_offset_center};
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref, DerefMut, Debug)]
 pub struct CosmicPadding(pub Vec2);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref, DerefMut)]
 pub struct CosmicWidgetSize(pub Vec2);
 
 pub fn reshape(mut query: Query<&mut CosmicEditor>, mut font_system: ResMut<CosmicFontSystem>) {
@@ -114,47 +114,51 @@ pub fn new_image_from_default(
     }
 }
 
-pub fn set_cursor(
+pub fn set_x_offset(
     mut query: Query<(
         &mut XOffset,
         &CosmicMode,
         &CosmicEditor,
-        &CosmicBuffer,
         &CosmicWidgetSize,
         &CosmicPadding,
     )>,
 ) {
-    for (mut x_offset, mode, editor, buffer, size, padding) in query.iter_mut() {
+    for (mut x_offset, mode, editor, size, padding) in query.iter_mut() {
+        if mode != &CosmicMode::InfiniteLine {
+            return;
+        }
+
         let mut cursor_x = 0.;
-        if mode == &CosmicMode::InfiniteLine {
-            if let Some(line) = buffer.layout_runs().next() {
-                for (idx, glyph) in line.glyphs.iter().enumerate() {
-                    if editor.cursor().affinity == Affinity::Before {
-                        if idx <= editor.cursor().index {
-                            cursor_x += glyph.w;
-                        }
-                    } else if idx < editor.cursor().index {
+
+        if let Some(line) = editor.with_buffer(|b| b.clone()).layout_runs().next() {
+            for (idx, glyph) in line.glyphs.iter().enumerate() {
+                if editor.cursor().affinity == Affinity::Before {
+                    if idx <= editor.cursor().index {
                         cursor_x += glyph.w;
                     } else {
                         break;
                     }
+                } else if idx < editor.cursor().index {
+                    cursor_x += glyph.w;
+                } else {
+                    break;
                 }
             }
         }
 
-        if mode == &CosmicMode::InfiniteLine && x_offset.0.is_none() {
-            *x_offset = XOffset(Some((0., size.0.x - 2. * padding.0.x)));
+        if x_offset.min == 0. && x_offset.max == 0. {
+            x_offset.max = size.x;
         }
 
-        if let Some((x_min, x_max)) = x_offset.0 {
-            if cursor_x > x_max {
-                let diff = cursor_x - x_max;
-                *x_offset = XOffset(Some((x_min + diff, cursor_x)));
-            }
-            if cursor_x < x_min {
-                let diff = x_min - cursor_x;
-                *x_offset = XOffset(Some((cursor_x, x_max - diff)));
-            }
+        if cursor_x > x_offset.max {
+            let diff = cursor_x - x_offset.max;
+            x_offset.min += diff;
+            x_offset.max = cursor_x;
+        }
+        if cursor_x < x_offset.min {
+            let diff = x_offset.min - cursor_x;
+            x_offset.min = cursor_x;
+            x_offset.max -= diff;
         }
     }
 }
