@@ -4,10 +4,10 @@ use cosmic_text::Affinity;
 
 use self::buffer::{get_x_offset_center, get_y_offset_center};
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref, DerefMut, Debug)]
 pub struct CosmicPadding(pub Vec2);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref, DerefMut)]
 pub struct CosmicWidgetSize(pub Vec2);
 
 pub fn reshape(mut query: Query<&mut CosmicEditor>, mut font_system: ResMut<CosmicFontSystem>) {
@@ -46,7 +46,7 @@ pub fn set_padding(
         }
 
         padding.0 = match position {
-            CosmicTextPosition::Center => Vec2::new(
+            CosmicTextPosition::Center { padding: _ } => Vec2::new(
                 get_x_offset_center(size.0.x, &buffer) as f32,
                 get_y_offset_center(size.0.y, &buffer) as f32,
             ),
@@ -91,7 +91,7 @@ pub fn set_buffer_size(
 ) {
     for (mut buffer, mode, size, position) in query.iter_mut() {
         let padding_x = match position {
-            CosmicTextPosition::Center => 0.,
+            CosmicTextPosition::Center { padding: _ } => 0.,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
             CosmicTextPosition::Left { padding } => *padding as f32,
         };
@@ -114,47 +114,58 @@ pub fn new_image_from_default(
     }
 }
 
-pub fn set_cursor(
+pub fn set_x_offset(
     mut query: Query<(
         &mut XOffset,
         &CosmicMode,
         &CosmicEditor,
-        &CosmicBuffer,
         &CosmicWidgetSize,
-        &CosmicPadding,
+        &CosmicTextPosition,
     )>,
 ) {
-    for (mut x_offset, mode, editor, buffer, size, padding) in query.iter_mut() {
+    for (mut x_offset, mode, editor, size, position) in query.iter_mut() {
+        if mode != &CosmicMode::InfiniteLine {
+            return;
+        }
+
         let mut cursor_x = 0.;
-        if mode == &CosmicMode::InfiniteLine {
-            if let Some(line) = buffer.layout_runs().next() {
-                for (idx, glyph) in line.glyphs.iter().enumerate() {
-                    if editor.cursor().affinity == Affinity::Before {
-                        if idx <= editor.cursor().index {
-                            cursor_x += glyph.w;
-                        }
-                    } else if idx < editor.cursor().index {
+        let cursor = editor.cursor();
+
+        if let Some(line) = editor.with_buffer(|b| b.clone()).layout_runs().next() {
+            for (idx, glyph) in line.glyphs.iter().enumerate() {
+                if cursor.affinity == Affinity::Before {
+                    if idx <= cursor.index {
                         cursor_x += glyph.w;
                     } else {
                         break;
                     }
+                } else if idx < cursor.index {
+                    cursor_x += glyph.w;
+                } else {
+                    break;
                 }
             }
         }
 
-        if mode == &CosmicMode::InfiniteLine && x_offset.0.is_none() {
-            *x_offset = XOffset(Some((0., size.0.x - 2. * padding.0.x)));
+        let padding_x = match position {
+            CosmicTextPosition::Center { padding } => *padding as f32,
+            CosmicTextPosition::TopLeft { padding } => *padding as f32,
+            CosmicTextPosition::Left { padding } => *padding as f32,
+        };
+
+        if x_offset.width == 0. {
+            x_offset.width = size.x - padding_x * 2.;
         }
 
-        if let Some((x_min, x_max)) = x_offset.0 {
-            if cursor_x > x_max {
-                let diff = cursor_x - x_max;
-                *x_offset = XOffset(Some((x_min + diff, cursor_x)));
-            }
-            if cursor_x < x_min {
-                let diff = x_min - cursor_x;
-                *x_offset = XOffset(Some((cursor_x, x_max - diff)));
-            }
+        let right = x_offset.width + x_offset.left;
+
+        if cursor_x > right {
+            let diff = cursor_x - right;
+            x_offset.left += diff;
+        }
+        if cursor_x < x_offset.left {
+            let diff = x_offset.left - cursor_x;
+            x_offset.left -= diff;
         }
     }
 }

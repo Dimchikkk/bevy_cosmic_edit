@@ -30,8 +30,8 @@ use input::{input_kb, input_mouse, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use layout::{
-    new_image_from_default, reshape, set_buffer_size, set_cursor, set_padding,
-    set_sprite_size_from_ui, set_widget_size, CosmicPadding, CosmicWidgetSize,
+    new_image_from_default, reshape, set_buffer_size, set_padding, set_sprite_size_from_ui,
+    set_widget_size, set_x_offset, CosmicPadding, CosmicWidgetSize,
 };
 use render::{blink_cursor, render_texture, SwashCacheState};
 
@@ -55,16 +55,17 @@ pub enum CursorConfig {
 }
 
 /// Enum representing the position of the cosmic text.
-#[derive(Clone, Component, Default)]
+#[derive(Clone, Component)]
 pub enum CosmicTextPosition {
-    #[default]
-    Center,
-    TopLeft {
-        padding: i32,
-    },
-    Left {
-        padding: i32,
-    },
+    Center { padding: i32 },
+    TopLeft { padding: i32 },
+    Left { padding: i32 },
+}
+
+impl Default for CosmicTextPosition {
+    fn default() -> Self {
+        CosmicTextPosition::Center { padding: 5 }
+    }
 }
 
 #[derive(Event, Debug)]
@@ -77,7 +78,10 @@ pub struct CosmicFontSystem(pub FontSystem);
 pub struct ReadOnly; // tag component
 
 #[derive(Component, Debug, Default)]
-pub struct XOffset(Option<(f32, f32)>);
+pub struct XOffset {
+    pub left: f32,
+    pub width: f32,
+}
 
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor {
@@ -170,7 +174,7 @@ impl Default for CosmicEditBundle {
                 visibility: Visibility::Hidden,
                 ..default()
             },
-            x_offset: XOffset(None),
+            x_offset: Default::default(),
             padding: Default::default(),
             widget_size: Default::default(),
         }
@@ -215,7 +219,7 @@ impl Plugin for CosmicEditPlugin {
             set_widget_size,
             set_buffer_size,
             set_padding,
-            set_cursor,
+            set_x_offset,
         )
             .chain();
 

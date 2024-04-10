@@ -101,7 +101,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 lines,
                 attrs,
             ),
-            text_position: bevy_cosmic_edit::CosmicTextPosition::Center,
             ..default()
         })
         .id();
@@ -117,7 +116,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 "Widget 2.\nClick on me =>",
                 attrs_2,
             ),
-            text_position: CosmicTextPosition::Center,
             ..default()
         })
         .id();

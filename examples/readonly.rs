@@ -23,7 +23,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     // spawn editor
     let cosmic_edit = commands
         .spawn(CosmicEditBundle {
-            text_position: CosmicTextPosition::Center,
             buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
                 &mut font_system,
                 "😀😀😀 x => y\nRead only widget",

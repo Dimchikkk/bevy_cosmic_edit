@@ -27,7 +27,6 @@ fn setup(
             "😀😀😀 x => y",
             attrs,
         ),
-        text_position: CosmicTextPosition::Center,
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
