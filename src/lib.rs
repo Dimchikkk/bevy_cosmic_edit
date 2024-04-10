@@ -78,8 +78,8 @@ pub struct ReadOnly; // tag component
 
 #[derive(Component, Debug, Default)]
 pub struct XOffset {
-    pub min: f32,
-    pub max: f32,
+    pub left: f32,
+    pub width: f32,
 }
 
 #[derive(Component, Deref, DerefMut)]

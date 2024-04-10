@@ -153,7 +153,7 @@ pub(crate) fn input_mouse(
                 camera_transform,
             ) {
                 let (mut x, y) = point(node_cursor_pos);
-                x += x_offset.min as i32;
+                x += x_offset.left as i32;
                 if shift {
                     editor.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
@@ -193,7 +193,7 @@ pub(crate) fn input_mouse(
                 camera_transform,
             ) {
                 let (mut x, y) = point(node_cursor_pos);
-                x += x_offset.min as i32;
+                x += x_offset.left as i32;
                 if active_editor.is_changed() && !shift {
                     editor.action(&mut font_system.0, Action::Click { x, y });
                 } else {
@@ -355,13 +355,28 @@ pub(crate) fn input_kb(
         if keys.just_pressed(KeyCode::Backspace) & !readonly {
             // fix for issue #8
             let select = editor.selection();
-            if select != Selection::None {
-                // TODO: fix zero-width selections if needed
-                //
-                // if editor.cursor().line == select.line && editor.cursor().index == select.index {
-                //     editor.set_selection(Selection::None);
-                // }
+            match select {
+                Selection::Line(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::Normal(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::Word(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::None => {}
             }
+
             *is_deleting = true;
             #[cfg(target_arch = "wasm32")]
             editor.action(&mut font_system.0, Action::Backspace);
@@ -372,6 +387,7 @@ pub(crate) fn input_kb(
         }
         if keys.just_pressed(KeyCode::Delete) && !readonly {
             editor.action(&mut font_system.0, Action::Delete);
+            editor.with_buffer_mut(|b| b.set_redraw(true));
         }
         if keys.just_pressed(KeyCode::Escape) {
             editor.action(&mut font_system.0, Action::Escape);

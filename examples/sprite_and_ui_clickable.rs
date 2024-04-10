@@ -16,6 +16,7 @@ fn setup(mut commands: Commands) {
             )),
             max_lines: CosmicMaxLines(1),
             mode: CosmicMode::InfiniteLine,
+            text_position: CosmicTextPosition::Left { padding: 5 },
             ..default()
         })
         .id();
@@ -36,6 +37,8 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((CosmicEditBundle {
+        max_lines: CosmicMaxLines(1),
+        mode: CosmicMode::InfiniteLine,
         sprite_bundle: SpriteBundle {
             // Sets size of text box
             sprite: Sprite {

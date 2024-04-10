@@ -120,25 +120,26 @@ pub fn set_x_offset(
         &CosmicMode,
         &CosmicEditor,
         &CosmicWidgetSize,
-        &CosmicPadding,
+        &CosmicTextPosition,
     )>,
 ) {
-    for (mut x_offset, mode, editor, size, padding) in query.iter_mut() {
+    for (mut x_offset, mode, editor, size, position) in query.iter_mut() {
         if mode != &CosmicMode::InfiniteLine {
             return;
         }
 
         let mut cursor_x = 0.;
+        let cursor = editor.cursor();
 
         if let Some(line) = editor.with_buffer(|b| b.clone()).layout_runs().next() {
             for (idx, glyph) in line.glyphs.iter().enumerate() {
-                if editor.cursor().affinity == Affinity::Before {
-                    if idx <= editor.cursor().index {
+                if cursor.affinity == Affinity::Before {
+                    if idx <= cursor.index {
                         cursor_x += glyph.w;
                     } else {
                         break;
                     }
-                } else if idx < editor.cursor().index {
+                } else if idx < cursor.index {
                     cursor_x += glyph.w;
                 } else {
                     break;
@@ -146,19 +147,25 @@ pub fn set_x_offset(
             }
         }
 
-        if x_offset.min == 0. && x_offset.max == 0. {
-            x_offset.max = size.x;
+        let padding_x = match position {
+            CosmicTextPosition::Center => 5.,
+            CosmicTextPosition::TopLeft { padding } => *padding as f32,
+            CosmicTextPosition::Left { padding } => *padding as f32,
+        };
+
+        if x_offset.width == 0. {
+            x_offset.width = size.x - padding_x * 2.;
         }
 
-        if cursor_x > x_offset.max {
-            let diff = cursor_x - x_offset.max;
-            x_offset.min += diff;
-            x_offset.max = cursor_x;
+        let right = x_offset.width + x_offset.left;
+
+        if cursor_x > right {
+            let diff = cursor_x - right;
+            x_offset.left += diff;
         }
-        if cursor_x < x_offset.min {
-            let diff = x_offset.min - cursor_x;
-            x_offset.min = cursor_x;
-            x_offset.max -= diff;
+        if cursor_x < x_offset.left {
+            let diff = x_offset.left - cursor_x;
+            x_offset.left -= diff;
         }
     }
 }

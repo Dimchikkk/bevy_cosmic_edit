@@ -4,8 +4,8 @@ use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
     layout::{CosmicPadding, CosmicWidgetSize},
-    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, CursorColor, DefaultAttrs,
-    FillColor, ReadOnly, SelectionColor, XOffset,
+    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextPosition,
+    CursorColor, DefaultAttrs, FillColor, ReadOnly, SelectionColor, XOffset,
 };
 
 #[derive(Resource)]
@@ -77,6 +77,7 @@ pub(crate) fn render_texture(
         &CosmicPadding,
         &XOffset,
         Option<&ReadOnly>,
+        &CosmicTextPosition,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
@@ -95,6 +96,7 @@ pub(crate) fn render_texture(
         padding,
         x_offset,
         readonly_opt,
+        position,
     ) in query.iter_mut()
     {
         // Draw background
@@ -133,6 +135,11 @@ pub(crate) fn render_texture(
             .color_opt
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
+        let x_offset_divisor = match position {
+            CosmicTextPosition::Center => 2.,
+            _ => 1.,
+        };
+
         let draw_closure = |x, y, w, h, color| {
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
@@ -140,8 +147,8 @@ pub(crate) fn render_texture(
                         &mut pixels,
                         size.0.x as i32,
                         size.0.y as i32,
-                        x + col + padding.0.x as i32 - x_offset.min as i32,
-                        y + row + padding.0.y as i32,
+                        x + col + padding.x as i32 - (x_offset.left / x_offset_divisor) as i32,
+                        y + row + padding.y as i32,
                         color,
                     );
                 }
