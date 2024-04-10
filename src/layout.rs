@@ -148,6 +148,7 @@ pub fn set_x_offset(
         }
 
         let padding_x = match position {
+            // TODO: This 5 should be specified by user
             CosmicTextPosition::Center => 5.,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
             CosmicTextPosition::Left { padding } => *padding as f32,
