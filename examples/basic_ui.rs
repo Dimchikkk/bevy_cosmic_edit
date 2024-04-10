@@ -23,7 +23,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 vec![("Banana", attrs)],
                 attrs,
             ),
-            text_position: CosmicTextPosition::Center,
             ..default()
         },))
         .id();

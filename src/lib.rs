@@ -55,16 +55,17 @@ pub enum CursorConfig {
 }
 
 /// Enum representing the position of the cosmic text.
-#[derive(Clone, Component, Default)]
+#[derive(Clone, Component)]
 pub enum CosmicTextPosition {
-    #[default]
-    Center,
-    TopLeft {
-        padding: i32,
-    },
-    Left {
-        padding: i32,
-    },
+    Center { padding: i32 },
+    TopLeft { padding: i32 },
+    Left { padding: i32 },
+}
+
+impl Default for CosmicTextPosition {
+    fn default() -> Self {
+        CosmicTextPosition::Center { padding: 5 }
+    }
 }
 
 #[derive(Event, Debug)]

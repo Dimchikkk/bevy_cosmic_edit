@@ -46,7 +46,7 @@ pub fn set_padding(
         }
 
         padding.0 = match position {
-            CosmicTextPosition::Center => Vec2::new(
+            CosmicTextPosition::Center { padding: _ } => Vec2::new(
                 get_x_offset_center(size.0.x, &buffer) as f32,
                 get_y_offset_center(size.0.y, &buffer) as f32,
             ),
@@ -91,7 +91,7 @@ pub fn set_buffer_size(
 ) {
     for (mut buffer, mode, size, position) in query.iter_mut() {
         let padding_x = match position {
-            CosmicTextPosition::Center => 0.,
+            CosmicTextPosition::Center { padding: _ } => 0.,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
             CosmicTextPosition::Left { padding } => *padding as f32,
         };
@@ -148,8 +148,7 @@ pub fn set_x_offset(
         }
 
         let padding_x = match position {
-            // TODO: This 5 should be specified by user
-            CosmicTextPosition::Center => 5.,
+            CosmicTextPosition::Center { padding } => *padding as f32,
             CosmicTextPosition::TopLeft { padding } => *padding as f32,
             CosmicTextPosition::Left { padding } => *padding as f32,
         };

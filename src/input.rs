@@ -123,7 +123,7 @@ pub(crate) fn input_mouse(
         }
 
         let (padding_x, padding_y) = match text_position {
-            CosmicTextPosition::Center => (
+            CosmicTextPosition::Center { padding: _ } => (
                 get_x_offset_center(width * scale_factor, &buffer),
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
