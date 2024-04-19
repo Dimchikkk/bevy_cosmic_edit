@@ -203,6 +203,9 @@ impl Default for CosmicFontConfig {
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KbInput;
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Render;
+
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
@@ -248,6 +251,7 @@ impl Plugin for CosmicEditPlugin {
                 render_texture,
             )
                 .chain()
+                .in_set(Render)
                 .after(TransformSystem::TransformPropagate),
         )
         .init_resource::<FocusedWidget>()
@@ -286,6 +290,9 @@ impl Plugin for CosmicEditPlugin {
 fn add_feature_plugins(app: &mut App) -> &mut App {
     #[cfg(feature = "placeholder")]
     app.add_plugins(plugins::placeholder::PlaceholderPlugin);
+
+    #[cfg(feature = "password")]
+    app.add_plugins(plugins::password::PasswordPlugin);
 
     app
 }
