@@ -1,5 +1,9 @@
 # Changelog 
 
+## Version 0.19.0 (2024)
+
+- Fix text mode that allows arbitrary length string
+
 ## Version 0.18.0 (2024)
 
 - Add text placeholder plugin
