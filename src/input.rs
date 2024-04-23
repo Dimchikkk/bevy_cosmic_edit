@@ -227,9 +227,6 @@ pub(crate) fn input_mouse(
     }
 }
 
-#[derive(Component)]
-pub struct PasswordInput; // PLACEHOLDER bc this fn uses it's presence
-
 // TODO: split copy/paste into own fn, separate fn for wasm
 pub(crate) fn input_kb(
     active_editor: Res<FocusedWidget>,
@@ -242,7 +239,6 @@ pub(crate) fn input_kb(
         &CosmicMaxChars,
         Entity,
         Option<&ReadOnly>,
-        Option<&PasswordInput>,
     )>,
     mut evw_changed: EventWriter<CosmicTextChanged>,
     mut font_system: ResMut<CosmicFontSystem>,
@@ -253,7 +249,7 @@ pub(crate) fn input_kb(
         return;
     };
 
-    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt, password_opt)) =
+    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
         cosmic_edit_query.get_mut(active_editor_entity)
     {
         if keys.get_just_pressed().len() != 0 {
@@ -436,18 +432,12 @@ pub(crate) fn input_kb(
         {
             if let Ok(mut clipboard) = arboard::Clipboard::new() {
                 if command && keys.just_pressed(KeyCode::KeyC) {
-                    if password_opt.is_some() {
-                        return;
-                    }
                     if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         return;
                     }
                 }
                 if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
-                    if password_opt.is_some() {
-                        return;
-                    }
                     if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         editor.delete_selection();
@@ -463,10 +453,6 @@ pub(crate) fn input_kb(
                                         editor.action(&mut font_system.0, Action::Insert(c));
                                     }
                                 } else {
-                                    if password_opt.is_some() && c.len_utf8() > 1 {
-                                        println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
-                                        continue;
-                                    }
                                     editor.action(&mut font_system.0, Action::Insert(c));
                                 }
                             }
@@ -480,9 +466,6 @@ pub(crate) fn input_kb(
         #[cfg(target_arch = "wasm32")]
         {
             if command && keys.just_pressed(KeyCode::KeyC) {
-                if password_opt.is_some() {
-                    return;
-                }
                 if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     return;
@@ -490,9 +473,6 @@ pub(crate) fn input_kb(
             }
 
             if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
-                if password_opt.is_some() {
-                    return;
-                }
                 if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     editor.delete_selection();
@@ -540,10 +520,6 @@ pub(crate) fn input_kb(
                 if *is_deleting {
                     editor.action(&mut font_system.0, Action::Backspace);
                 } else if !command && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0) {
-                    if password_opt.is_some() && char_ev.char.len() > 1 {
-                        println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",char_ev.char);
-                        continue;
-                    }
                     let b = char_ev.char.as_bytes();
                     for c in b {
                         let c: char = (*c).into();

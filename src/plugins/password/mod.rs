@@ -1,13 +1,22 @@
 use bevy::prelude::*;
 use cosmic_text::{Buffer, Edit, Shaping};
 
-use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, Render};
+use crate::{
+    input::input_mouse, CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, Render,
+};
 
 pub struct PasswordPlugin;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            PreUpdate,
+            (
+                hide_password_text.before(input_mouse),
+                restore_password_text.after(input_mouse),
+            ),
+        )
+        .add_systems(
             PostUpdate,
             (
                 hide_password_text.before(Render),
