@@ -39,7 +39,7 @@ fn main() {
             (
                 change_active_editor_sprite,
                 deselect_editor_on_esc,
-                print_editor_text,
+                print_editor_text.after(KbInput),
             ),
         )
         .run();
