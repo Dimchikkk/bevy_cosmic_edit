@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use cosmic_text::{Buffer, Edit, Shaping};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     input::{input_mouse, kb_input_text, kb_move_cursor},
@@ -51,6 +52,22 @@ impl Default for Password {
     }
 }
 
+// TODO: impl this on buffer
+fn get_text(buffer: &mut Buffer) -> String {
+    let mut text = String::new();
+    let line_count = buffer.lines.len();
+
+    for (i, line) in buffer.lines.iter().enumerate() {
+        text.push_str(line.text());
+
+        if i < line_count - 1 {
+            text.push('\n');
+        }
+    }
+
+    text
+}
+
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
@@ -62,44 +79,31 @@ fn hide_password_text(
 ) {
     for (mut password, mut buffer, attrs, editor_opt) in q.iter_mut() {
         if let Some(mut editor) = editor_opt {
+            let mut cursor = editor.cursor();
+
             editor.with_buffer_mut(|buffer| {
-                fn get_text(buffer: &mut Buffer) -> String {
-                    let mut text = String::new();
-                    let line_count = buffer.lines.len();
-
-                    for (i, line) in buffer.lines.iter().enumerate() {
-                        text.push_str(line.text());
-
-                        if i < line_count - 1 {
-                            text.push('\n');
-                        }
-                    }
-
-                    text
-                }
-
                 let text = get_text(buffer);
+
+                let (pre, _post) = text.split_at(cursor.index);
+
+                let graphemes = pre.graphemes(true).count();
+
+                cursor.index = graphemes * password.glyph.len_utf8();
+
                 buffer.set_text(
                     &mut font_system,
-                    password.glyph.to_string().repeat(text.len()).as_str(),
+                    password
+                        .glyph
+                        .to_string()
+                        .repeat(text.graphemes(true).count())
+                        .as_str(),
                     attrs.as_attrs(),
                     Shaping::Advanced,
                 );
 
-                for (i, c) in text.char_indices() {
-                    if !text.is_char_boundary(i) || c.len_utf8() > 1 {
-                        panic!("Widechars (like {c}) are not yet supported in password fields.")
-                    }
-                }
-
                 password.real_text = text;
             });
 
-            let mut cursor = editor.cursor();
-            cursor.index *= password.glyph.len_utf8(); // HACK: multiply cursor position assuming no widechars are input
-                                                       // TODO: Count characters until cursor and set new position accordingly,
-                                                       // noting the previous location for restoring
-                                                       // TODO: Look into unicode graphemes
             editor.set_cursor(cursor);
 
             continue;
@@ -127,17 +131,39 @@ fn restore_password_text(
 ) {
     for (password, mut buffer, attrs, editor_opt) in q.iter_mut() {
         if let Some(mut editor) = editor_opt {
+            let mut cursor = editor.cursor();
+            let mut index = 0;
+
             editor.with_buffer_mut(|buffer| {
+                let text = get_text(buffer);
+                let (pre, _post) = text.split_at(cursor.index);
+
+                let grapheme_count = pre.graphemes(true).count();
+
+                let mut g_idx = 0;
+                for (i, _c) in password.real_text.grapheme_indices(true) {
+                    if g_idx == grapheme_count {
+                        index = i;
+                    }
+                    g_idx += 1;
+                }
+
+                // TODO: save/restore with selection bounds
+
+                if cursor.index > 0 && index == 0 {
+                    index = password.real_text.len();
+                }
+
                 buffer.set_text(
                     &mut font_system,
                     password.real_text.as_str(),
                     attrs.as_attrs(),
                     Shaping::Advanced,
-                )
+                );
             });
 
-            let mut cursor = editor.cursor();
-            cursor.index /= password.glyph.len_utf8(); // HACK: restore cursor position assuming no widechars are input
+            cursor.index = index;
+
             editor.set_cursor(cursor);
 
             continue;
