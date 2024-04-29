@@ -2,11 +2,12 @@
 
 mod buffer;
 mod cursor;
-pub mod focus;
+mod focus;
 mod input;
-pub mod password;
-pub mod placeholder;
+mod password;
+mod placeholder;
 mod render;
+pub mod util;
 mod widget;
 
 use std::{path::PathBuf, time::Duration};
