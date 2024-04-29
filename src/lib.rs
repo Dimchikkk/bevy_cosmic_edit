@@ -3,6 +3,7 @@
 mod buffer;
 mod cosmic_edit;
 mod cursor;
+mod events;
 mod focus;
 mod input;
 mod password;
@@ -22,6 +23,7 @@ pub use cosmic_text::{
     FontSystem, Metrics, Shaping, Style as FontStyle, Weight as FontWeight,
 };
 pub use cursor::*;
+pub use events::*;
 pub use focus::*;
 pub use input::*;
 pub use password::*;
@@ -29,6 +31,7 @@ pub use placeholder::*;
 pub use render::*;
 pub use util::*;
 pub use widget::*;
+
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
@@ -51,9 +54,9 @@ impl Plugin for CosmicEditPlugin {
             },
             PlaceholderPlugin,
             PasswordPlugin,
+            EventsPlugin,
         ))
-        .insert_resource(CosmicFontSystem(font_system))
-        .add_event::<CosmicTextChanged>();
+        .insert_resource(CosmicFontSystem(font_system));
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -74,30 +77,6 @@ pub enum CursorConfig {
     Default,
     Events,
     None,
-}
-
-#[derive(Event, Debug)]
-pub struct CosmicTextChanged(pub (Entity, String));
-
-#[derive(Resource, Deref, DerefMut)]
-pub struct CosmicFontSystem(pub FontSystem);
-
-#[derive(Component, Deref, DerefMut)]
-pub struct CosmicEditor {
-    #[deref]
-    pub editor: Editor<'static>,
-    pub cursor_visible: bool,
-    pub cursor_timer: Timer,
-}
-
-impl CosmicEditor {
-    fn new(editor: Editor<'static>) -> Self {
-        Self {
-            editor,
-            cursor_visible: true,
-            cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
-        }
-    }
 }
 
 /// Resource struct that holds configuration options for cosmic fonts.
@@ -134,19 +113,6 @@ fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem
         db.load_system_fonts();
     }
     cosmic_text::FontSystem::new_with_locale_and_db(locale, db)
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn get_timestamp() -> f64 {
-    js_sys::Date::now()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn get_timestamp() -> f64 {
-    use std::time::SystemTime;
-    use std::time::UNIX_EPOCH;
-    let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    duration.as_millis() as f64
 }
 
 #[cfg(test)]

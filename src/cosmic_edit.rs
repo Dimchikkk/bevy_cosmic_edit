@@ -110,3 +110,24 @@ impl Default for CosmicEditBundle {
         }
     }
 }
+
+#[derive(Resource, Deref, DerefMut)]
+pub struct CosmicFontSystem(pub FontSystem);
+
+#[derive(Component, Deref, DerefMut)]
+pub struct CosmicEditor {
+    #[deref]
+    pub editor: Editor<'static>,
+    pub cursor_visible: bool,
+    pub cursor_timer: Timer,
+}
+
+impl CosmicEditor {
+    pub fn new(editor: Editor<'static>) -> Self {
+        Self {
+            editor,
+            cursor_visible: true,
+            cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
+        }
+    }
+}
