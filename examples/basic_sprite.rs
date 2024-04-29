@@ -1,6 +1,5 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::{focus::FocusedWidget, *};
-use util::{change_active_editor_sprite, deselect_editor_on_esc, print_editor_text};
+use bevy_cosmic_edit::*;
 
 fn setup(
     mut commands: Commands,

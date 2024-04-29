@@ -1,6 +1,5 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::*;
-use util::{bevy_color_to_cosmic, change_active_editor_sprite};
 
 fn setup(
     mut commands: Commands,

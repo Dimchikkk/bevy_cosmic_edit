@@ -7,7 +7,7 @@ mod input;
 mod password;
 mod placeholder;
 mod render;
-pub mod util;
+mod util;
 mod widget;
 
 use std::{path::PathBuf, time::Duration};
@@ -22,11 +22,10 @@ pub use cosmic_text::{
 pub use cursor::*;
 pub use focus::*;
 pub use input::*;
-#[cfg(target_arch = "wasm32")]
-use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 pub use password::*;
 pub use placeholder::*;
 pub use render::*;
+pub use util::*;
 pub use widget::*;
 
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
