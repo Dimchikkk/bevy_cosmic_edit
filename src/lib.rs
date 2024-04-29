@@ -26,7 +26,7 @@ use cosmic_text::{Buffer, Editor, FontSystem, SwashCache};
 use cursor::{change_cursor, hover_sprites, hover_ui};
 pub use cursor::{TextHoverIn, TextHoverOut};
 pub use focus::*;
-use input::{input_kb, input_mouse, ClickTimer};
+use input::{input_mouse, kb_clipboard, kb_input_text, kb_move_cursor, ClickTimer};
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
 use layout::{
@@ -203,6 +203,9 @@ impl Default for CosmicFontConfig {
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KbInput;
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Render;
+
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
@@ -237,7 +240,12 @@ impl Plugin for CosmicEditPlugin {
         .add_systems(PreUpdate, (input_mouse,).chain())
         .add_systems(
             Update,
-            (input_kb, reshape, blink_cursor).chain().in_set(KbInput),
+            (
+                (kb_move_cursor, kb_input_text, kb_clipboard, reshape)
+                    .chain()
+                    .in_set(KbInput),
+                blink_cursor,
+            ),
         )
         .add_systems(
             PostUpdate,
@@ -248,6 +256,7 @@ impl Plugin for CosmicEditPlugin {
                 render_texture,
             )
                 .chain()
+                .in_set(Render)
                 .after(TransformSystem::TransformPropagate),
         )
         .init_resource::<FocusedWidget>()
@@ -284,8 +293,8 @@ impl Plugin for CosmicEditPlugin {
 }
 
 fn add_feature_plugins(app: &mut App) -> &mut App {
-    #[cfg(feature = "placeholder")]
     app.add_plugins(plugins::placeholder::PlaceholderPlugin);
+    app.add_plugins(plugins::password::PasswordPlugin);
 
     app
 }

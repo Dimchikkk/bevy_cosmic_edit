@@ -13,7 +13,6 @@ exclude = ["assets/*"]
 
 [features]
 multicam = []
-placeholder = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -33,10 +32,11 @@ bevy = { version = "0.13", default-features = false, features = [
 ] }
 cosmic-text = { version = "0.11.2" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
+unicode-segmentation = { version = "1.11.0" }
+
 crossbeam-channel = "0.5.8"
 image = "0.24.6"
 sys-locale = "0.3.0"
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = "3.2.0"
 

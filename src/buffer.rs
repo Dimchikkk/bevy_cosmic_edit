@@ -1,6 +1,36 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
+pub trait BufferExtras {
+    fn get_text(&self) -> String;
+}
+
+impl BufferExtras for Buffer {
+    /// Retrieves the text content from a buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * none, takes the rust magic ref to self
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the cosmic text content.
+    fn get_text(&self) -> String {
+        let mut text = String::new();
+        let line_count = self.lines.len();
+
+        for (i, line) in self.lines.iter().enumerate() {
+            text.push_str(line.text());
+
+            if i < line_count - 1 {
+                text.push('\n');
+            }
+        }
+
+        text
+    }
+}
+
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicBuffer(pub Buffer);
 
@@ -66,29 +96,6 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
-    /// Retrieves the cosmic text content from a buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * none, takes the rust magic ref to self
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the cosmic text content.
-    pub fn get_text(&self) -> String {
-        let mut text = String::new();
-        let line_count = self.lines.len();
-
-        for (i, line) in self.lines.iter().enumerate() {
-            text.push_str(line.text());
-
-            if i < line_count - 1 {
-                text.push('\n');
-            }
-        }
-
-        text
-    }
     /// Returns texts from a MultiStyle buffer
     pub fn get_text_spans(&self, default_attrs: AttrsOwned) -> Vec<Vec<(String, AttrsOwned)>> {
         // TODO: untested!

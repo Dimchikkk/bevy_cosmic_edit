@@ -416,6 +416,7 @@ dependencies = [
  "insta",
  "js-sys",
  "sys-locale",
+ "unicode-segmentation",
  "util",
  "wasm-bindgen",
  "wasm-bindgen-futures",

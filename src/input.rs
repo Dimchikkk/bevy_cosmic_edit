@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use crate::{
-    buffer::{get_x_offset_center, get_y_offset_center},
+    buffer::{get_x_offset_center, get_y_offset_center, BufferExtras},
     get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
     CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly,
     XOffset,
@@ -227,40 +227,20 @@ pub(crate) fn input_mouse(
     }
 }
 
-#[derive(Component)]
-pub struct PasswordInput; // PLACEHOLDER bc this fn uses it's presence
-
-// TODO: split copy/paste into own fn, separate fn for wasm
-pub(crate) fn input_kb(
+pub fn kb_move_cursor(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut char_evr: EventReader<ReceivedCharacter>,
-    mut cosmic_edit_query: Query<(
-        &mut CosmicEditor,
-        &mut CosmicBuffer,
-        &CosmicMaxLines,
-        &CosmicMaxChars,
-        Entity,
-        Option<&ReadOnly>,
-        Option<&PasswordInput>,
-    )>,
-    mut evw_changed: EventWriter<CosmicTextChanged>,
+    mut cosmic_edit_query: Query<(&mut CosmicEditor,)>,
     mut font_system: ResMut<CosmicFontSystem>,
-    mut is_deleting: Local<bool>,
-    _channel: Option<Res<WasmPasteAsyncChannel>>,
 ) {
     let Some(active_editor_entity) = active_editor.0 else {
         return;
     };
-
-    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt, password_opt)) =
-        cosmic_edit_query.get_mut(active_editor_entity)
-    {
+    if let Ok((mut editor,)) = cosmic_edit_query.get_mut(active_editor_entity) {
         if keys.get_just_pressed().len() != 0 {
             editor.cursor_visible = true;
             editor.cursor_timer.reset();
         }
-        let readonly = readonly_opt.is_some();
 
         let command = keypress_command(&keys);
 
@@ -277,10 +257,10 @@ pub(crate) fn input_kb(
             command
         };
 
-        let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-
         #[cfg(target_os = "macos")]
         let option = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
+
+        let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         // if shift key is pressed
         let already_has_selection = editor.selection() != Selection::None;
@@ -351,44 +331,6 @@ pub(crate) fn input_kb(
             }
             return;
         }
-
-        if keys.just_pressed(KeyCode::Backspace) & !readonly {
-            // fix for issue #8
-            let select = editor.selection();
-            match select {
-                Selection::Line(cursor) => {
-                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
-                    {
-                        editor.set_selection(Selection::None);
-                    }
-                }
-                Selection::Normal(cursor) => {
-                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
-                    {
-                        editor.set_selection(Selection::None);
-                    }
-                }
-                Selection::Word(cursor) => {
-                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
-                    {
-                        editor.set_selection(Selection::None);
-                    }
-                }
-                Selection::None => {}
-            }
-
-            *is_deleting = true;
-            #[cfg(target_arch = "wasm32")]
-            editor.action(&mut font_system.0, Action::Backspace);
-        }
-
-        if keys.just_released(KeyCode::Backspace) {
-            *is_deleting = false;
-        }
-        if keys.just_pressed(KeyCode::Delete) && !readonly {
-            editor.action(&mut font_system.0, Action::Delete);
-            editor.with_buffer_mut(|b| b.set_redraw(true));
-        }
         if keys.just_pressed(KeyCode::Escape) {
             editor.action(&mut font_system.0, Action::Escape);
         }
@@ -428,26 +370,155 @@ pub(crate) fn input_kb(
             if !shift {
                 editor.set_selection(Selection::None);
             }
+        }
+    }
+}
+
+pub(crate) fn kb_input_text(
+    active_editor: Res<FocusedWidget>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut char_evr: EventReader<ReceivedCharacter>,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,
+        &mut CosmicBuffer,
+        &CosmicMaxLines,
+        &CosmicMaxChars,
+        Entity,
+        Option<&ReadOnly>,
+    )>,
+    mut evw_changed: EventWriter<CosmicTextChanged>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut is_deleting: Local<bool>,
+) {
+    let Some(active_editor_entity) = active_editor.0 else {
+        return;
+    };
+
+    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
+        cosmic_edit_query.get_mut(active_editor_entity)
+    {
+        let command = keypress_command(&keys);
+        if keys.get_just_pressed().len() != 0 {
+            editor.cursor_visible = true;
+            editor.cursor_timer.reset();
+        }
+        let readonly = readonly_opt.is_some();
+
+        if keys.just_pressed(KeyCode::Backspace) & !readonly {
+            // fix for issue #8
+            let select = editor.selection();
+            match select {
+                Selection::Line(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::Normal(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::Word(cursor) => {
+                    if editor.cursor().line == cursor.line && editor.cursor().index == cursor.index
+                    {
+                        editor.set_selection(Selection::None);
+                    }
+                }
+                Selection::None => {}
+            }
+
+            *is_deleting = true;
+            #[cfg(target_arch = "wasm32")]
+            editor.action(&mut font_system.0, Action::Backspace);
+        }
+
+        if keys.just_released(KeyCode::Backspace) {
+            *is_deleting = false;
+        }
+        if keys.just_pressed(KeyCode::Delete) && !readonly {
+            editor.action(&mut font_system.0, Action::Delete);
+            editor.with_buffer_mut(|b| b.set_redraw(true));
+        }
+
+        if readonly {
             return;
         }
+
+        let mut is_edit = false;
+        let mut is_return = false;
+        if keys.just_pressed(KeyCode::Enter) {
+            is_return = true;
+            if (max_lines.0 == 0 || buffer.lines.len() < max_lines.0)
+                && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
+            {
+                // to have new line on wasm rather than E
+                is_edit = true;
+                editor.action(&mut font_system.0, Action::Insert('\n'));
+            }
+        }
+
+        if !is_return {
+            for char_ev in char_evr.read() {
+                is_edit = true;
+                if *is_deleting {
+                    editor.action(&mut font_system.0, Action::Backspace);
+                } else if !command && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0) {
+                    let b = char_ev.char.as_bytes();
+                    for c in b {
+                        let c: char = (*c).into();
+                        editor.action(&mut font_system.0, Action::Insert(c));
+                    }
+                }
+            }
+        }
+
+        if !is_edit {
+            return;
+        }
+
+        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
+    }
+}
+
+pub fn kb_clipboard(
+    active_editor: Res<FocusedWidget>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut evw_changed: EventWriter<CosmicTextChanged>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut cosmic_edit_query: Query<(
+        &mut CosmicEditor,
+        &mut CosmicBuffer,
+        &CosmicMaxLines,
+        &CosmicMaxChars,
+        Entity,
+        Option<&ReadOnly>,
+    )>,
+    _channel: Option<Res<WasmPasteAsyncChannel>>,
+) {
+    let Some(active_editor_entity) = active_editor.0 else {
+        return;
+    };
+
+    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
+        cosmic_edit_query.get_mut(active_editor_entity)
+    {
+        let command = keypress_command(&keys);
+
+        let readonly = readonly_opt.is_some();
 
         let mut is_clipboard = false;
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Ok(mut clipboard) = arboard::Clipboard::new() {
                 if command && keys.just_pressed(KeyCode::KeyC) {
-                    if password_opt.is_some() {
-                        return;
-                    }
                     if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         return;
                     }
                 }
                 if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
-                    if password_opt.is_some() {
-                        return;
-                    }
                     if let Some(text) = editor.copy_selection() {
                         clipboard.set_text(text).unwrap();
                         editor.delete_selection();
@@ -463,10 +534,6 @@ pub(crate) fn input_kb(
                                         editor.action(&mut font_system.0, Action::Insert(c));
                                     }
                                 } else {
-                                    if password_opt.is_some() && c.len_utf8() > 1 {
-                                        println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
-                                        continue;
-                                    }
                                     editor.action(&mut font_system.0, Action::Insert(c));
                                 }
                             }
@@ -480,9 +547,6 @@ pub(crate) fn input_kb(
         #[cfg(target_arch = "wasm32")]
         {
             if command && keys.just_pressed(KeyCode::KeyC) {
-                if password_opt.is_some() {
-                    return;
-                }
                 if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     return;
@@ -490,9 +554,6 @@ pub(crate) fn input_kb(
             }
 
             if command && keys.just_pressed(KeyCode::KeyX) && !readonly {
-                if password_opt.is_some() {
-                    return;
-                }
                 if let Some(text) = editor.copy_selection() {
                     write_clipboard_wasm(text.as_str());
                     editor.delete_selection();
@@ -517,43 +578,7 @@ pub(crate) fn input_kb(
             }
         }
 
-        if readonly {
-            return;
-        }
-
-        let mut is_edit = is_clipboard;
-        let mut is_return = false;
-        if keys.just_pressed(KeyCode::Enter) {
-            is_return = true;
-            if (max_lines.0 == 0 || buffer.lines.len() < max_lines.0)
-                && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
-            {
-                // to have new line on wasm rather than E
-                is_edit = true;
-                editor.action(&mut font_system.0, Action::Insert('\n'));
-            }
-        }
-
-        if !(is_clipboard || is_return) {
-            for char_ev in char_evr.read() {
-                is_edit = true;
-                if *is_deleting {
-                    editor.action(&mut font_system.0, Action::Backspace);
-                } else if !command && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0) {
-                    if password_opt.is_some() && char_ev.char.len() > 1 {
-                        println!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",char_ev.char);
-                        continue;
-                    }
-                    let b = char_ev.char.as_bytes();
-                    for c in b {
-                        let c: char = (*c).into();
-                        editor.action(&mut font_system.0, Action::Insert(c));
-                    }
-                }
-            }
-        }
-
-        if !is_edit {
+        if !is_clipboard {
             return;
         }
 
@@ -616,7 +641,6 @@ pub fn poll_wasm_paste(
             &crate::DefaultAttrs,
             &CosmicMaxChars,
             &CosmicMaxChars,
-            Option<&PasswordInput>,
         ),
         Without<ReadOnly>,
     >,
@@ -627,7 +651,7 @@ pub fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, mut buffer, attrs, max_chars, max_lines, password_opt)) =
+            if let Ok((mut editor, mut buffer, attrs, max_chars, max_lines)) =
                 editor_q.get_mut(entity)
             {
                 let text = inlet.text;
@@ -639,10 +663,6 @@ pub fn poll_wasm_paste(
                                 editor.action(&mut font_system.0, Action::Insert(c));
                             }
                         } else {
-                            if password_opt.is_some() && c.len_utf8() > 1 {
-                                info!("Cannot input multi-byte char '{}' to password field! See https://github.com/StaffEngineer/bevy_cosmic_edit/pull/99#issuecomment-1782607486",c);
-                                continue;
-                            }
                             editor.action(&mut font_system.0, Action::Insert(c));
                         }
                     }
