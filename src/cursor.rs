@@ -1,9 +1,34 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
-use crate::{CosmicBuffer, CosmicSource, CosmicTextChanged};
+use crate::{CosmicBuffer, CosmicSource, CosmicTextChanged, CursorConfig};
 
 #[cfg(feature = "multicam")]
 use crate::CosmicPrimaryCamera;
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CursorSet;
+
+pub struct CursorPlugin {
+    pub change_cursor: CursorConfig,
+}
+
+impl Plugin for CursorPlugin {
+    fn build(&self, app: &mut App) {
+        match self.change_cursor {
+            CursorConfig::Default => {
+                app.add_systems(Update, (hover_sprites, hover_ui, change_cursor))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::Events => {
+                app.add_systems(Update, (hover_sprites, hover_ui))
+                    .add_event::<TextHoverIn>()
+                    .add_event::<TextHoverOut>();
+            }
+            CursorConfig::None => {}
+        }
+    }
+}
 
 /// For use with custom cursor control; Event is emitted when cursor enters a text widget
 #[derive(Event)]

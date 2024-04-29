@@ -21,10 +21,28 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::{
     buffer::{get_x_offset_center, get_y_offset_center, BufferExtras},
+    focus::FocusedWidget,
     get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
-    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly,
-    XOffset,
+    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, ReadOnly, XOffset,
 };
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InputSet;
+
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(PreUpdate, input_mouse.in_set(InputSet))
+            .add_systems(
+                Update,
+                (kb_move_cursor, kb_input_text, kb_clipboard)
+                    .chain()
+                    .in_set(InputSet),
+            )
+            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+    }
+}
 
 #[derive(Resource)]
 pub struct ClickTimer(pub Timer);

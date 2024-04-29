@@ -1,10 +1,8 @@
-use crate::{buffer::BufferExtras, Render};
+use crate::{buffer::BufferExtras, input::InputSet, render::RenderSet};
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
 
-use crate::{
-    CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs, KbInput,
-};
+use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs};
 
 #[derive(Component)]
 pub struct Placeholder {
@@ -40,8 +38,8 @@ impl Plugin for PlaceholderPlugin {
                 remove_placeholder_on_input,
             )
                 .chain()
-                .after(KbInput)
-                .before(Render),
+                .after(InputSet)
+                .before(RenderSet),
         );
     }
 }

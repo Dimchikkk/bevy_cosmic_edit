@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::*;
+use bevy_cosmic_edit::{focus::FocusedWidget, *};
 use util::{change_active_editor_ui, deselect_editor_on_esc, print_editor_text};
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {

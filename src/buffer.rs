@@ -1,6 +1,27 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BufferSet;
+
+pub struct BufferPlugin;
+
+impl Plugin for BufferPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            First,
+            (
+                add_font_system,
+                set_initial_scale,
+                set_redraw,
+                set_editor_redraw,
+                swap_target_handle,
+            )
+                .chain(),
+        );
+    }
+}
+
 pub trait BufferExtras {
     fn get_text(&self) -> String;
 }

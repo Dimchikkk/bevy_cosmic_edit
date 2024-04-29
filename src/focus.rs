@@ -3,6 +3,23 @@ use cosmic_text::{Edit, Editor};
 
 use crate::{CosmicBuffer, CosmicEditor};
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FocusSet;
+
+pub struct FocusPlugin;
+
+impl Plugin for FocusPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PostUpdate,
+            (drop_editor_unfocused, add_editor_to_focused)
+                .chain()
+                .in_set(FocusSet),
+        )
+        .init_resource::<FocusedWidget>();
+    }
+}
+
 /// Resource struct that keeps track of the currently active editor entity.
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct FocusedWidget(pub Option<Entity>);

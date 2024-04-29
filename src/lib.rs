@@ -4,36 +4,64 @@ mod buffer;
 mod cursor;
 pub mod focus;
 mod input;
-mod layout;
+pub mod password;
+pub mod placeholder;
 mod render;
-
-mod plugins;
-pub use plugins::*;
+mod widget;
 
 use std::{path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, transform::TransformSystem};
 
-use buffer::{
-    add_font_system, set_editor_redraw, set_initial_scale, set_redraw, swap_target_handle,
-};
-pub use buffer::{get_x_offset_center, get_y_offset_center, CosmicBuffer};
+pub use buffer::*;
 pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Color as CosmicColor, Cursor, Edit, Family, Metrics, Shaping,
-    Style as FontStyle, Weight as FontWeight,
+    Action, Attrs, AttrsOwned, Buffer, Color as CosmicColor, Cursor, Edit, Editor, Family,
+    FontSystem, Metrics, Shaping, Style as FontStyle, Weight as FontWeight,
 };
-use cosmic_text::{Buffer, Editor, FontSystem, SwashCache};
-use cursor::{change_cursor, hover_sprites, hover_ui};
-pub use cursor::{TextHoverIn, TextHoverOut};
+pub use cursor::*;
 pub use focus::*;
-use input::{input_mouse, kb_clipboard, kb_input_text, kb_move_cursor, ClickTimer};
+pub use input::*;
 #[cfg(target_arch = "wasm32")]
 use input::{poll_wasm_paste, WasmPaste, WasmPasteAsyncChannel};
-use layout::{
-    new_image_from_default, reshape, set_buffer_size, set_padding, set_sprite_size_from_ui,
-    set_widget_size, set_x_offset, CosmicPadding, CosmicWidgetSize,
-};
-use render::{blink_cursor, render_texture, SwashCacheState};
+pub use password::*;
+pub use placeholder::*;
+pub use render::*;
+pub use widget::*;
+
+/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
+#[derive(Default)]
+pub struct CosmicEditPlugin {
+    pub font_config: CosmicFontConfig,
+    pub change_cursor: CursorConfig,
+}
+
+impl Plugin for CosmicEditPlugin {
+    fn build(&self, app: &mut App) {
+        let font_system = create_cosmic_font_system(self.font_config.clone());
+
+        app.add_plugins((
+            BufferPlugin,
+            RenderPlugin,
+            WidgetPlugin,
+            InputPlugin,
+            FocusPlugin,
+            CursorPlugin {
+                change_cursor: self.change_cursor.clone(),
+            },
+            PlaceholderPlugin,
+            PasswordPlugin,
+        ))
+        .insert_resource(CosmicFontSystem(font_system))
+        .add_event::<CosmicTextChanged>();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
+            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
+                .add_systems(Update, poll_wasm_paste);
+        }
+    }
+}
 
 #[cfg(feature = "multicam")]
 #[derive(Component)]
@@ -46,7 +74,7 @@ pub enum CosmicMode {
     Wrap,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum CursorConfig {
     #[default]
     Default,
@@ -198,105 +226,6 @@ impl Default for CosmicFontConfig {
             fonts_dir_path: None,
         }
     }
-}
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct KbInput;
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Render;
-
-/// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
-#[derive(Default)]
-pub struct CosmicEditPlugin {
-    pub font_config: CosmicFontConfig,
-    pub change_cursor: CursorConfig,
-}
-
-impl Plugin for CosmicEditPlugin {
-    fn build(&self, app: &mut App) {
-        let font_system = create_cosmic_font_system(self.font_config.clone());
-
-        let layout_systems = (
-            (new_image_from_default, set_sprite_size_from_ui),
-            set_widget_size,
-            set_buffer_size,
-            set_padding,
-            set_x_offset,
-        )
-            .chain();
-
-        app.add_systems(
-            First,
-            (
-                add_font_system,
-                set_initial_scale,
-                set_redraw,
-                set_editor_redraw,
-                swap_target_handle,
-            )
-                .chain(),
-        )
-        .add_systems(PreUpdate, (input_mouse,).chain())
-        .add_systems(
-            Update,
-            (
-                (kb_move_cursor, kb_input_text, kb_clipboard, reshape)
-                    .chain()
-                    .in_set(KbInput),
-                blink_cursor,
-            ),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                layout_systems,
-                drop_editor_unfocused,
-                add_editor_to_focused,
-                render_texture,
-            )
-                .chain()
-                .in_set(Render)
-                .after(TransformSystem::TransformPropagate),
-        )
-        .init_resource::<FocusedWidget>()
-        .insert_resource(SwashCacheState {
-            swash_cache: SwashCache::new(),
-        })
-        .insert_resource(CosmicFontSystem(font_system))
-        .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)))
-        .add_event::<CosmicTextChanged>();
-
-        match self.change_cursor {
-            CursorConfig::Default => {
-                app.add_systems(Update, (hover_sprites, hover_ui, change_cursor))
-                    .add_event::<TextHoverIn>()
-                    .add_event::<TextHoverOut>();
-            }
-            CursorConfig::Events => {
-                app.add_systems(Update, (hover_sprites, hover_ui))
-                    .add_event::<TextHoverIn>()
-                    .add_event::<TextHoverOut>();
-            }
-            CursorConfig::None => {}
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
-            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
-                .add_systems(Update, poll_wasm_paste);
-        }
-
-        add_feature_plugins(app);
-    }
-}
-
-fn add_feature_plugins(app: &mut App) -> &mut App {
-    app.add_plugins(plugins::placeholder::PlaceholderPlugin);
-    app.add_plugins(plugins::password::PasswordPlugin);
-
-    app
 }
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {

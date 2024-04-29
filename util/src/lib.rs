@@ -1,6 +1,6 @@
 // Common functions for examples
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::*;
+use bevy_cosmic_edit::{focus::FocusedWidget, *};
 
 pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
     if i.just_pressed(KeyCode::Escape) {

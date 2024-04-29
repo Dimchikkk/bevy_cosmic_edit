@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{password::Password, placeholder::Placeholder, *};
+use bevy_cosmic_edit::*;
 use util::{change_active_editor_sprite, deselect_editor_on_esc, print_editor_text};
 
 fn setup(mut commands: Commands) {
@@ -40,7 +40,7 @@ fn main() {
             (
                 change_active_editor_sprite,
                 deselect_editor_on_esc,
-                print_editor_text.after(KbInput),
+                print_editor_text.after(InputSet),
             ),
         )
         .run();

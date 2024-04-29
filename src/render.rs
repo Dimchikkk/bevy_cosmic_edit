@@ -3,10 +3,28 @@ use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};
 
 use crate::{
-    layout::{CosmicPadding, CosmicWidgetSize},
+    widget::{CosmicPadding, CosmicWidgetSize, WidgetSet},
     CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextPosition,
     CursorColor, DefaultAttrs, FillColor, ReadOnly, SelectionColor, XOffset,
 };
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RenderSet;
+
+pub struct RenderPlugin;
+
+impl Plugin for RenderPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(SwashCacheState {
+            swash_cache: SwashCache::new(),
+        })
+        .add_systems(Update, blink_cursor)
+        .add_systems(
+            PostUpdate,
+            (render_texture,).in_set(RenderSet).after(WidgetSet),
+        );
+    }
+}
 
 #[derive(Resource)]
 pub(crate) struct SwashCacheState {
@@ -63,7 +81,7 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
     buffer[offset + 3] = (out.a() * 255.0) as u8;
 }
 
-pub(crate) fn render_texture(
+fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
         &mut CosmicBuffer,
