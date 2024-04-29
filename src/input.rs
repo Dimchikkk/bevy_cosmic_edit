@@ -1,8 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-#[cfg(target_arch = "wasm32")]
-use bevy::tasks::AsyncComputeTaskPool;
-
+use crate::*;
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
@@ -13,18 +11,13 @@ use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 #[cfg(target_arch = "wasm32")]
 use crate::DefaultAttrs;
 #[cfg(target_arch = "wasm32")]
+use bevy::tasks::AsyncComputeTaskPool;
+#[cfg(target_arch = "wasm32")]
 use js_sys::Promise;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
-
-use crate::{
-    buffer::{get_x_offset_center, get_y_offset_center, BufferExtras},
-    focus::FocusedWidget,
-    get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
-    CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, ReadOnly, XOffset,
-};
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputSet;

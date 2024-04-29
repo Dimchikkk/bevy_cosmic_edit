@@ -2,11 +2,6 @@ use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
 
-use self::{
-    buffer::{get_x_offset_center, get_y_offset_center},
-    input::InputSet,
-};
-
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WidgetSet;
 

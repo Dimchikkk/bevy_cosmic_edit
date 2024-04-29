@@ -1,12 +1,7 @@
-use crate::{buffer::BufferExtras, placeholder::Placeholder, render::RenderSet};
+use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
-
-use crate::{
-    input::{input_mouse, kb_input_text, kb_move_cursor},
-    CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs,
-};
 
 pub struct PasswordPlugin;
 

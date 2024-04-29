@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod buffer;
+mod cosmic_edit;
 mod cursor;
 mod focus;
 mod input;
@@ -15,6 +16,7 @@ use std::{path::PathBuf, time::Duration};
 use bevy::{prelude::*, transform::TransformSystem};
 
 pub use buffer::*;
+pub use cosmic_edit::*;
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Buffer, Color as CosmicColor, Cursor, Edit, Editor, Family,
     FontSystem, Metrics, Shaping, Style as FontStyle, Weight as FontWeight,
@@ -27,7 +29,6 @@ pub use placeholder::*;
 pub use render::*;
 pub use util::*;
 pub use widget::*;
-
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
 #[derive(Default)]
 pub struct CosmicEditPlugin {
@@ -67,13 +68,6 @@ impl Plugin for CosmicEditPlugin {
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
 
-#[derive(Clone, Component, PartialEq, Default)]
-pub enum CosmicMode {
-    InfiniteLine,
-    #[default]
-    Wrap,
-}
-
 #[derive(Default, Clone)]
 pub enum CursorConfig {
     #[default]
@@ -82,34 +76,11 @@ pub enum CursorConfig {
     None,
 }
 
-/// Enum representing the position of the cosmic text.
-#[derive(Clone, Component)]
-pub enum CosmicTextPosition {
-    Center { padding: i32 },
-    TopLeft { padding: i32 },
-    Left { padding: i32 },
-}
-
-impl Default for CosmicTextPosition {
-    fn default() -> Self {
-        CosmicTextPosition::Center { padding: 5 }
-    }
-}
-
 #[derive(Event, Debug)]
 pub struct CosmicTextChanged(pub (Entity, String));
 
 #[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
-
-#[derive(Component)]
-pub struct ReadOnly; // tag component
-
-#[derive(Component, Debug, Default)]
-pub struct XOffset {
-    pub left: f32,
-    pub width: f32,
-}
 
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor {
@@ -125,86 +96,6 @@ impl CosmicEditor {
             editor,
             cursor_visible: true,
             cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
-        }
-    }
-}
-
-#[derive(Component, Deref, DerefMut)]
-pub struct DefaultAttrs(pub AttrsOwned);
-
-impl Default for DefaultAttrs {
-    fn default() -> Self {
-        DefaultAttrs(AttrsOwned::new(Attrs::new()))
-    }
-}
-
-#[derive(Component, Default)]
-pub struct CosmicBackground(pub Option<Handle<Image>>);
-
-#[derive(Component, Default, Deref)]
-pub struct FillColor(pub Color);
-
-#[derive(Component, Default, Deref)]
-pub struct CursorColor(pub Color);
-
-#[derive(Component, Default, Deref)]
-pub struct SelectionColor(pub Color);
-
-#[derive(Component, Default)]
-pub struct CosmicMaxLines(pub usize);
-
-#[derive(Component, Default)]
-pub struct CosmicMaxChars(pub usize);
-
-#[derive(Component)]
-pub struct CosmicSource(pub Entity);
-
-#[derive(Bundle)]
-pub struct CosmicEditBundle {
-    // cosmic bits
-    pub buffer: CosmicBuffer,
-    // render bits
-    pub fill_color: FillColor,
-    pub cursor_color: CursorColor,
-    pub selection_color: SelectionColor,
-    pub default_attrs: DefaultAttrs,
-    pub background_image: CosmicBackground,
-    pub sprite_bundle: SpriteBundle,
-    // restriction bits
-    pub max_lines: CosmicMaxLines,
-    pub max_chars: CosmicMaxChars,
-    // layout bits
-    pub x_offset: XOffset,
-    pub mode: CosmicMode,
-    pub text_position: CosmicTextPosition,
-    pub padding: CosmicPadding,
-    pub widget_size: CosmicWidgetSize,
-}
-
-impl Default for CosmicEditBundle {
-    fn default() -> Self {
-        CosmicEditBundle {
-            buffer: Default::default(),
-            fill_color: Default::default(),
-            cursor_color: CursorColor(Color::BLACK),
-            selection_color: SelectionColor(Color::GRAY),
-            text_position: Default::default(),
-            default_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            mode: Default::default(),
-            sprite_bundle: SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::ONE * 128.0),
-                    ..default()
-                },
-                visibility: Visibility::Hidden,
-                ..default()
-            },
-            x_offset: Default::default(),
-            padding: Default::default(),
-            widget_size: Default::default(),
         }
     }
 }
@@ -243,42 +134,6 @@ fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem
         db.load_system_fonts();
     }
     cosmic_text::FontSystem::new_with_locale_and_db(locale, db)
-}
-
-pub fn get_node_cursor_pos(
-    window: &Window,
-    node_transform: &GlobalTransform,
-    size: (f32, f32),
-    is_ui_node: bool,
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-) -> Option<(f32, f32)> {
-    let (x_min, y_min, x_max, y_max) = (
-        node_transform.affine().translation.x - size.0 / 2.,
-        node_transform.affine().translation.y - size.1 / 2.,
-        node_transform.affine().translation.x + size.0 / 2.,
-        node_transform.affine().translation.y + size.1 / 2.,
-    );
-
-    window.cursor_position().and_then(|pos| {
-        if is_ui_node {
-            if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                Some((pos.x - x_min, pos.y - y_min))
-            } else {
-                None
-            }
-        } else {
-            camera
-                .viewport_to_world_2d(camera_transform, pos)
-                .and_then(|pos| {
-                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        Some((pos.x - x_min, y_max - pos.y))
-                    } else {
-                        None
-                    }
-                })
-        }
-    })
 }
 
 #[cfg(target_arch = "wasm32")]

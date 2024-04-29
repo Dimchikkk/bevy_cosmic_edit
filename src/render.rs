@@ -1,12 +1,7 @@
+use crate::*;
 use bevy::{prelude::*, render::render_resource::Extent3d};
 use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};
-
-use crate::{
-    widget::{CosmicPadding, CosmicWidgetSize, WidgetSet},
-    CosmicBackground, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextPosition,
-    CursorColor, DefaultAttrs, FillColor, ReadOnly, SelectionColor, XOffset,
-};
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderSet;

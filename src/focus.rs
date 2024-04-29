@@ -1,7 +1,6 @@
+use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Edit, Editor};
-
-use crate::{CosmicBuffer, CosmicEditor};
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FocusSet;

@@ -1,9 +1,5 @@
+use crate::*;
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
-
-use crate::{CosmicBuffer, CosmicSource, CosmicTextChanged, CursorConfig};
-
-#[cfg(feature = "multicam")]
-use crate::CosmicPrimaryCamera;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CursorSet;

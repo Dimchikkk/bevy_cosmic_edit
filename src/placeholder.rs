@@ -1,8 +1,6 @@
-use crate::{buffer::BufferExtras, input::InputSet, render::RenderSet};
+use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
-
-use crate::{CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicTextChanged, DefaultAttrs};
 
 #[derive(Component)]
 pub struct Placeholder {
