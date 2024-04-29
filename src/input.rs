@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use crate::{
-    buffer::{get_x_offset_center, get_y_offset_center},
+    buffer::{get_x_offset_center, get_y_offset_center, BufferExtras},
     get_node_cursor_pos, CosmicBuffer, CosmicEditor, CosmicFontSystem, CosmicMaxChars,
     CosmicMaxLines, CosmicSource, CosmicTextChanged, CosmicTextPosition, FocusedWidget, ReadOnly,
     XOffset,
@@ -370,7 +370,6 @@ pub fn kb_move_cursor(
             if !shift {
                 editor.set_selection(Selection::None);
             }
-            return;
         }
     }
 }

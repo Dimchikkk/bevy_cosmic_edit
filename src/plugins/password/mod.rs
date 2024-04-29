@@ -1,5 +1,6 @@
+use crate::buffer::BufferExtras;
 use bevy::prelude::*;
-use cosmic_text::{Buffer, Edit, Shaping};
+use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
@@ -11,29 +12,20 @@ pub struct PasswordPlugin;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreUpdate,
-            (
-                hide_password_text.before(input_mouse),
-                restore_password_text.after(input_mouse),
-            ),
-        )
-        .add_systems(
-            Update,
-            (
-                hide_password_text.before(kb_move_cursor),
-                restore_password_text
+        app.add_systems(PreUpdate, (hide_password_text.before(input_mouse),))
+            .add_systems(
+                Update,
+                (restore_password_text
                     .before(kb_input_text)
-                    .after(kb_move_cursor),
-            ),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                hide_password_text.before(Render),
-                restore_password_text.after(Render),
-            ),
-        );
+                    .after(kb_move_cursor),),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    hide_password_text.before(Render),
+                    restore_password_text.after(Render),
+                ),
+            );
     }
 }
 
@@ -52,22 +44,6 @@ impl Default for Password {
     }
 }
 
-// TODO: impl this on buffer
-fn get_text(buffer: &mut Buffer) -> String {
-    let mut text = String::new();
-    let line_count = buffer.lines.len();
-
-    for (i, line) in buffer.lines.iter().enumerate() {
-        text.push_str(line.text());
-
-        if i < line_count - 1 {
-            text.push('\n');
-        }
-    }
-
-    text
-}
-
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
@@ -80,16 +56,35 @@ fn hide_password_text(
     for (mut password, mut buffer, attrs, editor_opt) in q.iter_mut() {
         if let Some(mut editor) = editor_opt {
             let mut cursor = editor.cursor();
+            let mut selection = editor.selection();
 
             editor.with_buffer_mut(|buffer| {
-                let text = get_text(buffer);
+                let text = buffer.get_text();
 
-                let (pre, _post) = text.split_at(cursor.index);
+                // Translate cursor to correct position for blocker glyphs
+                let translate_cursor = |c: &mut Cursor| {
+                    let (pre, _post) = text.split_at(c.index);
+                    let graphemes = pre.graphemes(true).count();
+                    c.index = graphemes * password.glyph.len_utf8();
+                };
 
-                let graphemes = pre.graphemes(true).count();
+                translate_cursor(&mut cursor);
 
-                cursor.index = graphemes * password.glyph.len_utf8();
+                // Translate selection cursor
+                match selection {
+                    Selection::None => {}
+                    Selection::Line(ref mut c) => {
+                        translate_cursor(c);
+                    }
+                    Selection::Word(ref mut c) => {
+                        translate_cursor(c);
+                    }
+                    Selection::Normal(ref mut c) => {
+                        translate_cursor(c);
+                    }
+                }
 
+                // Update text to blockers
                 buffer.set_text(
                     &mut font_system,
                     password
@@ -105,6 +100,7 @@ fn hide_password_text(
             });
 
             editor.set_cursor(cursor);
+            editor.set_selection(selection);
 
             continue;
         }
@@ -132,26 +128,38 @@ fn restore_password_text(
     for (password, mut buffer, attrs, editor_opt) in q.iter_mut() {
         if let Some(mut editor) = editor_opt {
             let mut cursor = editor.cursor();
-            let mut index = 0;
+            let mut selection = editor.selection();
 
             editor.with_buffer_mut(|buffer| {
-                let text = get_text(buffer);
-                let (pre, _post) = text.split_at(cursor.index);
+                let text = buffer.get_text();
 
-                let grapheme_count = pre.graphemes(true).count();
-
-                let mut g_idx = 0;
-                for (i, _c) in password.real_text.grapheme_indices(true) {
-                    if g_idx == grapheme_count {
-                        index = i;
+                // Find cursor position and translate back to correct position in real text
+                let restore_cursor = |c: &mut Cursor| {
+                    let (pre, _post) = text.split_at(c.index);
+                    let graphemes = pre.graphemes(true).count();
+                    let mut n_i = 0;
+                    if let Some((i, _)) = password.real_text.grapheme_indices(true).nth(graphemes) {
+                        n_i = i;
+                    } else if c.index > 0 {
+                        n_i = password.real_text.len();
                     }
-                    g_idx += 1;
-                }
+                    c.index = n_i;
+                };
 
-                // TODO: save/restore with selection bounds
+                restore_cursor(&mut cursor);
 
-                if cursor.index > 0 && index == 0 {
-                    index = password.real_text.len();
+                // Translate selection cursor
+                match selection {
+                    Selection::None => {}
+                    Selection::Line(ref mut c) => {
+                        restore_cursor(c);
+                    }
+                    Selection::Word(ref mut c) => {
+                        restore_cursor(c);
+                    }
+                    Selection::Normal(ref mut c) => {
+                        restore_cursor(c);
+                    }
                 }
 
                 buffer.set_text(
@@ -162,9 +170,8 @@ fn restore_password_text(
                 );
             });
 
-            cursor.index = index;
-
             editor.set_cursor(cursor);
+            editor.set_selection(selection);
 
             continue;
         }
