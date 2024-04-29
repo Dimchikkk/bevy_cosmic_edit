@@ -1,4 +1,4 @@
-use crate::buffer::BufferExtras;
+use crate::{buffer::BufferExtras, Render};
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
 
@@ -21,6 +21,10 @@ impl Placeholder {
             attrs,
         }
     }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
 }
 
 pub struct PlaceholderPlugin;
@@ -36,7 +40,8 @@ impl Plugin for PlaceholderPlugin {
                 remove_placeholder_on_input,
             )
                 .chain()
-                .after(KbInput),
+                .after(KbInput)
+                .before(Render),
         );
     }
 }

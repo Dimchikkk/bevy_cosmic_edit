@@ -1,4 +1,4 @@
-use crate::buffer::BufferExtras;
+use crate::{buffer::BufferExtras, placeholder::Placeholder};
 use bevy::prelude::*;
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
@@ -9,6 +9,9 @@ use crate::{
 };
 
 pub struct PasswordPlugin;
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PasswordSet;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
@@ -22,7 +25,7 @@ impl Plugin for PasswordPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    hide_password_text.before(Render),
+                    hide_password_text.before(Render).in_set(PasswordSet),
                     restore_password_text.after(Render),
                 ),
             );
@@ -50,10 +53,16 @@ fn hide_password_text(
         &mut CosmicBuffer,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
+        Option<&Placeholder>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut password, mut buffer, attrs, editor_opt) in q.iter_mut() {
+    for (mut password, mut buffer, attrs, editor_opt, placeholder_opt) in q.iter_mut() {
+        if let Some(placeholder) = placeholder_opt {
+            if placeholder.is_active() {
+                continue;
+            }
+        }
         if let Some(mut editor) = editor_opt {
             let mut cursor = editor.cursor();
             let mut selection = editor.selection();
@@ -122,10 +131,16 @@ fn restore_password_text(
         &mut CosmicBuffer,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
+        Option<&Placeholder>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (password, mut buffer, attrs, editor_opt) in q.iter_mut() {
+    for (password, mut buffer, attrs, editor_opt, placeholder_opt) in q.iter_mut() {
+        if let Some(placeholder) = placeholder_opt {
+            if placeholder.is_active() {
+                continue;
+            }
+        }
         if let Some(mut editor) = editor_opt {
             let mut cursor = editor.cursor();
             let mut selection = editor.selection();

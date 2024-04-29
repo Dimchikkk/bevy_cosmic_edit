@@ -293,10 +293,7 @@ impl Plugin for CosmicEditPlugin {
 }
 
 fn add_feature_plugins(app: &mut App) -> &mut App {
-    #[cfg(feature = "placeholder")]
     app.add_plugins(plugins::placeholder::PlaceholderPlugin);
-
-    #[cfg(feature = "password")]
     app.add_plugins(plugins::password::PasswordPlugin);
 
     app
