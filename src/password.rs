@@ -1,12 +1,7 @@
-use crate::{buffer::BufferExtras, placeholder::Placeholder};
+use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
-
-use crate::{
-    input::{input_mouse, kb_input_text, kb_move_cursor},
-    CosmicBuffer, CosmicEditor, CosmicFontSystem, DefaultAttrs, Render,
-};
 
 pub struct PasswordPlugin;
 
@@ -25,8 +20,8 @@ impl Plugin for PasswordPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    hide_password_text.before(Render).in_set(PasswordSet),
-                    restore_password_text.after(Render),
+                    hide_password_text.before(RenderSet).in_set(PasswordSet),
+                    restore_password_text.after(RenderSet),
                 ),
             );
     }

@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{password::Password, placeholder::Placeholder, *};
-use util::{change_active_editor_sprite, deselect_editor_on_esc, print_editor_text};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -40,7 +39,7 @@ fn main() {
             (
                 change_active_editor_sprite,
                 deselect_editor_on_esc,
-                print_editor_text.after(KbInput),
+                print_editor_text.after(InputSet),
             ),
         )
         .run();

@@ -1,11 +1,47 @@
 // Common functions for examples
+use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::*;
 
 pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
     if i.just_pressed(KeyCode::Escape) {
         focus.0 = None;
     }
+}
+
+pub fn get_node_cursor_pos(
+    window: &Window,
+    node_transform: &GlobalTransform,
+    size: (f32, f32),
+    is_ui_node: bool,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+) -> Option<(f32, f32)> {
+    let (x_min, y_min, x_max, y_max) = (
+        node_transform.affine().translation.x - size.0 / 2.,
+        node_transform.affine().translation.y - size.1 / 2.,
+        node_transform.affine().translation.x + size.0 / 2.,
+        node_transform.affine().translation.y + size.1 / 2.,
+    );
+
+    window.cursor_position().and_then(|pos| {
+        if is_ui_node {
+            if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                Some((pos.x - x_min, pos.y - y_min))
+            } else {
+                None
+            }
+        } else {
+            camera
+                .viewport_to_world_2d(camera_transform, pos)
+                .and_then(|pos| {
+                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
+                        Some((pos.x - x_min, y_max - pos.y))
+                    } else {
+                        None
+                    }
+                })
+        }
+    })
 }
 
 pub fn change_active_editor_sprite(
@@ -81,4 +117,17 @@ pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
         (color.b() * 255.) as u8,
         (color.a() * 255.) as u8,
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn get_timestamp() -> f64 {
+    js_sys::Date::now()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn get_timestamp() -> f64 {
+    use std::time::SystemTime;
+    use std::time::UNIX_EPOCH;
+    let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    duration.as_millis() as f64
 }

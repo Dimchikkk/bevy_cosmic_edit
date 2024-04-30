@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::*;
-use util::{change_active_editor_ui, deselect_editor_on_esc, print_editor_text};
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {

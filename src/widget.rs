@@ -2,7 +2,29 @@ use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
 
-use self::buffer::{get_x_offset_center, get_y_offset_center};
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct WidgetSet;
+
+pub struct WidgetPlugin;
+
+impl Plugin for WidgetPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, reshape.in_set(WidgetSet).after(InputSet))
+            .add_systems(
+                PostUpdate,
+                (
+                    (new_image_from_default, set_sprite_size_from_ui),
+                    set_widget_size,
+                    set_buffer_size,
+                    set_padding,
+                    set_x_offset,
+                )
+                    .chain()
+                    .in_set(WidgetSet)
+                    .after(TransformSystem::TransformPropagate),
+            );
+    }
+}
 
 #[derive(Component, Default, Deref, DerefMut, Debug)]
 pub struct CosmicPadding(pub Vec2);

@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{placeholder::Placeholder, *};
-use util::{
-    bevy_color_to_cosmic, change_active_editor_ui, deselect_editor_on_esc, print_editor_text,
-};
+use bevy_cosmic_edit::*;
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {

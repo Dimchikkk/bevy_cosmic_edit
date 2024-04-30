@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::*;
-use util::{bevy_color_to_cosmic, change_active_editor_ui, deselect_editor_on_esc};
 
 #[derive(Resource)]
 struct TextChangeTimer(pub Timer);
