@@ -49,9 +49,7 @@ impl Plugin for CosmicEditPlugin {
             WidgetPlugin,
             InputPlugin,
             FocusPlugin,
-            CursorPlugin {
-                change_cursor: self.change_cursor.clone(),
-            },
+            CursorPlugin,
             PlaceholderPlugin,
             PasswordPlugin,
             EventsPlugin,

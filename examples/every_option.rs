@@ -42,6 +42,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             // Computed fields
             padding: Default::default(),
             widget_size: Default::default(),
+            hover_cursor: Default::default(),
         })
         .id();
 
