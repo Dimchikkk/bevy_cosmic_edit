@@ -5,7 +5,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BufferSet;
 
-pub struct BufferPlugin;
+pub(crate) struct BufferPlugin;
 
 impl Plugin for BufferPlugin {
     fn build(&self, app: &mut App) {
@@ -53,6 +53,7 @@ impl BufferExtras for Buffer {
     }
 }
 
+/// Component wrapper for [`Buffer`]
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicBuffer(pub Buffer);
 

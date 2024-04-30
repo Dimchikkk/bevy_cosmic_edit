@@ -2,12 +2,30 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
+/// Trait for adding color conversion from [`bevy::prelude::Color`] to [`cosmic_text::Color`]
+pub trait ColorExtras {
+    fn to_cosmic(self) -> CosmicColor;
+}
+
+impl ColorExtras for Color {
+    fn to_cosmic(self) -> CosmicColor {
+        CosmicColor::rgba(
+            (self.r() * 255.) as u8,
+            (self.g() * 255.) as u8,
+            (self.b() * 255.) as u8,
+            (self.a() * 255.) as u8,
+        )
+    }
+}
+
+/// System to unfocus editors when [Esc] is pressed
 pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
     if i.just_pressed(KeyCode::Escape) {
         focus.0 = None;
     }
 }
 
+/// Function to find the location of the mouse cursor in a cosmic widget
 pub fn get_node_cursor_pos(
     window: &Window,
     node_transform: &GlobalTransform,
@@ -44,6 +62,7 @@ pub fn get_node_cursor_pos(
     })
 }
 
+/// System to allow focus on click for sprite widgets
 pub fn change_active_editor_sprite(
     mut commands: Commands,
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -77,6 +96,7 @@ pub fn change_active_editor_sprite(
     }
 }
 
+/// System to allow focus on click for UI widgets
 pub fn change_active_editor_ui(
     mut commands: Commands,
     mut interaction_query: Query<
@@ -91,6 +111,7 @@ pub fn change_active_editor_ui(
     }
 }
 
+/// System to print editor text content on change
 pub fn print_editor_text(
     text_inputs_q: Query<&CosmicEditor>,
     mut previous_value: Local<Vec<String>>,
@@ -110,20 +131,13 @@ pub fn print_editor_text(
     }
 }
 
-pub fn bevy_color_to_cosmic(color: bevy::prelude::Color) -> CosmicColor {
-    CosmicColor::rgba(
-        (color.r() * 255.) as u8,
-        (color.g() * 255.) as u8,
-        (color.b() * 255.) as u8,
-        (color.a() * 255.) as u8,
-    )
-}
-
+/// Calls javascript to get the current timestamp
 #[cfg(target_arch = "wasm32")]
 pub fn get_timestamp() -> f64 {
     js_sys::Date::now()
 }
 
+/// Utility function to get the current unix timestamp
 #[cfg(not(target_arch = "wasm32"))]
 pub fn get_timestamp() -> f64 {
     use std::time::SystemTime;

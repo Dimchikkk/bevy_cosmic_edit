@@ -3,10 +3,11 @@ use bevy::{prelude::*, render::render_resource::Extent3d};
 use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};
 
+/// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderSet;
 
-pub struct RenderPlugin;
+pub(crate) struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
@@ -26,7 +27,7 @@ pub(crate) struct SwashCacheState {
     pub swash_cache: SwashCache,
 }
 
-pub fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
+pub(crate) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
     for mut e in q.iter_mut() {
         e.cursor_timer.tick(time.delta());
         if e.cursor_timer.just_finished() {

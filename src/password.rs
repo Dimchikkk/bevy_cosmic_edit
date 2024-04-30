@@ -3,8 +3,9 @@ use bevy::prelude::*;
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
 
-pub struct PasswordPlugin;
+pub(crate) struct PasswordPlugin;
 
+/// System set for password blocking systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PasswordSet;
 
@@ -27,6 +28,35 @@ impl Plugin for PasswordPlugin {
     }
 }
 
+/// Component to be added to an entity with a [`CosmicEditBundle`] to block contents with a
+/// password blocker glyph
+///
+/// ```
+/// # use bevy::prelude::*;
+/// # use bevy_cosmic_edit::*;
+/// #
+/// # fn setup(mut commands: Commands) {
+/// // Create a new cosmic bundle
+/// commands.spawn((CosmicEditBundle {
+///     sprite_bundle: SpriteBundle {
+///         sprite: Sprite {
+///             custom_size: Some(Vec2::new(300.0, 40.0)),
+///             ..default()
+///         },
+///         ..default()
+///     },
+///     ..default()
+///     },
+///     Password::default()
+/// ));
+/// # }
+/// #
+/// # fn main() {
+/// #     App::new()
+/// #         .add_plugins(MinimalPlugins)
+/// #         .add_plugins(CosmicEditPlugin::default())
+/// #         .add_systems(Startup, setup);
+/// # }
 #[derive(Component)]
 pub struct Password {
     real_text: String,
@@ -39,6 +69,13 @@ impl Default for Password {
             real_text: Default::default(),
             glyph: '●',
         }
+    }
+}
+
+impl Password {
+    /// New password component with custom blocker glyph
+    pub fn new(glyph: char) -> Self {
+        Self { glyph, ..default() }
     }
 }
 

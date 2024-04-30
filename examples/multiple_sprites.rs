@@ -18,7 +18,7 @@ fn setup(
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
-    attrs = attrs.color(bevy_color_to_cosmic(Color::PURPLE));
+    attrs = attrs.color(Color::PURPLE.to_cosmic());
 
     commands.spawn(CosmicEditBundle {
         fill_color: CosmicBackgroundColor(Color::ALICE_BLUE),

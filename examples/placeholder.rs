@@ -23,10 +23,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                         .with_rich_text(&mut font_system, vec![("", attrs)], attrs),
                     ..default()
                 },
-                Placeholder::new(
-                    "Placeholder",
-                    attrs.color(bevy_color_to_cosmic(Color::GRAY)),
-                ),
+                Placeholder::new("Placeholder", attrs.color(Color::GRAY.to_cosmic())),
             ))
             .id();
 

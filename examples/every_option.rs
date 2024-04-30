@@ -7,7 +7,7 @@ struct TextChangeTimer(pub Timer);
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs = Attrs::new().color(bevy_color_to_cosmic(Color::rgb(0.27, 0.27, 0.27)));
+    let attrs = Attrs::new().color(Color::rgb(0.27, 0.27, 0.27).to_cosmic());
 
     let editor = commands
         .spawn(CosmicEditBundle {

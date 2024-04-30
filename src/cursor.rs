@@ -1,10 +1,14 @@
+// This will all be rewritten soon, looking toward per-widget cursor control
+// Rewrite should address issue #93 too
+
 use crate::*;
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
+/// System set for mouse cursor systems. Runs in [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CursorSet;
 
-pub struct CursorPlugin {
+pub(crate) struct CursorPlugin {
     pub change_cursor: CursorConfig,
 }
 
@@ -34,6 +38,7 @@ pub struct TextHoverIn;
 #[derive(Event)]
 pub struct TextHoverOut;
 
+/// Switches mouse cursor icon when hover events are received
 pub fn change_cursor(
     evr_hover_in: EventReader<TextHoverIn>,
     evr_hover_out: EventReader<TextHoverOut>,
@@ -67,6 +72,8 @@ type CameraQuery<'a, 'b, 'c, 'd> =
 #[cfg(not(feature = "multicam"))]
 type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransform)>;
 
+/// Sprite widget mouse cursor hover detection system. Sends [`TextHoverIn`] and [`TextHoverOut`]
+/// events.
 pub fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_edit_query: Query<(&mut Sprite, &Visibility, &GlobalTransform), With<CosmicBuffer>>,
@@ -112,6 +119,8 @@ pub fn hover_sprites(
     *last_hovered = *hovered;
 }
 
+/// UI widget mouse cursor hover detection system. Sends [`TextHoverIn`] and [`TextHoverOut`]
+/// events.
 pub fn hover_ui(
     mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicSource>)>,
     mut evw_hover_in: EventWriter<TextHoverIn>,

@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 /// Registers internal events
-pub struct EventsPlugin;
+pub(crate) struct EventsPlugin;
 
 impl Plugin for EventsPlugin {
     fn build(&self, app: &mut App) {

@@ -6,7 +6,7 @@ use cosmic_text::{Edit, Editor};
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FocusSet;
 
-pub struct FocusPlugin;
+pub(crate) struct FocusPlugin;
 
 impl Plugin for FocusPlugin {
     fn build(&self, app: &mut App) {
