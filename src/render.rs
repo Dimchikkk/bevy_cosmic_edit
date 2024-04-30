@@ -81,8 +81,8 @@ fn render_texture(
         Option<&mut CosmicEditor>,
         &mut CosmicBuffer,
         &DefaultAttrs,
-        &CosmicBackground,
-        &FillColor,
+        &CosmicBackgroundImage,
+        &CosmicBackgroundColor,
         &CursorColor,
         &SelectionColor,
         &Handle<Image>,
@@ -90,7 +90,7 @@ fn render_texture(
         &CosmicPadding,
         &XOffset,
         Option<&ReadOnly>,
-        &CosmicTextPosition,
+        &CosmicTextAlign,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
@@ -149,9 +149,9 @@ fn render_texture(
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         let min_pad = match position {
-            CosmicTextPosition::Center { padding } => *padding as f32,
-            CosmicTextPosition::TopLeft { padding } => *padding as f32,
-            CosmicTextPosition::Left { padding } => *padding as f32,
+            CosmicTextAlign::Center { padding } => *padding as f32,
+            CosmicTextAlign::TopLeft { padding } => *padding as f32,
+            CosmicTextAlign::Left { padding } => *padding as f32,
         };
 
         let draw_closure = |x, y, w, h, color| {

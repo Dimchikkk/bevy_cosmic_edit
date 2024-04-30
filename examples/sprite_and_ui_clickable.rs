@@ -10,9 +10,9 @@ fn setup(mut commands: Commands) {
             default_attrs: DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
-            max_lines: CosmicMaxLines(1),
-            mode: CosmicMode::InfiniteLine,
-            text_position: CosmicTextPosition::Left { padding: 5 },
+            max_lines: MaxLines(1),
+            mode: CosmicWrap::InfiniteLine,
+            text_position: CosmicTextAlign::Left { padding: 5 },
             ..default()
         })
         .id();
@@ -33,8 +33,8 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((CosmicEditBundle {
-        max_lines: CosmicMaxLines(1),
-        mode: CosmicMode::InfiniteLine,
+        max_lines: MaxLines(1),
+        mode: CosmicWrap::InfiniteLine,
         sprite_bundle: SpriteBundle {
             // Sets size of text box
             sprite: Sprite {

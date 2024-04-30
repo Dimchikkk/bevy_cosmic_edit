@@ -42,14 +42,14 @@ pub fn set_padding(
     mut query: Query<
         (
             &mut CosmicPadding,
-            &CosmicTextPosition,
+            &CosmicTextAlign,
             &CosmicBuffer,
             &CosmicWidgetSize,
             Option<&CosmicEditor>,
         ),
         Or<(
             With<CosmicEditor>,
-            Changed<CosmicTextPosition>,
+            Changed<CosmicTextAlign>,
             Changed<CosmicBuffer>,
             Changed<CosmicWidgetSize>,
         )>,
@@ -68,12 +68,12 @@ pub fn set_padding(
         }
 
         padding.0 = match position {
-            CosmicTextPosition::Center { padding: _ } => Vec2::new(
+            CosmicTextAlign::Center { padding: _ } => Vec2::new(
                 get_x_offset_center(size.0.x, &buffer) as f32,
                 get_y_offset_center(size.0.y, &buffer) as f32,
             ),
-            CosmicTextPosition::TopLeft { padding } => Vec2::new(*padding as f32, *padding as f32),
-            CosmicTextPosition::Left { padding } => Vec2::new(
+            CosmicTextAlign::TopLeft { padding } => Vec2::new(*padding as f32, *padding as f32),
+            CosmicTextAlign::Left { padding } => Vec2::new(
                 *padding as f32,
                 get_y_offset_center(size.0.y, &buffer) as f32,
             ),
@@ -99,28 +99,28 @@ pub fn set_buffer_size(
     mut query: Query<
         (
             &mut CosmicBuffer,
-            &CosmicMode,
+            &CosmicWrap,
             &CosmicWidgetSize,
-            &CosmicTextPosition,
+            &CosmicTextAlign,
         ),
         Or<(
-            Changed<CosmicMode>,
+            Changed<CosmicWrap>,
             Changed<CosmicWidgetSize>,
-            Changed<CosmicTextPosition>,
+            Changed<CosmicTextAlign>,
         )>,
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mode, size, position) in query.iter_mut() {
         let padding_x = match position {
-            CosmicTextPosition::Center { padding: _ } => 0.,
-            CosmicTextPosition::TopLeft { padding } => *padding as f32,
-            CosmicTextPosition::Left { padding } => *padding as f32,
+            CosmicTextAlign::Center { padding: _ } => 0.,
+            CosmicTextAlign::TopLeft { padding } => *padding as f32,
+            CosmicTextAlign::Left { padding } => *padding as f32,
         };
 
         let (buffer_width, buffer_height) = match mode {
-            CosmicMode::InfiniteLine => (f32::MAX, size.0.y),
-            CosmicMode::Wrap => (size.0.x - padding_x, size.0.y),
+            CosmicWrap::InfiniteLine => (f32::MAX, size.0.y),
+            CosmicWrap::Wrap => (size.0.x - padding_x, size.0.y),
         };
 
         buffer.set_size(&mut font_system.0, buffer_width, buffer_height);
@@ -139,14 +139,14 @@ pub fn new_image_from_default(
 pub fn set_x_offset(
     mut query: Query<(
         &mut XOffset,
-        &CosmicMode,
+        &CosmicWrap,
         &CosmicEditor,
         &CosmicWidgetSize,
-        &CosmicTextPosition,
+        &CosmicTextAlign,
     )>,
 ) {
     for (mut x_offset, mode, editor, size, position) in query.iter_mut() {
-        if mode != &CosmicMode::InfiniteLine {
+        if mode != &CosmicWrap::InfiniteLine {
             return;
         }
 
@@ -170,9 +170,9 @@ pub fn set_x_offset(
         }
 
         let padding_x = match position {
-            CosmicTextPosition::Center { padding } => *padding as f32,
-            CosmicTextPosition::TopLeft { padding } => *padding as f32,
-            CosmicTextPosition::Left { padding } => *padding as f32,
+            CosmicTextAlign::Center { padding } => *padding as f32,
+            CosmicTextAlign::TopLeft { padding } => *padding as f32,
+            CosmicTextAlign::Left { padding } => *padding as f32,
         };
 
         if x_offset.width == 0. {

@@ -1,6 +1,7 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
+/// Set of all buffer setup functions. Runs in `First`
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BufferSet;
 
@@ -62,11 +63,13 @@ impl Default for CosmicBuffer {
 }
 
 impl<'s, 'r> CosmicBuffer {
+    /// Create a new buffer with a font system
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
         Self(Buffer::new(font_system, metrics))
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
+    /// Add text to a newly created `CosmicBuffer`
     pub fn with_text(
         mut self,
         font_system: &mut FontSystem,
@@ -77,6 +80,9 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
+    /// Add rich text to a newly created `CosmicBuffer`
+    ///
+    /// Rich text is an iterable of `(&'s str, Attrs<'r>)
     pub fn with_rich_text<I>(
         mut self,
         font_system: &mut FontSystem,
@@ -91,6 +97,7 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
+    /// Replace buffer text
     pub fn set_text(
         &mut self,
         font_system: &mut FontSystem,
@@ -102,6 +109,9 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
+    /// Replace buffer text with rich text
+    ///
+    /// Rich text is an iterable of `(&'s str, Attrs<'r>)
     pub fn set_rich_text<I>(
         &mut self,
         font_system: &mut FontSystem,
@@ -158,6 +168,7 @@ impl<'s, 'r> CosmicBuffer {
     }
 }
 
+/// Adds a `FontSystem` to a newly created `CosmicBuffer` if one was not provided
 pub fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
     mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
@@ -171,6 +182,7 @@ pub fn add_font_system(
     }
 }
 
+/// Initialises `CosmicBuffer` scale factor
 pub fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
@@ -184,19 +196,22 @@ pub fn set_initial_scale(
     }
 }
 
+/// Initialises new `CosmicBuffer` redraw flag to true
 pub fn set_redraw(mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
+/// Initialises new `CosmicEditor` redraw flag to true
 pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
-pub(crate) fn swap_target_handle(
+/// Sets image of UI elements to the `CosmicBuffer` output
+pub fn swap_target_handle(
     source_q: Query<&Handle<Image>, With<CosmicBuffer>>,
     mut dest_q: Query<
         (

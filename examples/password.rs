@@ -7,8 +7,8 @@ fn setup(mut commands: Commands) {
     // Sprite editor
     commands.spawn((
         CosmicEditBundle {
-            max_lines: CosmicMaxLines(1),
-            mode: CosmicMode::InfiniteLine,
+            max_lines: MaxLines(1),
+            mode: CosmicWrap::InfiniteLine,
             sprite_bundle: SpriteBundle {
                 // Sets size of text box
                 sprite: Sprite {

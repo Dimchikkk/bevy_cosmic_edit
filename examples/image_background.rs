@@ -11,7 +11,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             default_attrs: DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy_color_to_cosmic(Color::GREEN)),
             )),
-            background_image: CosmicBackground(Some(bg_image_handle)),
+            background_image: CosmicBackgroundImage(Some(bg_image_handle)),
             ..default()
         })
         .id();

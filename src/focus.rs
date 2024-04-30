@@ -2,6 +2,7 @@ use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Edit, Editor};
 
+/// System set for focus systems. Runs in `PostUpdate`
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FocusSet;
 

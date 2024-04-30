@@ -61,7 +61,7 @@ pub(crate) fn input_mouse(
     mut editor_q: Query<(
         &mut CosmicEditor,
         &GlobalTransform,
-        &CosmicTextPosition,
+        &CosmicTextAlign,
         Entity,
         &XOffset,
         &mut Sprite,
@@ -134,12 +134,12 @@ pub(crate) fn input_mouse(
         }
 
         let (padding_x, padding_y) = match text_position {
-            CosmicTextPosition::Center { padding: _ } => (
+            CosmicTextAlign::Center { padding: _ } => (
                 get_x_offset_center(width * scale_factor, &buffer),
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
-            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => (
+            CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
+            CosmicTextAlign::Left { padding } => (
                 *padding,
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
@@ -392,8 +392,8 @@ pub(crate) fn kb_input_text(
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicBuffer,
-        &CosmicMaxLines,
-        &CosmicMaxChars,
+        &MaxLines,
+        &MaxChars,
         Entity,
         Option<&ReadOnly>,
     )>,
@@ -501,8 +501,8 @@ pub fn kb_clipboard(
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicBuffer,
-        &CosmicMaxLines,
-        &CosmicMaxChars,
+        &MaxLines,
+        &MaxChars,
         Entity,
         Option<&ReadOnly>,
     )>,
@@ -650,8 +650,8 @@ pub fn poll_wasm_paste(
             &mut CosmicEditor,
             &mut CosmicBuffer,
             &crate::DefaultAttrs,
-            &CosmicMaxChars,
-            &CosmicMaxChars,
+            &MaxChars,
+            &MaxChars,
         ),
         Without<ReadOnly>,
     >,
