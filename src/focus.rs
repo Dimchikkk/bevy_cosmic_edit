@@ -14,7 +14,8 @@ impl Plugin for FocusPlugin {
             PostUpdate,
             (drop_editor_unfocused, add_editor_to_focused)
                 .chain()
-                .in_set(FocusSet),
+                .in_set(FocusSet)
+                .after(WidgetSet),
         )
         .init_resource::<FocusedWidget>();
     }
