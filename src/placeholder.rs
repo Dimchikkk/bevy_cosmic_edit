@@ -2,14 +2,42 @@ use crate::*;
 use bevy::prelude::*;
 use cosmic_text::{Attrs, Edit};
 
+/// Component to be added to an entity with a [`CosmicEditBundle`] add placeholder text
+///
+/// ```
+/// # use bevy::prelude::*;
+/// # use bevy_cosmic_edit::*;
+/// # fn setup(mut commands: Commands) {
+/// commands.spawn((CosmicEditBundle {
+///     sprite_bundle: SpriteBundle {
+///         sprite: Sprite {
+///             custom_size: Some(Vec2::new(300.0, 40.0)),
+///             ..default()
+///         },
+///         ..default()
+///     },
+///     ..default()
+///     },
+///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic())),
+/// ));
+/// # }
+/// # fn main() {
+/// #     App::new()
+/// #         .add_plugins(MinimalPlugins)
+/// #         .add_plugins(CosmicEditPlugin::default())
+/// #         .add_systems(Startup, setup);
+/// # }
 #[derive(Component)]
 pub struct Placeholder {
+    /// Placeholder text content
     pub text: &'static str,
+    /// Text attributes for placeholder text
     pub attrs: Attrs<'static>,
     active: bool,
 }
 
 impl Placeholder {
+    /// Create a new [`Placeholder`] component with given text and attributes
     pub fn new(text: impl Into<&'static str>, attrs: Attrs<'static>) -> Self {
         Self {
             active: false,
@@ -23,7 +51,7 @@ impl Placeholder {
     }
 }
 
-pub struct PlaceholderPlugin;
+pub(crate) struct PlaceholderPlugin;
 
 impl Plugin for PlaceholderPlugin {
     fn build(&self, app: &mut App) {

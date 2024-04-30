@@ -1,3 +1,6 @@
+// This will all be rewritten soon, looking toward per-widget cursor control
+// Rewrite should address issue #93 too
+
 use crate::*;
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 

@@ -1,3 +1,82 @@
+//! # bevy_cosmic_edit
+//!
+//! Multiline text editor using [`cosmic_text`] for the [`bevy`] game engine!
+//!
+//! This bevy plugin provides multiline text editing for bevy apps, thanks to [cosmic_text](https://github.com/pop-os/cosmic-text) crate!
+//! Emoji, ligatures, and other fancy stuff is supported!
+//!
+//! ![bevy_cosmic_edit](https://raw.githubusercontent.com/StaffEngineer/bevy_cosmic_edit/main/bevy_cosmic_edit.png)
+//!
+//! ## Usage
+//!
+//!   *Warning: This plugin is currently in early development, and its API is subject to change.*
+//!
+//! ```
+//! use bevy::prelude::*;
+//! use bevy_cosmic_edit::*;
+//!
+//! fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
+//!     commands.spawn(Camera2dBundle::default());
+//!
+//!     // Text attributes
+//!     let font_size = 16.0;
+//!     let line_height = 18.0;
+//!     let attrs = Attrs::new()
+//!         .family(Family::Monospace)
+//!         .color(Color::DARK_GRAY.to_cosmic())
+//!         .weight(FontWeight::BOLD);
+//!
+//!     // Spawning
+//!     commands.spawn(CosmicEditBundle {
+//!         buffer: CosmicBuffer::new(&mut font_system, Metrics::new(font_size, line_height))
+//!             .with_text(&mut font_system, "Hello, Cosmic!", attrs),
+//!         sprite_bundle: SpriteBundle {
+//!             sprite: Sprite {
+//!                 custom_size: Some(Vec2::new(300.0, 40.0)),
+//!                 ..default()
+//!             },
+//!             ..default()
+//!         },
+//!         ..default()
+//!     });
+//! }
+//!
+//! fn main() {
+//!     App::new()
+//!         .add_plugins(DefaultPlugins)
+//!         .add_plugins(CosmicEditPlugin::default())
+//!         .add_systems(Startup, setup)
+//!         .add_systems(Update, change_active_editor_sprite)
+//!         .run();
+//! }
+//! ```
+//!
+//! Check the examples folder for much more!
+//!
+//! Native:
+//!
+//! ```shell
+//! $ cargo r --example font_per_widget
+//! ```
+//!
+//! Wasm:
+//!
+//! ```shell
+//! $ cargo install wasm-server-runner
+//! $ RUSTFLAGS=--cfg=web_sys_unstable_apis cargo r --target wasm32-unknown-unknown --example basic_ui
+//! ```
+//!
+//! ## Compatibility
+//!
+//! | bevy   | bevy_cosmic_edit |
+//! | ------ | ---------------- |
+//! | 0.13.0 | 0.16 - latest    |
+//! | 0.12.* | 0.15             |
+//! | 0.11.* | 0.8 - 0.14       |
+//!
+//! ## License
+//!
+//! MIT or Apache-2.0
 #![allow(clippy::type_complexity)]
 
 mod buffer;
@@ -18,6 +97,7 @@ use bevy::{prelude::*, transform::TransformSystem};
 
 pub use buffer::*;
 pub use cosmic_edit::*;
+#[doc(no_inline)]
 pub use cosmic_text::{
     Action, Attrs, AttrsOwned, Buffer, Color as CosmicColor, Cursor, Edit, Editor, Family,
     FontSystem, Metrics, Shaping, Style as FontStyle, Weight as FontWeight,
@@ -68,14 +148,6 @@ impl Plugin for CosmicEditPlugin {
 #[cfg(feature = "multicam")]
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
-
-#[derive(Default, Clone)]
-pub enum CursorConfig {
-    #[default]
-    Default,
-    Events,
-    None,
-}
 
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]

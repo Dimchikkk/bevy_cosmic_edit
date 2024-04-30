@@ -7,7 +7,7 @@ struct TextChangeTimer(pub Timer);
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs = Attrs::new().color(bevy_color_to_cosmic(Color::rgb(0.27, 0.27, 0.27)));
+    let attrs = Attrs::new().color(Color::rgb(0.27, 0.27, 0.27).to_cosmic());
 
     let editor = commands
         .spawn(CosmicEditBundle {
@@ -18,14 +18,14 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             ),
             cursor_color: CursorColor(Color::GREEN),
             selection_color: SelectionColor(Color::PINK),
-            fill_color: FillColor(Color::YELLOW_GREEN),
+            fill_color: CosmicBackgroundColor(Color::YELLOW_GREEN),
             x_offset: XOffset::default(),
-            text_position: CosmicTextPosition::default(),
-            background_image: CosmicBackground::default(),
+            text_position: CosmicTextAlign::default(),
+            background_image: CosmicBackgroundImage::default(),
             default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
-            max_chars: CosmicMaxChars(15),
-            max_lines: CosmicMaxLines(1),
-            mode: CosmicMode::Wrap,
+            max_chars: MaxChars(15),
+            max_lines: MaxLines(1),
+            mode: CosmicWrap::Wrap,
             // CosmicEdit draws to this spritebundle
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
