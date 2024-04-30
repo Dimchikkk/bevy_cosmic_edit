@@ -18,7 +18,7 @@ impl ColorExtras for Color {
     }
 }
 
-/// System to unfocus editors when [Esc] is pressed
+/// System to unfocus editors when \[Esc\] is pressed
 pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<FocusedWidget>) {
     if i.just_pressed(KeyCode::Escape) {
         focus.0 = None;

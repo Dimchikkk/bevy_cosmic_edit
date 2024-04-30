@@ -72,14 +72,6 @@ impl Plugin for CosmicEditPlugin {
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
 
-#[derive(Default, Clone)]
-pub enum CursorConfig {
-    #[default]
-    Default,
-    Events,
-    None,
-}
-
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
 pub struct CosmicFontConfig {

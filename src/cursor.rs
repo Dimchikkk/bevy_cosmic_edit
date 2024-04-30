@@ -8,6 +8,18 @@ use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CursorSet;
 
+/// Config enum for mouse cursor events.
+#[derive(Default, Clone)]
+pub enum CursorConfig {
+    /// Emit [`TextHoverIn`] and [`TextHoverOut`] events and change mouse cursor on hover
+    #[default]
+    Default,
+    /// Emit [`TextHoverIn`] and [`TextHoverOut`] events, but do not change the cursor
+    Events,
+    /// Ignore mouse events
+    None,
+}
+
 pub(crate) struct CursorPlugin {
     pub change_cursor: CursorConfig,
 }

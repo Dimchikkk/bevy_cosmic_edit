@@ -7,9 +7,7 @@ use cosmic_text::{Attrs, Edit};
 /// ```
 /// # use bevy::prelude::*;
 /// # use bevy_cosmic_edit::*;
-/// #
 /// # fn setup(mut commands: Commands) {
-/// // Create a new cosmic bundle
 /// commands.spawn((CosmicEditBundle {
 ///     sprite_bundle: SpriteBundle {
 ///         sprite: Sprite {
@@ -20,10 +18,9 @@ use cosmic_text::{Attrs, Edit};
 ///     },
 ///     ..default()
 ///     },
-///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic()),
+///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic())),
 /// ));
 /// # }
-/// #
 /// # fn main() {
 /// #     App::new()
 /// #         .add_plugins(MinimalPlugins)
