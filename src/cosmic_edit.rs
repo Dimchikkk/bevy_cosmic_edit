@@ -73,8 +73,39 @@ pub struct MaxChars(pub usize);
 /// A pointer to an entity with a `CosmicEditBundle`, used to apply cosmic rendering to a UI
 /// element.
 ///
-/// TODO code example
+///```
+/// # use bevy::prelude::*;
+/// # use bevy_cosmic_edit::*;
+/// #
+/// # fn setup(mut commands: Commands) {
+///   // Create a new cosmic bundle
+///   let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
 ///
+///   // Spawn the target bundle
+///   commands
+///       .spawn(ButtonBundle {
+///           style: Style {
+///               width: Val::Percent(100.),
+///               height: Val::Percent(100.),
+///               ..default()
+///           },
+///           background_color: BackgroundColor(Color::WHITE),
+///           ..default()
+///       })
+///       // Add the source component to the target element
+///       .insert(CosmicSource(cosmic_edit));
+/// # }
+/// #
+/// # fn presetup(mut commands: Commands) {
+/// #     commands.spawn(Camera2dBundle::default());
+/// # }
+/// #
+/// # fn main() {
+/// #     App::new()
+/// #         .add_plugins(MinimalPlugins)
+/// #         .add_plugins(CosmicEditPlugin::default())
+/// #         .add_systems(Startup, (presetup, setup));
+/// # }
 #[derive(Component)]
 pub struct CosmicSource(pub Entity);
 
@@ -85,12 +116,69 @@ pub struct CosmicSource(pub Entity);
 ///
 /// ### UI mode
 ///
-/// TODO code example
+///```
+/// # use bevy::prelude::*;
+/// # use bevy_cosmic_edit::*;
+/// #
+/// # fn setup(mut commands: Commands) {
+///   // Create a new cosmic bundle
+///   let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
 ///
+///   // Spawn the target bundle
+///   commands
+///       .spawn(ButtonBundle {
+///           style: Style {
+///               width: Val::Percent(100.),
+///               height: Val::Percent(100.),
+///               ..default()
+///           },
+///           background_color: BackgroundColor(Color::WHITE),
+///           ..default()
+///       })
+///       // Add the source component to the target element
+///       .insert(CosmicSource(cosmic_edit));
+/// # }
+/// #
+/// # fn presetup(mut commands: Commands) {
+/// #     commands.spawn(Camera2dBundle::default());
+/// # }
+/// #
+/// # fn main() {
+/// #     App::new()
+/// #         .add_plugins(MinimalPlugins)
+/// #         .add_plugins(CosmicEditPlugin::default())
+/// #         .add_systems(Startup, (presetup, setup));
+/// # }
+/// ```
 /// ### Sprite mode
-///
-/// TODO code example
-///
+/// ```
+/// # use bevy::prelude::*;
+/// # use bevy_cosmic_edit::*;
+/// #
+/// # fn setup(mut commands: Commands) {
+/// // Create a new cosmic bundle
+/// commands.spawn(CosmicEditBundle {
+///     sprite_bundle: SpriteBundle {
+///         sprite: Sprite {
+///             custom_size: Some(Vec2::new(300.0, 40.0)),
+///             ..default()
+///         },
+///         ..default()
+///     },
+///     ..default()
+/// });
+/// # }
+/// #
+/// # fn presetup(mut commands: Commands) {
+/// #     commands.spawn(Camera2dBundle::default());
+/// # }
+/// #
+/// # fn main() {
+/// #     App::new()
+/// #         .add_plugins(MinimalPlugins)
+/// #         .add_plugins(CosmicEditPlugin::default())
+/// #         .add_systems(Startup, (presetup, setup));
+/// # }
 #[derive(Bundle)]
 pub struct CosmicEditBundle {
     // cosmic bits
