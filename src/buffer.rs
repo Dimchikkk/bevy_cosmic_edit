@@ -1,7 +1,7 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
-/// Set of all buffer setup functions. Runs in `First`
+/// Set of all buffer setup functions. Runs in [`First`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BufferSet;
 
@@ -36,7 +36,7 @@ impl BufferExtras for Buffer {
     ///
     /// # Returns
     ///
-    /// A `String` containing the cosmic text content.
+    /// A [`String`] containing the cosmic text content.
     fn get_text(&self) -> String {
         let mut text = String::new();
         let line_count = self.lines.len();
@@ -69,7 +69,7 @@ impl<'s, 'r> CosmicBuffer {
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
-    /// Add text to a newly created `CosmicBuffer`
+    /// Add text to a newly created [`CosmicBuffer`]
     pub fn with_text(
         mut self,
         font_system: &mut FontSystem,
@@ -80,9 +80,9 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
-    /// Add rich text to a newly created `CosmicBuffer`
+    /// Add rich text to a newly created [`CosmicBuffer`]
     ///
-    /// Rich text is an iterable of `(&'s str, Attrs<'r>)
+    /// Rich text is an iterable of `(&'s str, Attrs<'r>)`
     pub fn with_rich_text<I>(
         mut self,
         font_system: &mut FontSystem,
@@ -111,7 +111,7 @@ impl<'s, 'r> CosmicBuffer {
 
     /// Replace buffer text with rich text
     ///
-    /// Rich text is an iterable of `(&'s str, Attrs<'r>)
+    /// Rich text is an iterable of `(&'s str, Attrs<'r>)`
     pub fn set_rich_text<I>(
         &mut self,
         font_system: &mut FontSystem,
@@ -168,7 +168,7 @@ impl<'s, 'r> CosmicBuffer {
     }
 }
 
-/// Adds a `FontSystem` to a newly created `CosmicBuffer` if one was not provided
+/// Adds a [`FontSystem`] to a newly created [`CosmicBuffer`] if one was not provided
 pub fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
     mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
@@ -182,7 +182,7 @@ pub fn add_font_system(
     }
 }
 
-/// Initialises `CosmicBuffer` scale factor
+/// Initialises [`CosmicBuffer`] scale factor
 pub fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
@@ -196,21 +196,21 @@ pub fn set_initial_scale(
     }
 }
 
-/// Initialises new `CosmicBuffer` redraw flag to true
+/// Initialises new [`CosmicBuffer`] redraw flag to true
 pub fn set_redraw(mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
-/// Initialises new `CosmicEditor` redraw flag to true
+/// Initialises new [`CosmicEditor`] redraw flag to true
 pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
-/// Sets image of UI elements to the `CosmicBuffer` output
+/// Sets image of UI elements to the [`CosmicBuffer`] output
 pub fn swap_target_handle(
     source_q: Query<&Handle<Image>, With<CosmicBuffer>>,
     mut dest_q: Query<

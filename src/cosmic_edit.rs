@@ -1,7 +1,7 @@
 use crate::*;
 use bevy::prelude::*;
 
-/// Enum representing text wrapping in a cosmic `Buffer`
+/// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Clone, Component, PartialEq, Default)]
 pub enum CosmicWrap {
     InfiniteLine,
@@ -9,7 +9,7 @@ pub enum CosmicWrap {
     Wrap,
 }
 
-/// Enum representing the text alignment in a cosmic `Buffer`
+/// Enum representing the text alignment in a cosmic [`Buffer`]
 #[derive(Clone, Component)]
 pub enum CosmicTextAlign {
     Center { padding: i32 },
@@ -23,19 +23,19 @@ impl Default for CosmicTextAlign {
     }
 }
 
-/// Tag component to disable writing to a `CosmicBuffer`
+/// Tag component to disable writing to a [`CosmicBuffer`]
 // TODO: Code example
 #[derive(Component)]
 pub struct ReadOnly; // tag component
 
-/// Internal value used to decide what section of a `Buffer` to render
+/// Internal value used to decide what section of a [`Buffer`] to render
 #[derive(Component, Debug, Default)]
 pub struct XOffset {
     pub left: f32,
     pub width: f32,
 }
 
-/// Default text attributes to be used on a `CosmicBuffer`
+/// Default text attributes to be used on a [`CosmicBuffer`]
 #[derive(Component, Deref, DerefMut)]
 pub struct DefaultAttrs(pub AttrsOwned);
 
@@ -70,7 +70,7 @@ pub struct MaxLines(pub usize);
 #[derive(Component, Default)]
 pub struct MaxChars(pub usize);
 
-/// A pointer to an entity with a `CosmicEditBundle`, used to apply cosmic rendering to a UI
+/// A pointer to an entity with a [`CosmicEditBundle`], used to apply cosmic rendering to a UI
 /// element.
 ///
 ///```
@@ -78,41 +78,37 @@ pub struct MaxChars(pub usize);
 /// # use bevy_cosmic_edit::*;
 /// #
 /// # fn setup(mut commands: Commands) {
-///   // Create a new cosmic bundle
-///   let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
+/// // Create a new cosmic bundle
+/// let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
 ///
-///   // Spawn the target bundle
-///   commands
-///       .spawn(ButtonBundle {
-///           style: Style {
-///               width: Val::Percent(100.),
-///               height: Val::Percent(100.),
-///               ..default()
-///           },
-///           background_color: BackgroundColor(Color::WHITE),
-///           ..default()
-///       })
-///       // Add the source component to the target element
-///       .insert(CosmicSource(cosmic_edit));
-/// # }
-/// #
-/// # fn presetup(mut commands: Commands) {
-/// #     commands.spawn(Camera2dBundle::default());
+/// // Spawn the target bundle
+/// commands
+///     .spawn(ButtonBundle {
+///         style: Style {
+///             width: Val::Percent(100.),
+///             height: Val::Percent(100.),
+///             ..default()
+///         },
+///         background_color: BackgroundColor(Color::WHITE),
+///         ..default()
+///     })
+///     // Add the source component to the target element
+///     .insert(CosmicSource(cosmic_edit));
 /// # }
 /// #
 /// # fn main() {
 /// #     App::new()
 /// #         .add_plugins(MinimalPlugins)
 /// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, (presetup, setup));
+/// #         .add_systems(Startup, setup);
 /// # }
 #[derive(Component)]
 pub struct CosmicSource(pub Entity);
 
-/// A bundle containing all the required components for `CosmicBuffer` functionality.
+/// A bundle containing all the required components for [`CosmicBuffer`] functionality.
 ///
-/// Uses an invisible `SpriteBundle` for rendering by default, so should either be paired with another
-/// entity with a `CosmicSource` pointing to it's entity, or have the sprite set.
+/// Uses an invisible [`SpriteBundle`] for rendering by default, so should either be paired with another
+/// entity with a [`CosmicSource`] pointing to it's entity, or have the sprite set.
 ///
 /// ### UI mode
 ///
@@ -121,33 +117,29 @@ pub struct CosmicSource(pub Entity);
 /// # use bevy_cosmic_edit::*;
 /// #
 /// # fn setup(mut commands: Commands) {
-///   // Create a new cosmic bundle
-///   let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
+/// // Create a new cosmic bundle
+/// let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
 ///
-///   // Spawn the target bundle
-///   commands
-///       .spawn(ButtonBundle {
-///           style: Style {
-///               width: Val::Percent(100.),
-///               height: Val::Percent(100.),
-///               ..default()
-///           },
-///           background_color: BackgroundColor(Color::WHITE),
-///           ..default()
-///       })
-///       // Add the source component to the target element
-///       .insert(CosmicSource(cosmic_edit));
-/// # }
-/// #
-/// # fn presetup(mut commands: Commands) {
-/// #     commands.spawn(Camera2dBundle::default());
+/// // Spawn the target bundle
+/// commands
+///     .spawn(ButtonBundle {
+///         style: Style {
+///             width: Val::Percent(100.),
+///             height: Val::Percent(100.),
+///             ..default()
+///         },
+///         background_color: BackgroundColor(Color::WHITE),
+///         ..default()
+///     })
+///     // Add the source component to the target element
+///     .insert(CosmicSource(cosmic_edit));
 /// # }
 /// #
 /// # fn main() {
 /// #     App::new()
 /// #         .add_plugins(MinimalPlugins)
 /// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, (presetup, setup));
+/// #         .add_systems(Startup, setup);
 /// # }
 /// ```
 /// ### Sprite mode
@@ -169,15 +161,11 @@ pub struct CosmicSource(pub Entity);
 /// });
 /// # }
 /// #
-/// # fn presetup(mut commands: Commands) {
-/// #     commands.spawn(Camera2dBundle::default());
-/// # }
-/// #
 /// # fn main() {
 /// #     App::new()
 /// #         .add_plugins(MinimalPlugins)
 /// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, (presetup, setup));
+/// #         .add_systems(Startup, setup);
 /// # }
 #[derive(Bundle)]
 pub struct CosmicEditBundle {
@@ -229,11 +217,11 @@ impl Default for CosmicEditBundle {
     }
 }
 
-/// Holds the font system used internally by `cosmic_text`
+/// Holds the font system used internally by [`cosmic_text`]
 #[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
 
-/// Wrapper component for an `Editor` with a few helpful values for cursor blinking
+/// Wrapper component for an [`Editor`] with a few helpful values for cursor blinking
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor {
     #[deref]
