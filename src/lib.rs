@@ -116,7 +116,6 @@ pub use widget::*;
 #[derive(Default)]
 pub struct CosmicEditPlugin {
     pub font_config: CosmicFontConfig,
-    pub change_cursor: CursorConfig,
 }
 
 impl Plugin for CosmicEditPlugin {

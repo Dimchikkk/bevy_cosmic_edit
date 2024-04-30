@@ -26,6 +26,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             max_chars: MaxChars(15),
             max_lines: MaxLines(1),
             mode: CosmicWrap::Wrap,
+            hover_cursor: HoverCursor(CursorIcon::Pointer),
             // CosmicEdit draws to this spritebundle
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
@@ -42,7 +43,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             // Computed fields
             padding: Default::default(),
             widget_size: Default::default(),
-            hover_cursor: Default::default(),
         })
         .id();
 
