@@ -3,10 +3,11 @@ use bevy::{prelude::*, render::render_resource::Extent3d};
 use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};
 
+/// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderSet;
 
-pub struct RenderPlugin;
+pub(crate) struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
@@ -26,7 +27,7 @@ pub(crate) struct SwashCacheState {
     pub swash_cache: SwashCache,
 }
 
-pub fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
+pub(crate) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
     for mut e in q.iter_mut() {
         e.cursor_timer.tick(time.delta());
         if e.cursor_timer.just_finished() {
@@ -81,8 +82,8 @@ fn render_texture(
         Option<&mut CosmicEditor>,
         &mut CosmicBuffer,
         &DefaultAttrs,
-        &CosmicBackground,
-        &FillColor,
+        &CosmicBackgroundImage,
+        &CosmicBackgroundColor,
         &CursorColor,
         &SelectionColor,
         &Handle<Image>,
@@ -90,7 +91,7 @@ fn render_texture(
         &CosmicPadding,
         &XOffset,
         Option<&ReadOnly>,
-        &CosmicTextPosition,
+        &CosmicTextAlign,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
@@ -149,9 +150,9 @@ fn render_texture(
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         let min_pad = match position {
-            CosmicTextPosition::Center { padding } => *padding as f32,
-            CosmicTextPosition::TopLeft { padding } => *padding as f32,
-            CosmicTextPosition::Left { padding } => *padding as f32,
+            CosmicTextAlign::Center { padding } => *padding as f32,
+            CosmicTextAlign::TopLeft { padding } => *padding as f32,
+            CosmicTextAlign::Left { padding } => *padding as f32,
         };
 
         let draw_closure = |x, y, w, h, color| {

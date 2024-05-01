@@ -19,10 +19,11 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
 
+/// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputSet;
 
-pub struct InputPlugin;
+pub(crate) struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
@@ -37,16 +38,19 @@ impl Plugin for InputPlugin {
     }
 }
 
+/// Timer for double / triple clicks
 #[derive(Resource)]
 pub struct ClickTimer(pub Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
+/// Crossbeam channel struct for Wasm clipboard data
 #[allow(dead_code)]
 pub struct WasmPaste {
     text: String,
     entity: Entity,
 }
 
+/// Async channel for receiving from the clipboard in Wasm
 #[derive(Resource)]
 pub struct WasmPasteAsyncChannel {
     pub tx: crossbeam_channel::Sender<WasmPaste>,
@@ -61,7 +65,7 @@ pub(crate) fn input_mouse(
     mut editor_q: Query<(
         &mut CosmicEditor,
         &GlobalTransform,
-        &CosmicTextPosition,
+        &CosmicTextAlign,
         Entity,
         &XOffset,
         &mut Sprite,
@@ -134,12 +138,12 @@ pub(crate) fn input_mouse(
         }
 
         let (padding_x, padding_y) = match text_position {
-            CosmicTextPosition::Center { padding: _ } => (
+            CosmicTextAlign::Center { padding: _ } => (
                 get_x_offset_center(width * scale_factor, &buffer),
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
-            CosmicTextPosition::TopLeft { padding } => (*padding, *padding),
-            CosmicTextPosition::Left { padding } => (
+            CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
+            CosmicTextAlign::Left { padding } => (
                 *padding,
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
@@ -392,8 +396,8 @@ pub(crate) fn kb_input_text(
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicBuffer,
-        &CosmicMaxLines,
-        &CosmicMaxChars,
+        &MaxLines,
+        &MaxChars,
         Entity,
         Option<&ReadOnly>,
     )>,
@@ -501,8 +505,8 @@ pub fn kb_clipboard(
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicBuffer,
-        &CosmicMaxLines,
-        &CosmicMaxChars,
+        &MaxLines,
+        &MaxChars,
         Entity,
         Option<&ReadOnly>,
     )>,
@@ -650,8 +654,8 @@ pub fn poll_wasm_paste(
             &mut CosmicEditor,
             &mut CosmicBuffer,
             &crate::DefaultAttrs,
-            &CosmicMaxChars,
-            &CosmicMaxChars,
+            &MaxChars,
+            &MaxChars,
         ),
         Without<ReadOnly>,
     >,
