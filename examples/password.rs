@@ -29,10 +29,7 @@ fn setup(mut commands: Commands) {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin {
-            change_cursor: CursorConfig::Default,
-            ..default()
-        })
+        .add_plugins(CosmicEditPlugin { ..default() })
         .add_systems(Startup, setup)
         .add_systems(
             Update,

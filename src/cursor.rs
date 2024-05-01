@@ -8,51 +8,38 @@ use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CursorSet;
 
-/// Config enum for mouse cursor events.
-#[derive(Default, Clone)]
-pub enum CursorConfig {
-    /// Emit [`TextHoverIn`] and [`TextHoverOut`] events and change mouse cursor on hover
-    #[default]
-    Default,
-    /// Emit [`TextHoverIn`] and [`TextHoverOut`] events, but do not change the cursor
-    Events,
-    /// Ignore mouse events
-    None,
-}
-
-pub(crate) struct CursorPlugin {
-    pub change_cursor: CursorConfig,
-}
+pub struct CursorPlugin;
 
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
-        match self.change_cursor {
-            CursorConfig::Default => {
-                app.add_systems(Update, (hover_sprites, hover_ui, change_cursor))
-                    .add_event::<TextHoverIn>()
-                    .add_event::<TextHoverOut>();
-            }
-            CursorConfig::Events => {
-                app.add_systems(Update, (hover_sprites, hover_ui))
-                    .add_event::<TextHoverIn>()
-                    .add_event::<TextHoverOut>();
-            }
-            CursorConfig::None => {}
-        }
+        app.add_systems(Update, ((hover_sprites, hover_ui), change_cursor).chain())
+            .add_event::<TextHoverIn>()
+            .add_event::<TextHoverOut>();
     }
 }
 
-/// For use with custom cursor control; Event is emitted when cursor enters a text widget
-#[derive(Event)]
-pub struct TextHoverIn;
+#[derive(Component, Deref)]
+pub struct HoverCursor(pub CursorIcon);
 
-/// For use with custom cursor control; Event is emitted when cursor leaves a text widget
+impl Default for HoverCursor {
+    fn default() -> Self {
+        Self(CursorIcon::Text)
+    }
+}
+
+/// For use with custom cursor control
+/// Event is emitted when cursor enters a text widget
+/// Event contains the cursor from the buffer's [`HoverCursor`]
+#[derive(Event, Deref)]
+pub struct TextHoverIn(pub CursorIcon);
+
+/// For use with custom cursor control
+/// Event is emitted when cursor leaves a text widget
 #[derive(Event)]
 pub struct TextHoverOut;
 
-/// Switches mouse cursor icon when hover events are received
-pub fn change_cursor(
-    evr_hover_in: EventReader<TextHoverIn>,
+pub(crate) fn change_cursor(
+    mut evr_hover_in: EventReader<TextHoverIn>,
     evr_hover_out: EventReader<TextHoverOut>,
     evr_text_changed: EventReader<CosmicTextChanged>,
     evr_mouse_motion: EventReader<MouseMotion>,
@@ -63,15 +50,17 @@ pub fn change_cursor(
         return;
     }
     let mut window = windows.single_mut();
-    if !evr_hover_in.is_empty() {
-        window.cursor.icon = CursorIcon::Text;
-    }
-    if !evr_hover_out.is_empty() {
+
+    if let Some(ev) = evr_hover_in.read().last() {
+        window.cursor.icon = ev.0;
+    } else if !evr_hover_out.is_empty() {
         window.cursor.icon = CursorIcon::Default;
     }
+
     if !evr_text_changed.is_empty() {
         window.cursor.visible = false;
     }
+
     if mouse_buttons.get_just_pressed().len() != 0 || !evr_mouse_motion.is_empty() {
         window.cursor.visible = true;
     }
@@ -84,11 +73,12 @@ type CameraQuery<'a, 'b, 'c, 'd> =
 #[cfg(not(feature = "multicam"))]
 type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransform)>;
 
-/// Sprite widget mouse cursor hover detection system. Sends [`TextHoverIn`] and [`TextHoverOut`]
-/// events.
-pub fn hover_sprites(
+pub(crate) fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_edit_query: Query<(&mut Sprite, &Visibility, &GlobalTransform), With<CosmicBuffer>>,
+    mut cosmic_edit_query: Query<
+        (&mut Sprite, &Visibility, &GlobalTransform, &HoverCursor),
+        With<CosmicBuffer>,
+    >,
     camera_q: CameraQuery,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
@@ -101,7 +91,10 @@ pub fn hover_sprites(
     }
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
-    for (sprite, visibility, node_transform) in &mut cosmic_edit_query.iter_mut() {
+
+    let mut icon = CursorIcon::Default;
+
+    for (sprite, visibility, node_transform, hover) in &mut cosmic_edit_query.iter_mut() {
         if visibility == Visibility::Hidden {
             continue;
         }
@@ -115,6 +108,7 @@ pub fn hover_sprites(
             if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                 if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
                     *hovered = true;
+                    icon = hover.0;
                 }
             }
         }
@@ -122,7 +116,7 @@ pub fn hover_sprites(
 
     if *last_hovered != *hovered {
         if *hovered {
-            evw_hover_in.send(TextHoverIn);
+            evw_hover_in.send(TextHoverIn(icon));
         } else {
             evw_hover_out.send(TextHoverOut);
         }
@@ -131,20 +125,21 @@ pub fn hover_sprites(
     *last_hovered = *hovered;
 }
 
-/// UI widget mouse cursor hover detection system. Sends [`TextHoverIn`] and [`TextHoverOut`]
-/// events.
-pub fn hover_ui(
-    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CosmicSource>)>,
+pub(crate) fn hover_ui(
+    interaction_query: Query<(&Interaction, &CosmicSource), Changed<Interaction>>,
+    cosmic_query: Query<&HoverCursor, With<CosmicBuffer>>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
-    for interaction in interaction_query.iter_mut() {
+    for (interaction, source) in interaction_query.iter() {
         match interaction {
             Interaction::None => {
                 evw_hover_out.send(TextHoverOut);
             }
             Interaction::Hovered => {
-                evw_hover_in.send(TextHoverIn);
+                if let Ok(hover) = cosmic_query.get(source.0) {
+                    evw_hover_in.send(TextHoverIn(hover.0));
+                }
             }
             _ => {}
         }

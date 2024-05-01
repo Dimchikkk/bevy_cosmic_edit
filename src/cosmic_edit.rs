@@ -187,6 +187,7 @@ pub struct CosmicEditBundle {
     pub text_position: CosmicTextAlign,
     pub padding: CosmicPadding,
     pub widget_size: CosmicWidgetSize,
+    pub hover_cursor: HoverCursor,
 }
 
 impl Default for CosmicEditBundle {
@@ -213,6 +214,7 @@ impl Default for CosmicEditBundle {
             x_offset: Default::default(),
             padding: Default::default(),
             widget_size: Default::default(),
+            hover_cursor: Default::default(),
         }
     }
 }
