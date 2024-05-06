@@ -22,7 +22,7 @@ impl Plugin for PasswordPlugin {
                 PostUpdate,
                 (
                     hide_password_text.before(RenderSet).in_set(PasswordSet),
-                    restore_password_text.after(RenderSet),
+                    restore_password_text.before(FocusSet).after(RenderSet),
                 ),
             );
     }
