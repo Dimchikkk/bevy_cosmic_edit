@@ -126,7 +126,7 @@ pub fn print_editor_text(
         if current_text == *previous_value {
             return;
         }
-        *previous_value = current_text.clone();
+        previous_value.clone_from(&current_text);
         info!("Widget text: {:?}", current_text);
     }
 }

@@ -88,6 +88,7 @@ mod input;
 mod password;
 mod placeholder;
 mod render;
+mod user_select;
 mod util;
 mod widget;
 
@@ -109,6 +110,7 @@ pub use input::*;
 pub use password::*;
 pub use placeholder::*;
 pub use render::*;
+pub use user_select::*;
 pub use util::*;
 pub use widget::*;
 
@@ -132,6 +134,7 @@ impl Plugin for CosmicEditPlugin {
             PlaceholderPlugin,
             PasswordPlugin,
             EventsPlugin,
+            UserSelectPlugin,
         ))
         .insert_resource(CosmicFontSystem(font_system));
 
