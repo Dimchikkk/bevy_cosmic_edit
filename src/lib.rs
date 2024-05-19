@@ -156,7 +156,9 @@ pub struct CosmicPrimaryCamera;
 pub struct CosmicFontConfig {
     pub fonts_dir_path: Option<PathBuf>,
     pub font_bytes: Option<Vec<&'static [u8]>>,
-    pub load_system_fonts: bool, // caution: this can be relatively slow
+    /// If [false], some characters (esspecially Unicode emojies) might not load properly
+    /// Caution: this can be relatively slow
+    pub load_system_fonts: bool,
 }
 
 impl Default for CosmicFontConfig {
