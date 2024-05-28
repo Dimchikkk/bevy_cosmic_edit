@@ -100,8 +100,9 @@ pub use buffer::*;
 pub use cosmic_edit::*;
 #[doc(no_inline)]
 pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Buffer, Color as CosmicColor, Cursor, Edit, Editor, Family,
-    FontSystem, Metrics, Shaping, Style as FontStyle, Weight as FontWeight,
+    Action, Attrs, AttrsOwned, Buffer, CacheKeyFlags, Color as CosmicColor, Cursor, Edit, Editor,
+    Family, FamilyOwned, FontSystem, Metrics, Shaping, Stretch, Style as FontStyle,
+    Weight as FontWeight,
 };
 pub use cursor::*;
 pub use events::*;
