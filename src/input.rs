@@ -108,8 +108,15 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite, scroll_disabled)) =
-        editor_q.get_mut(active_editor_entity)
+    if let Ok((
+        mut editor,
+        sprite_transform,
+        text_position,
+        entity,
+        x_offset,
+        sprite,
+        scroll_disabled,
+    )) = editor_q.get_mut(active_editor_entity)
     {
         let buffer = editor.with_buffer(|b| b.clone());
 
