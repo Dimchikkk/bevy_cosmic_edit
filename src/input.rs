@@ -503,7 +503,10 @@ pub(crate) fn kb_input_text(
             return;
         }
 
-        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
+        evw_changed.send(CosmicTextChanged((
+            entity,
+            editor.with_buffer_mut(|b| b.get_text()),
+        )));
     }
 }
 
