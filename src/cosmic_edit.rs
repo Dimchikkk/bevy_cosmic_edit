@@ -70,6 +70,10 @@ pub struct MaxLines(pub usize);
 #[derive(Component, Default)]
 pub struct MaxChars(pub usize);
 
+/// Buffer does not respond to scroll events
+#[derive(Component, Default)]
+pub struct ScrollDisabled;
+
 /// A pointer to an entity with a [`CosmicEditBundle`], used to apply cosmic rendering to a UI
 /// element.
 ///
