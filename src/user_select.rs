@@ -11,7 +11,7 @@ impl Plugin for UserSelectPlugin {
 
 /// Tag component to disable user selection
 /// Like CSS `user-select: none` https://developer.mozilla.org/en-US/docs/Web/CSS/user-select
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct UserSelectNone;
 
 fn clear_selection(mut q: Query<&mut CosmicEditor, With<UserSelectNone>>) {
