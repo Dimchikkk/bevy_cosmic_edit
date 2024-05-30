@@ -69,6 +69,7 @@ pub(crate) fn input_mouse(
         Entity,
         &XOffset,
         &mut Sprite,
+        Option<&ScrollDisabled>,
     )>,
     node_q: Query<(&Node, &GlobalTransform, &CosmicSource)>,
     mut font_system: ResMut<CosmicFontSystem>,
@@ -107,8 +108,15 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((mut editor, sprite_transform, text_position, entity, x_offset, sprite)) =
-        editor_q.get_mut(active_editor_entity)
+    if let Ok((
+        mut editor,
+        sprite_transform,
+        text_position,
+        entity,
+        x_offset,
+        sprite,
+        scroll_disabled,
+    )) = editor_q.get_mut(active_editor_entity)
     {
         let buffer = editor.with_buffer(|b| b.clone());
 
@@ -218,24 +226,26 @@ pub(crate) fn input_mouse(
             return;
         }
 
-        for ev in scroll_evr.read() {
-            match ev.unit {
-                MouseScrollUnit::Line => {
-                    editor.action(
-                        &mut font_system.0,
-                        Action::Scroll {
-                            lines: -ev.y as i32,
-                        },
-                    );
-                }
-                MouseScrollUnit::Pixel => {
-                    let line_height = buffer.metrics().line_height;
-                    editor.action(
-                        &mut font_system.0,
-                        Action::Scroll {
-                            lines: -(ev.y / line_height) as i32,
-                        },
-                    );
+        if scroll_disabled.is_none() {
+            for ev in scroll_evr.read() {
+                match ev.unit {
+                    MouseScrollUnit::Line => {
+                        editor.action(
+                            &mut font_system.0,
+                            Action::Scroll {
+                                lines: -ev.y as i32,
+                            },
+                        );
+                    }
+                    MouseScrollUnit::Pixel => {
+                        let line_height = buffer.metrics().line_height;
+                        editor.action(
+                            &mut font_system.0,
+                            Action::Scroll {
+                                lines: -(ev.y / line_height) as i32,
+                            },
+                        );
+                    }
                 }
             }
         }
