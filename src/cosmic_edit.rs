@@ -25,7 +25,7 @@ impl Default for CosmicTextAlign {
 
 /// Tag component to disable writing to a [`CosmicBuffer`]
 // TODO: Code example
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct ReadOnly; // tag component
 
 /// Internal value used to decide what section of a [`Buffer`] to render
