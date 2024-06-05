@@ -68,7 +68,15 @@ fn set_padding(
     >,
 ) {
     for (mut padding, position, buffer, size, editor_opt) in query.iter_mut() {
-        if !buffer.redraw() {
+        let mut redraw = buffer.redraw();
+        let mut buffer = buffer.0.as_ref().clone();
+
+        if let Some(editor) = editor_opt {
+            redraw = editor.redraw();
+            buffer = editor.with_buffer(|b| b.clone());
+        }
+
+        if !redraw {
             continue;
         }
 
