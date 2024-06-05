@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
@@ -66,13 +68,6 @@ fn set_padding(
     >,
 ) {
     for (mut padding, position, buffer, size, editor_opt) in query.iter_mut() {
-        // TODO: At least one of these clones is uneccessary
-        let mut buffer = buffer.0.clone();
-
-        if let Some(editor) = editor_opt {
-            buffer = editor.with_buffer(|b| b.clone());
-        }
-
         if !buffer.redraw() {
             continue;
         }
@@ -134,6 +129,8 @@ fn set_buffer_size(
             CosmicWrap::InfiniteLine => (f32::MAX, size.0.y),
             CosmicWrap::Wrap => (size.0.x - padding_x, size.0.y),
         };
+
+        let buffer = Arc::make_mut(&mut buffer);
 
         buffer.set_size(&mut font_system.0, buffer_width, buffer_height);
     }
