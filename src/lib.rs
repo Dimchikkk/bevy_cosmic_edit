@@ -181,7 +181,7 @@ impl Plugin for CosmicEditPlugin {
 /// }
 /// ```
 #[cfg(feature = "multicam")]
-#[derive(Component)]
+#[derive(Component, Debug, Default)]
 pub struct CosmicPrimaryCamera;
 
 /// Resource struct that holds configuration options for cosmic fonts.
