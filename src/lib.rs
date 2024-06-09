@@ -73,6 +73,9 @@
 //! | 0.13.0 | 0.16 - latest    |
 //! | 0.12.* | 0.15             |
 //! | 0.11.* | 0.8 - 0.14       |
+//! 
+//! ## Feature flags
+#![doc = document_features::document_features!()]
 //!
 //! ## License
 //!

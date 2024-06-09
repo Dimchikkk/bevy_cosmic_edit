@@ -10,7 +10,7 @@ impl Plugin for UserSelectPlugin {
 }
 
 /// Tag component to disable user selection
-/// Like CSS `user-select: none` https://developer.mozilla.org/en-US/docs/Web/CSS/user-select
+/// Like CSS `user-select: none` <https://developer.mozilla.org/en-US/docs/Web/CSS/user-select>
 #[derive(Component, Default)]
 pub struct UserSelectNone;
 
