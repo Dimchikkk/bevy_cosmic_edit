@@ -153,7 +153,7 @@ impl Plugin for CosmicEditPlugin {
 
 /// Attach to primary camera, and enable the `multicam` feature to use multiple cameras.
 /// Will panic if no `Camera`s without this component exist and the `multicam` feature is enabled.
-/// 
+///
 /// A very basic example which doesn't panic:
 /// ```rust
 /// use bevy::prelude::*;
