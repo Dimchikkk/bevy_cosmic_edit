@@ -73,7 +73,7 @@
 //! | 0.13.0 | 0.16 - latest    |
 //! | 0.12.* | 0.15             |
 //! | 0.11.* | 0.8 - 0.14       |
-//! 
+//!
 //! ## Feature flags
 #![doc = document_features::document_features!()]
 //!
@@ -151,6 +151,35 @@ impl Plugin for CosmicEditPlugin {
     }
 }
 
+/// Attach to primary camera, and enable the `multicam` feature to use multiple cameras.
+/// Will panic if no `Camera`s without this component exist and the `multicam` feature is enabled.
+/// 
+/// A very basic example which doesn't panic:
+/// ```rust
+/// use bevy::prelude::*;
+/// use bevy_cosmic_edit::CosmicPrimaryCamera;
+///
+/// fn main() {
+///   App::new()
+///     .add_plugins((
+///       DefaultPlugins,
+///       bevy_cosmic_edit::CosmicEditPlugin::default(),
+///     ))
+///     .add_systems(Startup, setup)
+///     .run();
+/// }
+///
+/// fn setup(mut commands: Commands) {
+///   commands.spawn((Camera3dBundle::default(), CosmicPrimaryCamera));
+///   commands.spawn(Camera3dBundle {
+///     camera: Camera {
+///       order: 2,
+///       ..default()
+///     },
+///     ..default()
+///   });
+/// }
+/// ```
 #[cfg(feature = "multicam")]
 #[derive(Component)]
 pub struct CosmicPrimaryCamera;
