@@ -9,7 +9,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let editor = commands
         .spawn(CosmicEditBundle {
             default_attrs: DefaultAttrs(AttrsOwned::new(
-                Attrs::new().color(Color::GREEN.to_cosmic()),
+                Attrs::new().color(bevy::color::palettes::basic::LIME.to_cosmic()),
             )),
             background_image: CosmicBackgroundImage(Some(bg_image_handle)),
             ..default()
@@ -26,7 +26,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 top: Val::Px(100.),
                 ..default()
             },
-            background_color: Color::WHITE.into(),
             ..default()
         })
         .insert(CosmicSource(editor));

@@ -17,7 +17,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
-    attrs = attrs.color(Color::PURPLE.to_cosmic());
+    attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
     // spawn editor
     let cosmic_edit = commands

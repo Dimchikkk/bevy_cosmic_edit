@@ -135,7 +135,7 @@ fn set_buffer_size(
             CosmicWrap::Wrap => (size.0.x - padding_x, size.0.y),
         };
 
-        buffer.set_size(&mut font_system.0, buffer_width, buffer_height);
+        buffer.set_size(&mut font_system.0, Some(buffer_width), Some(buffer_height));
     }
 }
 

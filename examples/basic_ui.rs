@@ -4,7 +4,7 @@ use bevy_cosmic_edit::*;
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {
         camera: Camera {
-            clear_color: ClearColorConfig::Custom(Color::PINK),
+            clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
         },
         ..default()

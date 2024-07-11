@@ -61,6 +61,10 @@ pub struct CursorColor(pub Color);
 #[derive(Component, Default, Deref)]
 pub struct SelectionColor(pub Color);
 
+/// Color to be used for the selected text
+#[derive(Component, Default, Deref)]
+pub struct SelectedTextColor(pub Color);
+
 /// Maximum number of lines allowed in a buffer
 #[derive(Component, Default)]
 pub struct MaxLines(pub usize);
@@ -200,7 +204,7 @@ impl Default for CosmicEditBundle {
             buffer: Default::default(),
             fill_color: Default::default(),
             cursor_color: CursorColor(Color::BLACK),
-            selection_color: SelectionColor(Color::GRAY),
+            selection_color: SelectionColor(bevy::color::palettes::basic::GRAY.into()),
             text_position: Default::default(),
             default_attrs: Default::default(),
             background_image: Default::default(),
