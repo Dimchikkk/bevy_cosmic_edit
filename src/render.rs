@@ -179,9 +179,11 @@ fn render_texture(
             }
 
             let cursor_color = cursor_color.0;
-            let cursor_opacity = (editor.cursor_visible && readonly_opt.is_none())
-                .then_some(cursor_color.alpha())
-                .unwrap_or(0.);
+            let cursor_opacity = if editor.cursor_visible && readonly_opt.is_none() {
+                cursor_color.alpha()
+            } else {
+                0.
+            };
 
             let cursor_color = cursor_color.with_alpha(cursor_opacity).to_cosmic();
 

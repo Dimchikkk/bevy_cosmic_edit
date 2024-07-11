@@ -492,14 +492,15 @@ pub(crate) fn kb_input_text(
                 is_edit = true;
                 if *is_deleting {
                     editor.action(&mut font_system.0, Action::Backspace);
-                } else if !command && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0) {
-                    if matches!(char_ev.state, bevy::input::ButtonState::Pressed) {
-                        if let Key::Character(char) = &char_ev.logical_key {
-                            let b = char.as_bytes();
-                            for c in b {
-                                let c: char = (*c).into();
-                                editor.action(&mut font_system.0, Action::Insert(c));
-                            }
+                } else if !command
+                    && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
+                    && matches!(char_ev.state, bevy::input::ButtonState::Pressed)
+                {
+                    if let Key::Character(char) = &char_ev.logical_key {
+                        let b = char.as_bytes();
+                        for c in b {
+                            let c: char = (*c).into();
+                            editor.action(&mut font_system.0, Action::Insert(c));
                         }
                     }
                 }
