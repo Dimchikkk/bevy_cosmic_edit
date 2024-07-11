@@ -42,7 +42,9 @@ fn setup(
     });
 
     commands.spawn(CosmicEditBundle {
-        fill_color: CosmicBackgroundColor(bevy::color::palettes::basic::GRAY.with_alpha(0.5).into()),
+        fill_color: CosmicBackgroundColor(
+            bevy::color::palettes::basic::GRAY.with_alpha(0.5).into(),
+        ),
         buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
             "Widget_2. Click on me",

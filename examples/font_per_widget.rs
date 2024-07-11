@@ -66,28 +66,94 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 .style(FontStyle::Italic),
         ),
         ("\n", attrs),
-        ("R", attrs.color(bevy::color::palettes::css::RED.to_cosmic())),
-        ("A", attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic())),
-        ("I", attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic())),
-        ("N", attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic())),
-        ("B", attrs.color(bevy::color::palettes::css::BLUE.to_cosmic())),
-        ("O", attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic())),
-        ("W ", attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic())),
-        ("Red ", attrs.color(bevy::color::palettes::css::RED.to_cosmic())),
-        ("Orange ", attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic())),
-        ("Yellow ", attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic())),
-        ("Green ", attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic())),
-        ("Blue ", attrs.color(bevy::color::palettes::css::BLUE.to_cosmic())),
-        ("Indigo ", attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic())),
-        ("Violet ", attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic())),
-        ("U", attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic())),
-        ("N", attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic())),
-        ("I", attrs.color(bevy::color::palettes::css::BLUE.to_cosmic())),
-        ("C", attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic())),
-        ("O", attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic())),
-        ("R", attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic())),
-        ("N", attrs.color(bevy::color::palettes::css::RED.to_cosmic())),
-        ("生活,삶,जिंदगी 😀 FPS", attrs.color(bevy::color::palettes::css::RED.to_cosmic())),
+        (
+            "R",
+            attrs.color(bevy::color::palettes::css::RED.to_cosmic()),
+        ),
+        (
+            "A",
+            attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic()),
+        ),
+        (
+            "I",
+            attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic()),
+        ),
+        (
+            "N",
+            attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
+        ),
+        (
+            "B",
+            attrs.color(bevy::color::palettes::css::BLUE.to_cosmic()),
+        ),
+        (
+            "O",
+            attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic()),
+        ),
+        (
+            "W ",
+            attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic()),
+        ),
+        (
+            "Red ",
+            attrs.color(bevy::color::palettes::css::RED.to_cosmic()),
+        ),
+        (
+            "Orange ",
+            attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic()),
+        ),
+        (
+            "Yellow ",
+            attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic()),
+        ),
+        (
+            "Green ",
+            attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
+        ),
+        (
+            "Blue ",
+            attrs.color(bevy::color::palettes::css::BLUE.to_cosmic()),
+        ),
+        (
+            "Indigo ",
+            attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic()),
+        ),
+        (
+            "Violet ",
+            attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic()),
+        ),
+        (
+            "U",
+            attrs.color(bevy::color::palettes::css::PURPLE.to_cosmic()),
+        ),
+        (
+            "N",
+            attrs.color(bevy::color::palettes::css::INDIGO.to_cosmic()),
+        ),
+        (
+            "I",
+            attrs.color(bevy::color::palettes::css::BLUE.to_cosmic()),
+        ),
+        (
+            "C",
+            attrs.color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
+        ),
+        (
+            "O",
+            attrs.color(bevy::color::palettes::css::YELLOW.to_cosmic()),
+        ),
+        (
+            "R",
+            attrs.color(bevy::color::palettes::css::ORANGE.to_cosmic()),
+        ),
+        (
+            "N",
+            attrs.color(bevy::color::palettes::css::RED.to_cosmic()),
+        ),
+        (
+            "生活,삶,जिंदगी 😀 FPS",
+            attrs.color(bevy::color::palettes::css::RED.to_cosmic()),
+        ),
     ];
 
     let cosmic_edit_1 = commands

@@ -179,13 +179,17 @@ fn render_texture(
             }
 
             let cursor_color = cursor_color.0;
-            let cursor_opacity = (editor.cursor_visible && readonly_opt.is_none()).then_some(cursor_color.alpha()).unwrap_or(0.);
+            let cursor_opacity = (editor.cursor_visible && readonly_opt.is_none())
+                .then_some(cursor_color.alpha())
+                .unwrap_or(0.);
 
             let cursor_color = cursor_color.with_alpha(cursor_opacity).to_cosmic();
 
             let selection_color = selection_color.0.to_cosmic();
 
-            let selected_text_color = selected_text_color_option.map(|selected_text_color| selected_text_color.0.to_cosmic()).unwrap_or(font_color);
+            let selected_text_color = selected_text_color_option
+                .map(|selected_text_color| selected_text_color.0.to_cosmic())
+                .unwrap_or(font_color);
 
             editor.draw(
                 &mut font_system.0,
