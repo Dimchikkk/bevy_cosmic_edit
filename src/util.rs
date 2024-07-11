@@ -7,13 +7,19 @@ pub trait ColorExtras {
     fn to_cosmic(self) -> CosmicColor;
 }
 
-impl ColorExtras for Color {
+impl<T: Into<Color>> ColorExtras for T {
     fn to_cosmic(self) -> CosmicColor {
+        let Srgba {
+            red,
+            green,
+            blue,
+            alpha,
+        } = Into::<Color>::into(self).to_srgba();
         CosmicColor::rgba(
-            (self.r() * 255.) as u8,
-            (self.g() * 255.) as u8,
-            (self.b() * 255.) as u8,
-            (self.a() * 255.) as u8,
+            (red * 255.) as u8,
+            (green * 255.) as u8,
+            (blue * 255.) as u8,
+            (alpha * 255.) as u8,
         )
     }
 }

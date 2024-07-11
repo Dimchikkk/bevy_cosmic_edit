@@ -97,7 +97,7 @@ mod widget;
 
 use std::{path::PathBuf, time::Duration};
 
-use bevy::{prelude::*, transform::TransformSystem};
+use bevy::prelude::*;
 
 pub use buffer::*;
 pub use cosmic_edit::*;
@@ -224,6 +224,8 @@ fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem
 
 #[cfg(test)]
 mod tests {
+    use bevy::input::keyboard::KeyboardInput;
+
     use crate::*;
 
     use self::buffer::CosmicBuffer;
@@ -258,12 +260,12 @@ mod tests {
         let mouse_input: ButtonInput<MouseButton> = ButtonInput::<MouseButton>::default();
         app.insert_resource(mouse_input);
 
-        app.add_event::<ReceivedCharacter>();
+        app.add_event::<KeyboardInput>();
 
         app.update();
 
-        let mut text_nodes_query = app.world.query::<&CosmicBuffer>();
-        for cosmic_editor in text_nodes_query.iter(&app.world) {
+        let mut text_nodes_query = app.world_mut().query::<&CosmicBuffer>();
+        for cosmic_editor in text_nodes_query.iter(&app.world()) {
             insta::assert_debug_snapshot!(cosmic_editor
                 .lines
                 .iter()

@@ -7,7 +7,7 @@ struct TextChangeTimer(pub Timer);
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2dBundle::default());
 
-    let attrs = Attrs::new().color(Color::rgb(0.27, 0.27, 0.27).to_cosmic());
+    let attrs = Attrs::new().color(Color::srgb(0.27, 0.27, 0.27).to_cosmic());
 
     let editor = commands
         .spawn(CosmicEditBundle {
@@ -16,9 +16,9 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 "Begin counting.",
                 attrs,
             ),
-            cursor_color: CursorColor(Color::GREEN),
-            selection_color: SelectionColor(Color::PINK),
-            fill_color: CosmicBackgroundColor(Color::YELLOW_GREEN),
+            cursor_color: CursorColor(bevy::color::palettes::css::LIME.into()),
+            selection_color: SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
+            fill_color: CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
             x_offset: XOffset::default(),
             text_position: CosmicTextAlign::default(),
             background_image: CosmicBackgroundImage::default(),
@@ -44,11 +44,12 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             padding: Default::default(),
             widget_size: Default::default(),
         })
+        .insert(SelectedTextColor(Color::WHITE))
         .id();
 
     commands
         .spawn(ButtonBundle {
-            border_color: Color::LIME_GREEN.into(),
+            border_color: bevy::color::palettes::css::LIMEGREEN.into(),
             style: Style {
                 // Size and position of text box
                 border: UiRect::all(Val::Px(4.)),
