@@ -503,11 +503,11 @@ pub(crate) fn kb_input_text(
                                 let c: char = (*c).into();
                                 editor.action(&mut font_system.0, Action::Insert(c));
                             }
-                        },
+                        }
                         Key::Space => {
                             editor.action(&mut font_system.0, Action::Insert(' '));
-                        },
-                        _ => ()
+                        }
+                        _ => (),
                     }
                 }
             }
