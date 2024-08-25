@@ -654,22 +654,14 @@ fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn write_clipboard_wasm(text: &str) {
-    let clipboard = web_sys::window()
-        .unwrap()
-        .navigator()
-        .clipboard()
-        .expect("Clipboard not found!");
+    let clipboard = web_sys::window().unwrap().navigator().clipboard();
     let _result = clipboard.write_text(text);
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn read_clipboard_wasm() -> Promise {
-    let clipboard = web_sys::window()
-        .unwrap()
-        .navigator()
-        .clipboard()
-        .expect("Clipboard not found!");
+    let clipboard = web_sys::window().unwrap().navigator().clipboard();
     clipboard.read_text()
 }
 

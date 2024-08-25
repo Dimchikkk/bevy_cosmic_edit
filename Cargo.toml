@@ -19,17 +19,17 @@ multicam = []
 
 [dependencies]
 bevy = { version = "0.14", default-features = false, features = [
-  "bevy_asset",
-  "bevy_core_pipeline",
-  "bevy_render",
-  "bevy_scene",
-  "bevy_sprite",
-  "bevy_text",
-  "bevy_ui",
-  "bevy_winit",
-  "png",
-  "x11",
-  "webgpu",
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "png",
+    "x11",
+    "webgpu",
 ] }
 cosmic-text = { version = "0.12.0" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
@@ -44,13 +44,13 @@ document-features = "0.2.8"
 arboard = "3.2.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-js-sys = "0.3.67"
+js-sys = "0.3.70"
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
-web-sys = { version = "0.3.67", features = [
-  "Clipboard",
-  "Navigator",
-  "Window",
+web-sys = { version = "0.3.70", features = [
+    "Clipboard",
+    "Navigator",
+    "Window",
 ] }
 
 [dev-dependencies]
