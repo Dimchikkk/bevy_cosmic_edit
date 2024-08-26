@@ -10,11 +10,20 @@ pub struct CursorSet;
 
 pub struct CursorPlugin;
 
+/// Unit resource whose existence in the world disables the cursor plugin systems.
+#[derive(Resource)]
+pub struct CursorPluginDisabled;
+
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, ((hover_sprites, hover_ui), change_cursor).chain())
-            .add_event::<TextHoverIn>()
-            .add_event::<TextHoverOut>();
+        app.add_systems(
+            Update,
+            ((hover_sprites, hover_ui), change_cursor)
+                .chain()
+                .run_if(not(resource_exists::<CursorPluginDisabled>)),
+        )
+        .add_event::<TextHoverIn>()
+        .add_event::<TextHoverOut>();
     }
 }
 
