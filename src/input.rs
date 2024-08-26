@@ -458,8 +458,6 @@ pub(crate) fn kb_input_text(
             }
 
             *is_deleting = true;
-            #[cfg(target_arch = "wasm32")]
-            editor.action(&mut font_system.0, Action::Backspace);
         }
 
         if keys.just_released(KeyCode::Backspace) {
