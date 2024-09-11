@@ -1,4 +1,5 @@
 use crate::*;
+use cosmic_text::Edit;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
 

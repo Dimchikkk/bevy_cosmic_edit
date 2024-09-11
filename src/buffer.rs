@@ -1,5 +1,6 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
+use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
 
 /// Set of all buffer setup functions. Runs in [`First`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

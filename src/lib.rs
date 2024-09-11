@@ -102,11 +102,7 @@ use bevy::prelude::*;
 pub use buffer::*;
 pub use cosmic_edit::*;
 #[doc(no_inline)]
-pub use cosmic_text::{
-    Action, Attrs, AttrsOwned, Buffer, CacheKeyFlags, Color as CosmicColor, Cursor, Edit, Editor,
-    Family, FamilyOwned, FontSystem, Metrics, Shaping, Stretch, Style as FontStyle,
-    Weight as FontWeight,
-};
+pub use cosmic_text::{self, Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
 pub use cursor::*;
 pub use events::*;
 pub use focus::*;
@@ -205,7 +201,7 @@ impl Default for CosmicFontConfig {
     }
 }
 
-fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> FontSystem {
+fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
     let mut db = cosmic_text::fontdb::Database::new();
     if let Some(dir_path) = cosmic_font_config.fonts_dir_path.clone() {
@@ -234,9 +230,9 @@ mod tests {
         mut commands: Commands,
         mut font_system: ResMut<CosmicFontSystem>,
     ) {
-        let attrs = Attrs::new();
+        let attrs = cosmic_text::Attrs::new();
         commands.spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+            buffer: CosmicBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.)).with_rich_text(
                 &mut font_system,
                 vec![("Blah", attrs)],
                 attrs,

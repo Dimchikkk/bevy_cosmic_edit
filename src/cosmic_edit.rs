@@ -1,5 +1,6 @@
 use crate::*;
 use bevy::prelude::*;
+use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Clone, Component, PartialEq, Default)]
