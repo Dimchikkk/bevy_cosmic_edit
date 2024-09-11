@@ -1,7 +1,10 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::prelude::*;
-use bevy_cosmic_edit::{*, cosmic_text::{Attrs, Family, Metrics}};
+use bevy_cosmic_edit::{
+    cosmic_text::{Attrs, Family, Metrics},
+    *,
+};
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2dBundle::default());

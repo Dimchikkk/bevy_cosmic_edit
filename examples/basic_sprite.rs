@@ -1,5 +1,8 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_cosmic_edit::{*, cosmic_text::{Attrs, Family, Metrics}};
+use bevy_cosmic_edit::{
+    cosmic_text::{Attrs, Family, Metrics},
+    *,
+};
 
 fn setup(
     mut commands: Commands,

@@ -232,11 +232,8 @@ mod tests {
     ) {
         let attrs = cosmic_text::Attrs::new();
         commands.spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.)).with_rich_text(
-                &mut font_system,
-                vec![("Blah", attrs)],
-                attrs,
-            ),
+            buffer: CosmicBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.))
+                .with_rich_text(&mut font_system, vec![("Blah", attrs)], attrs),
             ..Default::default()
         });
     }
