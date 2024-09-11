@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::*;
+use bevy_cosmic_edit::{
+    cosmic_text::{Attrs, Family, Metrics},
+    *,
+};
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = Camera2dBundle {

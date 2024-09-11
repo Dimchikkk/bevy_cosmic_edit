@@ -1,5 +1,6 @@
 use crate::*;
 use bevy::prelude::*;
+use cosmic_text::Edit;
 
 pub(crate) struct UserSelectPlugin;
 

@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::*;
+use bevy_cosmic_edit::{
+    cosmic_text::{Attrs, AttrsOwned},
+    *,
+};
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
