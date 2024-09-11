@@ -1,5 +1,9 @@
 use crate::*;
-use bevy::{ecs::component::{ComponentHooks, StorageType}, prelude::*, window::PrimaryWindow};
+use bevy::{
+    ecs::component::{ComponentHooks, StorageType},
+    prelude::*,
+    window::PrimaryWindow,
+};
 use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
 
 /// Set of all buffer setup functions. Runs in [`First`]
