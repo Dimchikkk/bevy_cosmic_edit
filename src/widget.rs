@@ -1,6 +1,7 @@
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
+use cosmic_text::Edit;
 
 /// System set for cosmic text layout systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

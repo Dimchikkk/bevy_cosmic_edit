@@ -1,6 +1,7 @@
 // Common functions for examples
 use crate::*;
 use bevy::{prelude::*, window::PrimaryWindow};
+use cosmic_text::Edit;
 
 /// Trait for adding color conversion from [`bevy::prelude::Color`] to [`cosmic_text::Color`]
 pub trait ColorExtras {

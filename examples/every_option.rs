@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::*;
+use bevy_cosmic_edit::{
+    cosmic_text::{Attrs, AttrsOwned, Metrics},
+    *,
+};
 
 #[derive(Resource)]
 struct TextChangeTimer(pub Timer);
