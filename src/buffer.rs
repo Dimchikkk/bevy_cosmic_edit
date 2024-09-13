@@ -1,5 +1,9 @@
 use crate::*;
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    ecs::component::{ComponentHooks, StorageType},
+    prelude::*,
+    window::PrimaryWindow,
+};
 use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
 
 /// Set of all buffer setup functions. Runs in [`First`]
@@ -55,8 +59,24 @@ impl BufferExtras for Buffer {
 }
 
 /// Component wrapper for [`Buffer`]
-#[derive(Component, Deref, DerefMut)]
+#[derive(Deref, DerefMut)]
 pub struct CosmicBuffer(pub Buffer);
+
+impl Component for CosmicBuffer {
+    const STORAGE_TYPE: StorageType = StorageType::Table;
+
+    fn register_component_hooks(hooks: &mut ComponentHooks) {
+        hooks.on_remove(|mut world, entity, _| {
+            if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
+                if let Some(focused) = focused_widget.0 {
+                    if focused == entity {
+                        focused_widget.0 = None;
+                    }
+                }
+            }
+        });
+    }
+}
 
 impl Default for CosmicBuffer {
     fn default() -> Self {
