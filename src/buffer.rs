@@ -210,11 +210,13 @@ pub fn set_initial_scale(
     mut cosmic_query: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    let w_scale = window_q.single().scale_factor();
+    if let Ok(window) = window_q.single() {
+        let w_scale = window.scale_factor();
 
-    for mut b in &mut cosmic_query.iter_mut() {
-        let m = b.metrics().scale(w_scale);
-        b.set_metrics(&mut font_system, m);
+        for mut b in &mut cosmic_query.iter_mut() {
+            let m = b.metrics().scale(w_scale);
+            b.set_metrics(&mut font_system, m);
+        }
     }
 }
 
