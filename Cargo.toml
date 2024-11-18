@@ -14,6 +14,7 @@ exclude = ["assets/*"]
 ## Enable to avoid panicing when multiple cameras are used in the same world
 ## Requires you to add `CosmicPrimaryCamera` marker component to the primary camera
 multicam = []
+webgpu = ["bevy/webgpu"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -29,7 +30,7 @@ bevy = { version = "0.14", default-features = false, features = [
     "bevy_winit",
     "png",
     "x11",
-    "webgpu",
+    "webgl2",
 ] }
 cosmic-text = { version = "0.12.0" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
