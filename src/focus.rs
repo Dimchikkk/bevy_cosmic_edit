@@ -17,12 +17,13 @@ impl Plugin for FocusPlugin {
                 .in_set(FocusSet)
                 .after(WidgetSet),
         )
-        .init_resource::<FocusedWidget>();
+        .init_resource::<FocusedWidget>()
+        .register_type::<FocusedWidget>();
     }
 }
 
 /// Resource struct that keeps track of the currently active editor entity.
-#[derive(Resource, Default, Deref, DerefMut)]
+#[derive(Resource, Reflect, Default, Deref, DerefMut)]
 pub struct FocusedWidget(pub Option<Entity>);
 
 pub(crate) fn add_editor_to_focused(
