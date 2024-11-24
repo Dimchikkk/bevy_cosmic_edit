@@ -138,6 +138,18 @@ impl Plugin for CosmicEditPlugin {
         ))
         .insert_resource(CosmicFontSystem(font_system));
 
+        app.register_type::<CosmicWrap>()
+            .register_type::<CosmicTextAlign>()
+            .register_type::<XOffset>()
+            .register_type::<CosmicBackgroundImage>()
+            .register_type::<CosmicBackgroundColor>()
+            .register_type::<CursorColor>()
+            .register_type::<SelectionColor>()
+            .register_type::<MaxLines>()
+            .register_type::<MaxChars>()
+            .register_type::<CosmicSource>()
+            .register_type::<HoverCursor>();
+
         #[cfg(target_arch = "wasm32")]
         {
             let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
@@ -148,7 +160,7 @@ impl Plugin for CosmicEditPlugin {
 }
 
 /// Attach to primary camera, and enable the `multicam` feature to use multiple cameras.
-/// Will panic if no `Camera`s without this component exist and the `multicam` feature is enabled.
+/// Will panic if no Camera's without this component exist and the `multicam` feature is enabled.
 ///
 /// A very basic example which doesn't panic:
 /// ```rust
@@ -176,7 +188,6 @@ impl Plugin for CosmicEditPlugin {
 ///   });
 /// }
 /// ```
-#[cfg(feature = "multicam")]
 #[derive(Component, Debug, Default)]
 pub struct CosmicPrimaryCamera;
 
