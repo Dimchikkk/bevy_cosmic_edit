@@ -109,17 +109,16 @@ pub(crate) fn hover_sprites(
         }
 
         let size = sprite.custom_size.unwrap_or(Vec2::ONE);
-        let x_min = node_transform.affine().translation.x - size.x / 2.;
-        let y_min = node_transform.affine().translation.y - size.y / 2.;
-        let x_max = node_transform.affine().translation.x + size.x / 2.;
-        let y_max = node_transform.affine().translation.y + size.y / 2.;
-        if let Some(pos) = window.cursor_position() {
-            if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
-                if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                    *hovered = true;
-                    icon = hover.0;
-                }
-            }
+        if let Some(_) = get_node_cursor_pos(
+            window,
+            node_transform,
+            size,
+            false,
+            camera,
+            camera_transform,
+        ) {
+            *hovered = true;
+            icon = hover.0;
         }
     }
 

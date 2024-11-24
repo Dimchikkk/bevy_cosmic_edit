@@ -36,22 +36,23 @@ pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<Fo
 pub fn get_node_cursor_pos(
     window: &Window,
     node_transform: &GlobalTransform,
-    size: (f32, f32),
+    size: Vec2,
     is_ui_node: bool,
     camera: &Camera,
     camera_transform: &GlobalTransform,
-) -> Option<(f32, f32)> {
-    let (x_min, y_min, x_max, y_max) = (
-        node_transform.affine().translation.x - size.0 / 2.,
-        node_transform.affine().translation.y - size.1 / 2.,
-        node_transform.affine().translation.x + size.0 / 2.,
-        node_transform.affine().translation.y + size.1 / 2.,
+) -> Option<Vec2> {
+    let node_translation = node_transform.affine().translation;
+    let node_bounds = Rect::new(
+        node_translation.x - size.x / 2.,
+        node_translation.y - size.y / 2.,
+        node_translation.x + size.x / 2.,
+        node_translation.y + size.y / 2.,
     );
 
     window.cursor_position().and_then(|pos| {
         if is_ui_node {
-            if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                Some((pos.x - x_min, pos.y - y_min))
+            if node_bounds.contains(pos) {
+                Some(Vec2::new(pos.x - node_bounds.min.x, pos.y - node_bounds.min.y))
             } else {
                 None
             }
@@ -59,8 +60,8 @@ pub fn get_node_cursor_pos(
             camera
                 .viewport_to_world_2d(camera_transform, pos)
                 .and_then(|pos| {
-                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        Some((pos.x - x_min, y_max - pos.y))
+                    if node_bounds.contains(pos) {
+                        Some(Vec2::new(pos.x - node_bounds.min.x, node_bounds.max.y - pos.y))
                     } else {
                         None
                     }
