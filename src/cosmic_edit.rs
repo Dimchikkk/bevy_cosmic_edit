@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
-#[derive(Clone, Component, PartialEq, Default)]
+#[derive(Reflect, Clone, Component, PartialEq, Default)]
 pub enum CosmicWrap {
     InfiniteLine,
     #[default]
@@ -11,7 +11,7 @@ pub enum CosmicWrap {
 }
 
 /// Enum representing the text alignment in a cosmic [`Buffer`]
-#[derive(Clone, Component)]
+#[derive(Reflect, Clone, Component)]
 pub enum CosmicTextAlign {
     Center { padding: i32 },
     TopLeft { padding: i32 },
@@ -30,7 +30,7 @@ impl Default for CosmicTextAlign {
 pub struct ReadOnly; // tag component
 
 /// Internal value used to decide what section of a [`Buffer`] to render
-#[derive(Component, Debug, Default)]
+#[derive(Reflect, Component, Debug, Default)]
 pub struct XOffset {
     pub left: f32,
     pub width: f32,

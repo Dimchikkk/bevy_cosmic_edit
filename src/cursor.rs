@@ -109,14 +109,16 @@ pub(crate) fn hover_sprites(
         }
 
         let size = sprite.custom_size.unwrap_or(Vec2::ONE);
-        if let Some(_) = get_node_cursor_pos(
+        if get_node_cursor_pos(
             window,
             node_transform,
             size,
             false,
             camera,
             camera_transform,
-        ) {
+        )
+        .is_some()
+        {
             *hovered = true;
             icon = hover.0;
         }
