@@ -24,7 +24,9 @@ impl Plugin for WidgetPlugin {
                     .chain()
                     .in_set(WidgetSet)
                     .after(TransformSystem::TransformPropagate),
-            );
+            )
+            .register_type::<CosmicPadding>()
+            .register_type::<CosmicWidgetSize>();
     }
 }
 

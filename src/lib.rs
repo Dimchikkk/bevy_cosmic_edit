@@ -138,9 +138,7 @@ impl Plugin for CosmicEditPlugin {
         ))
         .insert_resource(CosmicFontSystem(font_system));
 
-        app.register_type::<FocusedWidget>()
-            .register_type::<CosmicTextChanged>()
-            .register_type::<CosmicWrap>()
+        app.register_type::<CosmicWrap>()
             .register_type::<CosmicTextAlign>()
             .register_type::<XOffset>()
             .register_type::<CosmicBackgroundImage>()
@@ -150,10 +148,7 @@ impl Plugin for CosmicEditPlugin {
             .register_type::<MaxLines>()
             .register_type::<MaxChars>()
             .register_type::<CosmicSource>()
-            .register_type::<CosmicPadding>()
-            .register_type::<CosmicWidgetSize>()
-            .register_type::<HoverCursor>()
-            .register_type::<TextHoverIn>();
+            .register_type::<HoverCursor>();
 
         #[cfg(target_arch = "wasm32")]
         {

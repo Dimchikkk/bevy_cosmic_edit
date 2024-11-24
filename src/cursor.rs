@@ -23,6 +23,7 @@ impl Plugin for CursorPlugin {
                 .run_if(not(resource_exists::<CursorPluginDisabled>)),
         )
         .add_event::<TextHoverIn>()
+        .register_type::<TextHoverIn>()
         .add_event::<TextHoverOut>();
     }
 }

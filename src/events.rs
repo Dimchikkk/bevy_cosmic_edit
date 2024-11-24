@@ -7,7 +7,8 @@ pub(crate) struct EventsPlugin;
 
 impl Plugin for EventsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<CosmicTextChanged>();
+        app.add_event::<CosmicTextChanged>()
+            .register_type::<CosmicTextChanged>();
     }
 }
 
