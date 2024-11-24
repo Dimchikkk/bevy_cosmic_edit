@@ -52,7 +52,10 @@ pub fn get_node_cursor_pos(
     window.cursor_position().and_then(|pos| {
         if is_ui_node {
             if node_bounds.contains(pos) {
-                Some(Vec2::new(pos.x - node_bounds.min.x, pos.y - node_bounds.min.y))
+                Some(Vec2::new(
+                    pos.x - node_bounds.min.x,
+                    pos.y - node_bounds.min.y,
+                ))
             } else {
                 None
             }
@@ -61,7 +64,10 @@ pub fn get_node_cursor_pos(
                 .viewport_to_world_2d(camera_transform, pos)
                 .and_then(|pos| {
                     if node_bounds.contains(pos) {
-                        Some(Vec2::new(pos.x - node_bounds.min.x, node_bounds.max.y - pos.y))
+                        Some(Vec2::new(
+                            pos.x - node_bounds.min.x,
+                            node_bounds.max.y - pos.y,
+                        ))
                     } else {
                         None
                     }

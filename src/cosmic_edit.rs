@@ -47,23 +47,23 @@ impl Default for DefaultAttrs {
 }
 
 /// Image to be used as a buffer's background
-#[derive(Component, Default)]
+#[derive(Reflect, Component, Default)]
 pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 
 /// Color to be used as a buffer's background
-#[derive(Component, Default, Deref)]
+#[derive(Reflect, Component, Default, Deref)]
 pub struct CosmicBackgroundColor(pub Color);
 
 /// Color to be used for the text cursor
-#[derive(Component, Default, Deref)]
+#[derive(Reflect, Component, Default, Deref)]
 pub struct CursorColor(pub Color);
 
 /// Color to be used as the selected text background
-#[derive(Component, Default, Deref)]
+#[derive(Reflect, Component, Default, Deref)]
 pub struct SelectionColor(pub Color);
 
 /// Color to be used for the selected text
-#[derive(Component, Default, Deref)]
+#[derive(Reflect, Component, Default, Deref)]
 pub struct SelectedTextColor(pub Color);
 
 /// Maximum number of lines allowed in a buffer
