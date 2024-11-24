@@ -24,6 +24,7 @@ impl Plugin for FocusPlugin {
 
 /// Resource struct that keeps track of the currently active editor entity.
 #[derive(Resource, Reflect, Default, Deref, DerefMut)]
+#[reflect(Resource)]
 pub struct FocusedWidget(pub Option<Entity>);
 
 pub(crate) fn add_editor_to_focused(

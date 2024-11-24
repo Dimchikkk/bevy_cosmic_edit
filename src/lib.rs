@@ -138,6 +138,23 @@ impl Plugin for CosmicEditPlugin {
         ))
         .insert_resource(CosmicFontSystem(font_system));
 
+        app.register_type::<FocusedWidget>()
+            .register_type::<CosmicTextChanged>()
+            .register_type::<CosmicWrap>()
+            .register_type::<CosmicTextAlign>()
+            .register_type::<XOffset>()
+            .register_type::<CosmicBackgroundImage>()
+            .register_type::<CosmicBackgroundColor>()
+            .register_type::<CursorColor>()
+            .register_type::<SelectionColor>()
+            .register_type::<MaxLines>()
+            .register_type::<MaxChars>()
+            .register_type::<CosmicSource>()
+            .register_type::<CosmicPadding>()
+            .register_type::<CosmicWidgetSize>()
+            .register_type::<HoverCursor>()
+            .register_type::<TextHoverIn>();
+
         #[cfg(target_arch = "wasm32")]
         {
             let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);

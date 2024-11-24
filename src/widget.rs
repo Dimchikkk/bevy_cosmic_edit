@@ -31,14 +31,14 @@ impl Plugin for WidgetPlugin {
 /// Wrapper for a [`Vec2`] describing the horizontal and vertical padding of a widget.
 /// This is set programatically, not for user modification.
 /// To set a widget's padding, use [`CosmicTextAlign`]
-#[derive(Component, Default, Deref, DerefMut, Debug)]
+#[derive(Component, Reflect, Default, Deref, DerefMut, Debug)]
 pub struct CosmicPadding(pub Vec2);
 
 /// Wrapper for a [`Vec2`] describing the horizontal and vertical size of a widget.
 /// This is set programatically, not for user modification.
 /// To set a widget's size, use either it's [`Sprite`] dimensions or modify the target UI element's
 /// size.
-#[derive(Component, Default, Deref, DerefMut)]
+#[derive(Component, Reflect, Default, Deref, DerefMut)]
 pub struct CosmicWidgetSize(pub Vec2);
 
 /// Reshapes text in a [`CosmicEditor`]

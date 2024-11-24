@@ -27,7 +27,7 @@ impl Plugin for CursorPlugin {
     }
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Reflect, Deref)]
 pub struct HoverCursor(pub CursorIcon);
 
 impl Default for HoverCursor {
@@ -39,12 +39,12 @@ impl Default for HoverCursor {
 /// For use with custom cursor control
 /// Event is emitted when cursor enters a text widget
 /// Event contains the cursor from the buffer's [`HoverCursor`]
-#[derive(Event, Deref)]
+#[derive(Event, Reflect, Deref, Debug)]
 pub struct TextHoverIn(pub CursorIcon);
 
 /// For use with custom cursor control
 /// Event is emitted when cursor leaves a text widget
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub struct TextHoverOut;
 
 pub(crate) fn change_cursor(

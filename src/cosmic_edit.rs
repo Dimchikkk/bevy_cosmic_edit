@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
-#[derive(Reflect, Clone, Component, PartialEq, Default)]
+#[derive(Component, Reflect, Clone, PartialEq, Default)]
 pub enum CosmicWrap {
     InfiniteLine,
     #[default]
@@ -11,7 +11,7 @@ pub enum CosmicWrap {
 }
 
 /// Enum representing the text alignment in a cosmic [`Buffer`]
-#[derive(Reflect, Clone, Component)]
+#[derive(Component, Reflect, Clone)]
 pub enum CosmicTextAlign {
     Center { padding: i32 },
     TopLeft { padding: i32 },
@@ -30,7 +30,7 @@ impl Default for CosmicTextAlign {
 pub struct ReadOnly; // tag component
 
 /// Internal value used to decide what section of a [`Buffer`] to render
-#[derive(Reflect, Component, Debug, Default)]
+#[derive(Component, Reflect, Debug, Default)]
 pub struct XOffset {
     pub left: f32,
     pub width: f32,
@@ -47,32 +47,32 @@ impl Default for DefaultAttrs {
 }
 
 /// Image to be used as a buffer's background
-#[derive(Reflect, Component, Default)]
+#[derive(Component, Reflect, Default)]
 pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 
 /// Color to be used as a buffer's background
-#[derive(Reflect, Component, Default, Deref)]
+#[derive(Component, Reflect, Default, Deref)]
 pub struct CosmicBackgroundColor(pub Color);
 
 /// Color to be used for the text cursor
-#[derive(Reflect, Component, Default, Deref)]
+#[derive(Component, Reflect, Default, Deref)]
 pub struct CursorColor(pub Color);
 
 /// Color to be used as the selected text background
-#[derive(Reflect, Component, Default, Deref)]
+#[derive(Component, Reflect, Default, Deref)]
 pub struct SelectionColor(pub Color);
 
 /// Color to be used for the selected text
-#[derive(Reflect, Component, Default, Deref)]
+#[derive(Component, Reflect, Default, Deref)]
 pub struct SelectedTextColor(pub Color);
 
 /// Maximum number of lines allowed in a buffer
-#[derive(Component, Default)]
+#[derive(Component, Reflect, Default)]
 pub struct MaxLines(pub usize);
 
 /// Maximum number of characters allowed in a buffer
 // TODO: Check this functionality with widechars; Use graphemes to test?
-#[derive(Component, Default)]
+#[derive(Component, Reflect, Default)]
 pub struct MaxChars(pub usize);
 
 /// Buffer does not respond to scroll events
@@ -111,7 +111,7 @@ pub struct ScrollDisabled;
 /// #         .add_plugins(CosmicEditPlugin::default())
 /// #         .add_systems(Startup, setup);
 /// # }
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct CosmicSource(pub Entity);
 
 /// A bundle containing all the required components for [`CosmicBuffer`] functionality.
