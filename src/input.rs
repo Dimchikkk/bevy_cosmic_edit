@@ -125,8 +125,8 @@ pub(crate) fn input_mouse(
 
         let mut is_ui_node = false;
         let mut transform = sprite_transform;
-        let (mut width, mut height) =
-            (sprite.custom_size.unwrap().x, sprite.custom_size.unwrap().y);
+        let sprite_size = sprite.custom_size.expect("Must specify Sprite.custom_size");
+        let (mut width, mut height) = (sprite_size.x, sprite_size.y);
 
         // TODO: this is bad loop nesting, rethink system with relationships in mind
         for (node, node_transform, source) in node_q.iter() {
@@ -159,10 +159,10 @@ pub(crate) fn input_mouse(
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
         };
-        let point = |node_cursor_pos: (f32, f32)| {
+        let point = |node_cursor_pos: Vec2| {
             (
-                (node_cursor_pos.0 * scale_factor) as i32 - padding_x,
-                (node_cursor_pos.1 * scale_factor) as i32 - padding_y,
+                (node_cursor_pos.x * scale_factor) as i32 - padding_x,
+                (node_cursor_pos.y * scale_factor) as i32 - padding_y,
             )
         };
 
@@ -173,7 +173,7 @@ pub(crate) fn input_mouse(
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
                 transform,
-                (width, height),
+                Vec2::new(width, height),
                 is_ui_node,
                 camera,
                 camera_transform,
@@ -213,7 +213,7 @@ pub(crate) fn input_mouse(
             if let Some(node_cursor_pos) = get_node_cursor_pos(
                 primary_window,
                 transform,
-                (width, height),
+                Vec2::new(width, height),
                 is_ui_node,
                 camera,
                 camera_transform,

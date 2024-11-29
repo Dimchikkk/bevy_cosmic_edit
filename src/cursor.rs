@@ -23,11 +23,12 @@ impl Plugin for CursorPlugin {
                 .run_if(not(resource_exists::<CursorPluginDisabled>)),
         )
         .add_event::<TextHoverIn>()
+        .register_type::<TextHoverIn>()
         .add_event::<TextHoverOut>();
     }
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Reflect, Deref)]
 pub struct HoverCursor(pub CursorIcon);
 
 impl Default for HoverCursor {
@@ -39,12 +40,12 @@ impl Default for HoverCursor {
 /// For use with custom cursor control
 /// Event is emitted when cursor enters a text widget
 /// Event contains the cursor from the buffer's [`HoverCursor`]
-#[derive(Event, Deref)]
+#[derive(Event, Reflect, Deref, Debug)]
 pub struct TextHoverIn(pub CursorIcon);
 
 /// For use with custom cursor control
 /// Event is emitted when cursor leaves a text widget
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub struct TextHoverOut;
 
 pub(crate) fn change_cursor(
@@ -109,17 +110,18 @@ pub(crate) fn hover_sprites(
         }
 
         let size = sprite.custom_size.unwrap_or(Vec2::ONE);
-        let x_min = node_transform.affine().translation.x - size.x / 2.;
-        let y_min = node_transform.affine().translation.y - size.y / 2.;
-        let x_max = node_transform.affine().translation.x + size.x / 2.;
-        let y_max = node_transform.affine().translation.y + size.y / 2.;
-        if let Some(pos) = window.cursor_position() {
-            if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
-                if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                    *hovered = true;
-                    icon = hover.0;
-                }
-            }
+        if get_node_cursor_pos(
+            window,
+            node_transform,
+            size,
+            false,
+            camera,
+            camera_transform,
+        )
+        .is_some()
+        {
+            *hovered = true;
+            icon = hover.0;
         }
     }
 

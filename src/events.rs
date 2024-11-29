@@ -7,12 +7,13 @@ pub(crate) struct EventsPlugin;
 
 impl Plugin for EventsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<CosmicTextChanged>();
+        app.add_event::<CosmicTextChanged>()
+            .register_type::<CosmicTextChanged>();
     }
 }
 
 /// Text change events
 /// Sent when text is changed in a cosmic buffer
 /// Contains the entity on which the text was changed, and the new text as a [`String`]
-#[derive(Event, Debug)]
+#[derive(Event, Reflect, Debug)]
 pub struct CosmicTextChanged(pub (Entity, String));
