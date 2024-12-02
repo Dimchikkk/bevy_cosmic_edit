@@ -62,6 +62,7 @@ pub fn get_node_cursor_pos(
         } else {
             camera
                 .viewport_to_world_2d(camera_transform, pos)
+                .ok()
                 .and_then(|pos| {
                     if node_bounds.contains(pos) {
                         Some(Vec2::new(
@@ -100,7 +101,7 @@ pub fn change_active_editor_sprite(
             let x_max = node_transform.affine().translation.x + size.x / 2.;
             let y_max = node_transform.affine().translation.y + size.y / 2.;
             if let Some(pos) = window.cursor_position() {
-                if let Some(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
+                if let Ok(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                     if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
                         commands.insert_resource(FocusedWidget(Some(entity)))
                     };

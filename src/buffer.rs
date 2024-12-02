@@ -236,11 +236,11 @@ pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
 
 /// Sets image of UI elements to the [`CosmicBuffer`] output
 pub fn swap_target_handle(
-    source_q: Query<&Handle<Image>, With<CosmicBuffer>>,
+    source_q: Query<&HandleImage, With<CosmicBuffer>>,
     mut dest_q: Query<
         (
-            Option<&mut Handle<Image>>,
-            Option<&mut UiImage>,
+            Option<&mut HandleImage>,
+            Option<&mut ImageNode>,
             &CosmicSource,
         ),
         Without<CosmicBuffer>,
@@ -250,10 +250,10 @@ pub fn swap_target_handle(
     for (dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
         if let Ok(source_handle) = source_q.get(source_entity.0) {
             if let Some(mut dest_handle) = dest_handle_opt {
-                *dest_handle = source_handle.clone_weak();
+                *dest_handle = HandleImage(source_handle.clone_weak());
             }
             if let Some(mut dest_ui) = dest_ui_opt {
-                dest_ui.texture = source_handle.clone_weak();
+                dest_ui.image = source_handle.clone_weak();
             }
         }
     }

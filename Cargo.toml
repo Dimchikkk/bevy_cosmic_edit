@@ -19,7 +19,7 @@ webgpu = ["bevy/webgpu"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.14", default-features = false, features = [
+bevy = { version = "0.15", default-features = false, features = [
     "bevy_asset",
     "bevy_core_pipeline",
     "bevy_render",
@@ -28,6 +28,7 @@ bevy = { version = "0.14", default-features = false, features = [
     "bevy_text",
     "bevy_ui",
     "bevy_winit",
+    "bevy_window",
     "png",
     "x11",
     "webgl2",
