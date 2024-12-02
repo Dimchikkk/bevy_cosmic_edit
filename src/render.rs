@@ -87,7 +87,7 @@ fn render_texture(
         &CursorColor,
         &SelectionColor,
         Option<&SelectedTextColor>,
-        &Handle<Image>,
+        &HandleImage,
         &CosmicWidgetSize,
         &CosmicPadding,
         &XOffset,
@@ -216,7 +216,7 @@ fn render_texture(
             buffer.set_redraw(false);
         }
 
-        if let Some(prev_image) = images.get_mut(canvas) {
+        if let Some(prev_image) = images.get_mut(&canvas.0) {
             prev_image.data.clear();
             // Updates the stored asset image with the computed pixels
             prev_image.data.extend_from_slice(pixels.as_slice());

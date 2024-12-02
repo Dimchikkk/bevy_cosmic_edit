@@ -212,6 +212,21 @@ impl Default for CosmicFontConfig {
     }
 }
 
+/// As bevy 0.15 doesn't implement [Component] on a direct [Handle<T>] anymore,
+/// for migration this struct is used instead.
+#[derive(Component, Debug, Deref, DerefMut)]
+pub struct HandleImage(pub Handle<Image>);
+
+trait NodeSizeExt {
+    fn logical_size(&self) -> Vec2;
+}
+
+impl NodeSizeExt for ComputedNode {
+    fn logical_size(&self) -> Vec2 {
+        self.size() * self.inverse_scale_factor()
+    }
+}
+
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
     let mut db = cosmic_text::fontdb::Database::new();

@@ -74,7 +74,7 @@ pub(crate) fn input_mouse(
         &mut Sprite,
         Option<&ScrollDisabled>,
     )>,
-    node_q: Query<(&Node, &GlobalTransform, &CosmicSource)>,
+    node_q: Query<(&ComputedNode, &GlobalTransform, &CosmicSource)>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -135,8 +135,8 @@ pub(crate) fn input_mouse(
             }
             is_ui_node = true;
             transform = node_transform;
-            width = node.size().x;
-            height = node.size().y;
+            width = node.logical_size().x;
+            height = node.logical_size().y;
         }
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);

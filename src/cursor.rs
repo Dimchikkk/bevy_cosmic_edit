@@ -2,7 +2,12 @@
 // Rewrite should address issue #93 too
 
 use crate::*;
-use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
+use bevy::{
+    input::mouse::MouseMotion,
+    prelude::*,
+    window::{PrimaryWindow, SystemCursorIcon},
+    winit::cursor::CursorIcon,
+};
 
 /// System set for mouse cursor systems. Runs in [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -33,7 +38,7 @@ pub struct HoverCursor(pub CursorIcon);
 
 impl Default for HoverCursor {
     fn default() -> Self {
-        Self(CursorIcon::Text)
+        Self(CursorIcon::System(SystemCursorIcon::Text))
     }
 }
 
@@ -54,25 +59,25 @@ pub(crate) fn change_cursor(
     evr_text_changed: EventReader<CosmicTextChanged>,
     evr_mouse_motion: EventReader<MouseMotion>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Query<(&mut Window, &mut CursorIcon), With<PrimaryWindow>>,
 ) {
     if windows.iter().len() == 0 {
         return;
     }
-    let mut window = windows.single_mut();
+    let (mut window, mut window_cursor_icon) = windows.single_mut();
 
     if let Some(ev) = evr_hover_in.read().last() {
-        window.cursor.icon = ev.0;
+        *window_cursor_icon = ev.0.clone();
     } else if !evr_hover_out.is_empty() {
-        window.cursor.icon = CursorIcon::Default;
+        *window_cursor_icon = CursorIcon::System(SystemCursorIcon::Default);
     }
 
     if !evr_text_changed.is_empty() {
-        window.cursor.visible = false;
+        window.cursor_options.visible = false;
     }
 
     if mouse_buttons.get_just_pressed().len() != 0 || !evr_mouse_motion.is_empty() {
-        window.cursor.visible = true;
+        window.cursor_options.visible = true;
     }
 }
 
@@ -102,7 +107,7 @@ pub(crate) fn hover_sprites(
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
 
-    let mut icon = CursorIcon::Default;
+    let mut icon = CursorIcon::System(SystemCursorIcon::Default);
 
     for (sprite, visibility, node_transform, hover) in &mut cosmic_edit_query.iter_mut() {
         if visibility == Visibility::Hidden {
@@ -121,7 +126,7 @@ pub(crate) fn hover_sprites(
         .is_some()
         {
             *hovered = true;
-            icon = hover.0;
+            icon = hover.0.clone();
         }
     }
 
@@ -149,7 +154,7 @@ pub(crate) fn hover_ui(
             }
             Interaction::Hovered => {
                 if let Ok(hover) = cosmic_query.get(source.0) {
-                    evw_hover_in.send(TextHoverIn(hover.0));
+                    evw_hover_in.send(TextHoverIn(hover.0.clone()));
                 }
             }
             _ => {}

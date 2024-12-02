@@ -144,11 +144,11 @@ fn set_buffer_size(
 
 /// Instantiates a new image for a [`CosmicBuffer`]
 fn new_image_from_default(
-    mut query: Query<&mut Handle<Image>, Added<CosmicBuffer>>,
+    mut query: Query<&mut HandleImage, Added<CosmicBuffer>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     for mut canvas in query.iter_mut() {
-        *canvas = images.add(Image::default());
+        *canvas = HandleImage(images.add(Image::default()));
     }
 }
 
@@ -210,11 +210,11 @@ fn set_x_offset(
 
 fn set_sprite_size_from_ui(
     mut source_q: Query<&mut Sprite, With<CosmicBuffer>>,
-    dest_q: Query<(&Node, &CosmicSource), Changed<Node>>,
+    dest_q: Query<(&ComputedNode, &CosmicSource), Changed<Node>>,
 ) {
     for (node, source) in dest_q.iter() {
         if let Ok(mut sprite) = source_q.get_mut(source.0) {
-            sprite.custom_size = Some(node.size().ceil().max(Vec2::ONE));
+            sprite.custom_size = Some(node.logical_size().ceil().max(Vec2::ONE));
         }
     }
 }
