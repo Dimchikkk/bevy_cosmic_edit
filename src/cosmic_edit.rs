@@ -111,7 +111,7 @@ pub struct ScrollDisabled;
 /// #         .add_plugins(CosmicEditPlugin::default())
 /// #         .add_systems(Startup, setup);
 /// # }
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Debug)]
 pub struct CosmicSource(pub Entity);
 
 /// A bundle containing all the required components for [`CosmicBuffer`] functionality.
@@ -186,7 +186,9 @@ pub struct CosmicEditBundle {
     pub selection_color: SelectionColor,
     pub default_attrs: DefaultAttrs,
     pub background_image: CosmicBackgroundImage,
-    pub sprite_bundle: SpriteBundle,
+    pub sprite: Sprite,
+    pub visibility: Visibility,
+    pub output: CosmicRenderOutput,
     // restriction bits
     pub max_lines: MaxLines,
     pub max_chars: MaxChars,
@@ -212,14 +214,12 @@ impl Default for CosmicEditBundle {
             max_lines: Default::default(),
             max_chars: Default::default(),
             mode: Default::default(),
-            sprite_bundle: SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::ONE * 128.0),
-                    ..default()
-                },
-                visibility: Visibility::Hidden,
+            sprite: Sprite {
+                custom_size: Some(Vec2::ONE * 128.0),
                 ..default()
             },
+            visibility: Visibility::Hidden,
+            output: Default::default(),
             x_offset: Default::default(),
             padding: Default::default(),
             widget_size: Default::default(),
