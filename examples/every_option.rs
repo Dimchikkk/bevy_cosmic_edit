@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             mode: CosmicWrap::Wrap,
             hover_cursor: HoverCursor(CursorIcon::Pointer),
             // CosmicEdit draws to this spritebundle
-            sprite_bundle: SpriteBundle {
+            sprite: SpriteBundle {
                 sprite: Sprite {
                     // when using another target like a UI element, this is overridden
                     custom_size: Some(Vec2::ONE * 128.0),

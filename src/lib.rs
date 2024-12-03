@@ -97,7 +97,7 @@ mod widget;
 
 use std::{path::PathBuf, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::tracing::instrument};
 
 pub use buffer::*;
 pub use cosmic_edit::*;
@@ -122,6 +122,7 @@ pub struct CosmicEditPlugin {
 
 impl Plugin for CosmicEditPlugin {
     fn build(&self, app: &mut App) {
+        trace!("Loading cosmic edit plugin");
         let font_system = create_cosmic_font_system(self.font_config.clone());
 
         app.add_plugins((
@@ -212,16 +213,18 @@ impl Default for CosmicFontConfig {
     }
 }
 
-/// As bevy 0.15 doesn't implement [Component] on a direct [Handle<T>] anymore,
-/// for migration this struct is used instead.
-#[derive(Component, Debug, Deref, DerefMut)]
-pub struct HandleImage(pub Handle<Image>);
+/// Used to ferry data from a [`CosmicBuffer`] to the receiving entity with [`CosmicSource`]
+///
+/// See [crate::buffer::swap_target_handle]
+#[derive(Component, Default, Debug, Deref, DerefMut)]
+pub struct CosmicRenderOutput(pub Handle<Image>);
 
 trait NodeSizeExt {
     fn logical_size(&self) -> Vec2;
 }
 
 impl NodeSizeExt for ComputedNode {
+    #[instrument]
     fn logical_size(&self) -> Vec2 {
         self.size() * self.inverse_scale_factor()
     }

@@ -10,13 +10,13 @@ fn setup(
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let primary_window = windows.single();
-    let camera_bundle = Camera2dBundle {
-        camera: Camera {
+    let camera_bundle = (
+        Camera2d::default(),
+        Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
         },
-        ..default()
-    };
+    );
     commands.spawn(camera_bundle);
 
     let mut attrs = Attrs::new();
@@ -29,13 +29,11 @@ fn setup(
             "😀😀😀 x => y",
             attrs,
         ),
-        sprite_bundle: SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
-                ..default()
-            },
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
             ..default()
         },
+        visibility: Visibility::Visible,
         ..default()
     },);
 

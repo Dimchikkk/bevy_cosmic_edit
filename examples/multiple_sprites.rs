@@ -30,7 +30,7 @@ fn setup(
             "😀😀😀 x => y",
             attrs,
         ),
-        sprite_bundle: SpriteBundle {
+        sprite: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2 {
                     x: primary_window.width() / 2.,
@@ -53,7 +53,7 @@ fn setup(
             "Widget_2. Click on me",
             attrs,
         ),
-        sprite_bundle: SpriteBundle {
+        sprite: SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2 {
                     x: primary_window.width() / 2.,

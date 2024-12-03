@@ -1,6 +1,9 @@
 use crate::*;
 use bevy::{
-    ecs::component::{ComponentHooks, StorageType},
+    ecs::{
+        component::{ComponentHooks, StorageType},
+        query::QueryData,
+    },
     prelude::*,
     window::PrimaryWindow,
 };
@@ -21,7 +24,10 @@ impl Plugin for BufferPlugin {
                 set_initial_scale,
                 set_redraw,
                 set_editor_redraw,
-                swap_target_handle,
+                (
+                    update_external_target_handles,
+                    update_internal_target_handles,
+                ),
             )
                 .chain(),
         );
@@ -234,28 +240,55 @@ pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
     }
 }
 
-/// Sets image of UI elements to the [`CosmicBuffer`] output
-pub fn swap_target_handle(
-    source_q: Query<&HandleImage, With<CosmicBuffer>>,
-    mut dest_q: Query<
-        (
-            Option<&mut HandleImage>,
-            Option<&mut ImageNode>,
-            &CosmicSource,
-        ),
-        Without<CosmicBuffer>,
-    >,
+/// Will attempt to find a place on the receiving entity to place
+/// a [`Handle<Image>`]
+#[derive(QueryData)]
+#[query_data(mutable)]
+pub struct OutputToEntity {
+    sprite_target: Option<&'static mut Sprite>,
+    image_node_target: Option<&'static mut ImageNode>,
+}
+
+impl<'w> OutputToEntityItem<'w> {
+    pub fn write_image_data(&mut self, image: &Handle<Image>) {
+        if let Some(sprite) = self.sprite_target.as_mut() {
+            sprite.image = image.clone_weak();
+        }
+        if let Some(image_node) = self.image_node_target.as_mut() {
+            image_node.image = image.clone_weak();
+        }
+    }
+}
+
+/// Sets image of sprite/UI elements to the [`CosmicBuffer`] output ([`CosmicRenderOutput`]) every frame.
+///
+/// This ferries the handle produced by the [`CosmicBuffer`] entity from
+/// [`CosmicRenderOutput`] to either [`Sprite`] or [`ImageNode`] entities.
+///
+/// If the entity owning the [`CosmicBuffer`] already has a [`Sprite`] or [`ImageNode`],
+/// see [update_internal_target_handles] instead
+pub fn update_external_target_handles(
+    source_buffers_q: Query<&CosmicRenderOutput, With<CosmicBuffer>>,
+    mut external_destinations_q: Query<(OutputToEntity, &CosmicSource), Without<CosmicBuffer>>,
 ) {
     // TODO: do this once
-    for (dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
-        if let Ok(source_handle) = source_q.get(source_entity.0) {
-            if let Some(mut dest_handle) = dest_handle_opt {
-                *dest_handle = HandleImage(source_handle.clone_weak());
-            }
-            if let Some(mut dest_ui) = dest_ui_opt {
-                dest_ui.image = source_handle.clone_weak();
-            }
+    for (mut output_components, source_entity) in external_destinations_q.iter_mut() {
+        if let Ok(CosmicRenderOutput(source_handle)) = source_buffers_q.get(source_entity.0) {
+            output_components.write_image_data(source_handle);
+        } else {
+            warn_once!(
+                message = format!("A `CosmicSource` component {:?} referenced an unknown entity that isn't a `CosmicBuffer`", source_entity),
+                once = "This message will only log once"
+            )
         }
+    }
+}
+
+pub fn update_internal_target_handles(
+    mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicBuffer>>,
+) {
+    for (output_data, mut output_components) in buffers_q.iter_mut() {
+        output_components.write_image_data(&output_data.0);
     }
 }
 

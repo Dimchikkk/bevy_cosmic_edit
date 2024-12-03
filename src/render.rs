@@ -77,6 +77,7 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
     buffer[offset + 3] = (out.alpha * 255.0) as u8;
 }
 
+/// Renders to the [CosmicRenderOutput]
 fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
@@ -87,7 +88,7 @@ fn render_texture(
         &CursorColor,
         &SelectionColor,
         Option<&SelectedTextColor>,
-        &HandleImage,
+        &CosmicRenderOutput,
         &CosmicWidgetSize,
         &CosmicPadding,
         &XOffset,

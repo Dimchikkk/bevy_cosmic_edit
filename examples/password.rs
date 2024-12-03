@@ -9,7 +9,7 @@ fn setup(mut commands: Commands) {
         CosmicEditBundle {
             max_lines: MaxLines(1),
             mode: CosmicWrap::InfiniteLine,
-            sprite_bundle: SpriteBundle {
+            sprite: SpriteBundle {
                 // Sets size of text box
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(300., 100.)),
