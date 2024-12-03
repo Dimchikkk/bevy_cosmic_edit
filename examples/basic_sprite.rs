@@ -11,7 +11,7 @@ fn setup(
 ) {
     let primary_window = windows.single();
     let camera_bundle = (
-        Camera2d::default(),
+        Camera2d,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
