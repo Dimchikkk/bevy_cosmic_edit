@@ -5,15 +5,12 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
     let root = commands
-        .spawn(NodeBundle {
-            style: Style {
-                display: Display::Flex,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..default()
-            },
+        .spawn(Node {
+            display: Display::Flex,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
             ..default()
         })
         .id();
@@ -38,15 +35,16 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     // Spawn the ButtonBundle as a child of root
     commands.entity(root).with_children(|parent| {
         parent
-            .spawn(ButtonBundle {
-                style: Style {
+            .spawn((
+                Button,
+                ImageNode::default(),
+                Node {
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                     ..default()
                 },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
+                BackgroundColor(Color::WHITE),
+            ))
             // add cosmic source
             .insert(CosmicSource(cosmic_edit));
     });
