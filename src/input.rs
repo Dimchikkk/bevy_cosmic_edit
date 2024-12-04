@@ -42,6 +42,13 @@ impl Plugin for InputPlugin {
                     .in_set(InputSet),
             )
             .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
+            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
+                .add_systems(Update, poll_wasm_paste);
+        }
     }
 }
 
@@ -51,13 +58,14 @@ pub struct ClickTimer(pub Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
 /// Crossbeam channel struct for Wasm clipboard data
-#[allow(dead_code)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct WasmPaste {
     text: String,
     entity: Entity,
 }
 
 /// Async channel for receiving from the clipboard in Wasm
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 #[derive(Resource)]
 pub struct WasmPasteAsyncChannel {
     pub tx: crossbeam_channel::Sender<WasmPaste>,

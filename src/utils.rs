@@ -154,6 +154,7 @@ pub(crate) fn get_timestamp() -> f64 {
 
 /// Utility function to get the current unix timestamp
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)] // idk why this isn't used
 pub(crate) fn get_timestamp() -> f64 {
     use std::time::SystemTime;
     use std::time::UNIX_EPOCH;

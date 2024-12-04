@@ -1,7 +1,8 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    prelude::*, CosmicBackgroundColor,
+    prelude::*,
+    CosmicBackgroundColor,
 };
 
 fn setup(
@@ -82,10 +83,7 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin {
-            font_config,
-            ..default()
-        })
+        .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
         .add_systems(Update, change_active_editor_sprite)
         .run();

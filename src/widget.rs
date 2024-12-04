@@ -5,7 +5,7 @@ use crate::cosmic_edit::CosmicWrap;
 use crate::cosmic_edit::XOffset;
 use crate::input::InputSet;
 use crate::prelude::*;
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::window::PrimaryWindow;
 use cosmic_text::Affinity;
 use cosmic_text::Edit;
 

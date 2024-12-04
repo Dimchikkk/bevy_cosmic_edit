@@ -28,13 +28,6 @@ impl Plugin for CosmicEditPlugin {
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
-            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
-                .add_systems(Update, poll_wasm_paste);
-        }
     }
 }
 
@@ -162,7 +155,7 @@ mod tests {
         app.update();
 
         let mut text_nodes_query = app.world_mut().query::<&CosmicBuffer>();
-        for cosmic_editor in text_nodes_query.iter(&app.world()) {
+        for cosmic_editor in text_nodes_query.iter(app.world()) {
             insta::assert_debug_snapshot!(cosmic_editor
                 .lines
                 .iter()
