@@ -18,16 +18,14 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    let cosmic_edit = commands
-        .spawn((CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
-                &mut font_system,
-                vec![("Banana", attrs)],
-                attrs,
-            ),
-            ..default()
-        },))
-        .id();
+    let cosmic_edit =
+        commands
+            .spawn((CosmicEditBundle {
+                buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.))
+                    .with_rich_text(&mut font_system, vec![("Banana", attrs)], attrs),
+                ..default()
+            },))
+            .id();
 
     commands
         .spawn((

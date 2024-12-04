@@ -420,7 +420,7 @@ pub(crate) fn kb_input_text(
     mut char_evr: EventReader<KeyboardInput>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -541,7 +541,7 @@ pub fn kb_clipboard(
     mut font_system: ResMut<CosmicFontSystem>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -681,7 +681,7 @@ pub fn poll_wasm_paste(
     mut editor_q: Query<
         (
             &mut CosmicEditor,
-            &mut CosmicBuffer,
+            &mut CosmicEditBuffer,
             &crate::DefaultAttrs,
             &MaxChars,
             &MaxChars,

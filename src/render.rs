@@ -83,7 +83,7 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
 fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &DefaultAttrs,
         &CosmicBackgroundImage,
         &CosmicBackgroundColor,

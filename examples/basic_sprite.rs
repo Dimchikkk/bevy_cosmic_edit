@@ -24,7 +24,7 @@ fn setup(
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
     let cosmic_edit = (CosmicEditBundle {
-        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+        buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
             "😀😀😀 x => y",
             attrs,

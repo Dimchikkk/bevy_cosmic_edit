@@ -17,7 +17,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let editor = commands
         .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
+            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
                 &mut font_system,
                 "Begin counting.",
                 attrs,
@@ -80,7 +80,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 fn text_swapper(
     mut timer: ResMut<TextChangeTimer>,
     time: Res<Time>,
-    mut cosmic_q: Query<(&mut CosmicBuffer, &DefaultAttrs)>,
+    mut cosmic_q: Query<(&mut CosmicEditBuffer, &DefaultAttrs)>,
     mut count: Local<usize>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {

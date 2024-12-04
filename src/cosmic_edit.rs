@@ -191,7 +191,7 @@ pub struct CosmicSource(pub Entity);
 #[derive(Bundle)]
 pub struct CosmicEditBundle {
     // cosmic bits
-    pub buffer: CosmicBuffer,
+    pub buffer: CosmicEditBuffer,
     // render bits
     pub fill_color: CosmicBackgroundColor,
     pub cursor_color: CursorColor,

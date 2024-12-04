@@ -156,16 +156,14 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         ),
     ];
 
-    let cosmic_edit_1 = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
-                &mut font_system,
-                lines,
-                attrs,
-            ),
-            ..default()
-        })
-        .id();
+    let cosmic_edit_1 =
+        commands
+            .spawn(CosmicEditBundle {
+                buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.))
+                    .with_rich_text(&mut font_system, lines, attrs),
+                ..default()
+            })
+            .id();
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
@@ -173,7 +171,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let cosmic_edit_2 = commands
         .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
+            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
                 &mut font_system,
                 "Widget 2.\nClick on me =>",
                 attrs_2,

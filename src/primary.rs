@@ -129,7 +129,7 @@ mod tests {
     ) {
         let attrs = cosmic_text::Attrs::new();
         commands.spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.))
+            buffer: CosmicEditBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.))
                 .with_rich_text(&mut font_system, vec![("Blah", attrs)], attrs),
             ..Default::default()
         });
@@ -154,7 +154,7 @@ mod tests {
 
         app.update();
 
-        let mut text_nodes_query = app.world_mut().query::<&CosmicBuffer>();
+        let mut text_nodes_query = app.world_mut().query::<&CosmicEditBuffer>();
         for cosmic_editor in text_nodes_query.iter(app.world()) {
             insta::assert_debug_snapshot!(cosmic_editor
                 .lines

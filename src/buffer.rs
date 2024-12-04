@@ -65,9 +65,9 @@ impl BufferExtras for Buffer {
 
 /// Component wrapper for [`Buffer`]
 #[derive(Deref, DerefMut)]
-pub struct CosmicBuffer(pub Buffer);
+pub struct CosmicEditBuffer(pub Buffer);
 
-impl Component for CosmicBuffer {
+impl Component for CosmicEditBuffer {
     const STORAGE_TYPE: StorageType = StorageType::Table;
 
     fn register_component_hooks(hooks: &mut ComponentHooks) {
@@ -83,13 +83,13 @@ impl Component for CosmicBuffer {
     }
 }
 
-impl Default for CosmicBuffer {
+impl Default for CosmicEditBuffer {
     fn default() -> Self {
-        CosmicBuffer(Buffer::new_empty(Metrics::new(20., 20.)))
+        CosmicEditBuffer(Buffer::new_empty(Metrics::new(20., 20.)))
     }
 }
 
-impl<'s, 'r> CosmicBuffer {
+impl<'s, 'r> CosmicEditBuffer {
     /// Create a new buffer with a font system
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
         Self(Buffer::new(font_system, metrics))
@@ -198,7 +198,7 @@ impl<'s, 'r> CosmicBuffer {
 /// Adds a [`FontSystem`] to a newly created [`CosmicBuffer`] if one was not provided
 pub fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
-    mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
+    mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
 ) {
     for mut b in q.iter_mut() {
         if !b.lines.is_empty() {
@@ -212,7 +212,7 @@ pub fn add_font_system(
 /// Initialises [`CosmicBuffer`] scale factor
 pub fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_query: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
+    mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     if let Ok(window) = window_q.get_single() {
@@ -226,7 +226,7 @@ pub fn set_initial_scale(
 }
 
 /// Initialises new [`CosmicBuffer`] redraw flag to true
-pub fn set_redraw(mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>) {
+pub fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
@@ -267,8 +267,8 @@ impl OutputToEntityItem<'_> {
 /// If the entity owning the [`CosmicBuffer`] already has a [`Sprite`] or [`ImageNode`],
 /// see [update_internal_target_handles] instead
 pub fn update_external_target_handles(
-    source_buffers_q: Query<&CosmicRenderOutput, With<CosmicBuffer>>,
-    mut external_destinations_q: Query<(OutputToEntity, &CosmicSource), Without<CosmicBuffer>>,
+    source_buffers_q: Query<&CosmicRenderOutput, With<CosmicEditBuffer>>,
+    mut external_destinations_q: Query<(OutputToEntity, &CosmicSource), Without<CosmicEditBuffer>>,
 ) {
     // TODO: do this once
     for (mut output_components, source_entity) in external_destinations_q.iter_mut() {
@@ -284,7 +284,7 @@ pub fn update_external_target_handles(
 }
 
 pub fn update_internal_target_handles(
-    mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicBuffer>>,
+    mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
 ) {
     for (output_data, mut output_components) in buffers_q.iter_mut() {
         output_components.write_image_data(&output_data.0);

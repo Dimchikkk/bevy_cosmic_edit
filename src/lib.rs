@@ -94,7 +94,7 @@ pub mod prelude {
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
-    pub use crate::buffer::CosmicBuffer; // todo: migrate to builtin bevy CosmicBuffer
+    pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
     pub use crate::cosmic_edit::{
         CosmicEditBundle, CosmicEditor, CosmicSource, DefaultAttrs, ReadOnly,
@@ -117,7 +117,7 @@ pub use primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera, Cosmi
 /// Contains the library global important types you probably want to explore first
 mod primary;
 
-pub use buffer::CosmicBuffer;
+pub use buffer::CosmicEditBuffer;
 mod buffer;
 pub use cosmic_edit::{
     CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicSource,

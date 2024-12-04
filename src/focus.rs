@@ -29,7 +29,7 @@ pub struct FocusedWidget(pub Option<Entity>);
 pub(crate) fn add_editor_to_focused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
-    q: Query<&CosmicBuffer, Without<CosmicEditor>>,
+    q: Query<&CosmicEditBuffer, Without<CosmicEditor>>,
 ) {
     if let Some(e) = active_editor.0 {
         let Ok(b) = q.get(e) else {
@@ -44,7 +44,7 @@ pub(crate) fn add_editor_to_focused(
 pub(crate) fn drop_editor_unfocused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
-    mut q: Query<(Entity, &mut CosmicBuffer, &CosmicEditor)>,
+    mut q: Query<(Entity, &mut CosmicEditBuffer, &CosmicEditor)>,
 ) {
     if active_editor.0.is_none() {
         for (e, mut b, ed) in q.iter_mut() {

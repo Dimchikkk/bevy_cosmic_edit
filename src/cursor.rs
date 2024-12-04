@@ -94,7 +94,7 @@ pub(crate) fn hover_sprites(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_edit_query: Query<
         (&mut Sprite, &Visibility, &GlobalTransform, &HoverCursor),
-        With<CosmicBuffer>,
+        With<CosmicEditBuffer>,
     >,
     camera_q: CameraQuery,
     mut hovered: Local<bool>,
@@ -145,7 +145,7 @@ pub(crate) fn hover_sprites(
 
 pub(crate) fn hover_ui(
     interaction_query: Query<(&Interaction, &CosmicSource), Changed<Interaction>>,
-    cosmic_query: Query<&HoverCursor, With<CosmicBuffer>>,
+    cosmic_query: Query<&HoverCursor, With<CosmicEditBuffer>>,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {

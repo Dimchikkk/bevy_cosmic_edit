@@ -62,14 +62,14 @@ fn set_padding(
         (
             &mut CosmicPadding,
             &CosmicTextAlign,
-            &CosmicBuffer,
+            &CosmicEditBuffer,
             &CosmicWidgetSize,
             Option<&CosmicEditor>,
         ),
         Or<(
             With<CosmicEditor>,
             Changed<CosmicTextAlign>,
-            Changed<CosmicBuffer>,
+            Changed<CosmicEditBuffer>,
             Changed<CosmicWidgetSize>,
         )>,
     >,
@@ -119,7 +119,7 @@ fn set_widget_size(
 fn set_buffer_size(
     mut query: Query<
         (
-            &mut CosmicBuffer,
+            &mut CosmicEditBuffer,
             &CosmicWrap,
             &CosmicWidgetSize,
             &CosmicTextAlign,
@@ -150,7 +150,7 @@ fn set_buffer_size(
 
 /// Instantiates a new image for a [`CosmicBuffer`]
 fn new_image_from_default(
-    mut query: Query<&mut CosmicRenderOutput, Added<CosmicBuffer>>,
+    mut query: Query<&mut CosmicRenderOutput, Added<CosmicEditBuffer>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     for mut canvas in query.iter_mut() {
@@ -216,7 +216,7 @@ fn set_x_offset(
 }
 
 fn set_sprite_size_from_ui(
-    mut source_q: Query<&mut Sprite, With<CosmicBuffer>>,
+    mut source_q: Query<&mut Sprite, With<CosmicEditBuffer>>,
     dest_q: Query<(&ComputedNode, &CosmicSource), Changed<Node>>,
 ) {
     for (node, source) in dest_q.iter() {

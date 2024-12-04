@@ -84,7 +84,7 @@ pub fn change_active_editor_sprite(
     buttons: Res<ButtonInput<MouseButton>>,
     mut cosmic_edit_query: Query<
         (&mut Sprite, &GlobalTransform, &Visibility, Entity),
-        (With<CosmicBuffer>, Without<ReadOnly>),
+        (With<CosmicEditBuffer>, Without<ReadOnly>),
     >,
     camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
