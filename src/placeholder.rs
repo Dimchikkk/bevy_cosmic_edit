@@ -1,5 +1,7 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{
+    cosmic_edit::DefaultAttrs, events::CosmicTextChanged, input::InputSet, prelude::*,
+    render::RenderSet,
+};
 use cosmic_text::{Attrs, Edit};
 
 /// Component to be added to an entity with a [`CosmicEditBundle`] add placeholder text

@@ -1,12 +1,16 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use crate::*;
+use crate::{
+    buffer::{get_x_offset_center, get_y_offset_center},
+    cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollDisabled, XOffset},
+    events::CosmicTextChanged,
+    prelude::*,
+};
 use bevy::{
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     },
-    prelude::*,
     window::PrimaryWindow,
 };
 use cosmic_text::{Action, Cursor, Edit, Motion, Selection};

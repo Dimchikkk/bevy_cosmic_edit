@@ -1,5 +1,7 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{
+    cosmic_edit::DefaultAttrs, focus::FocusSet, placeholder::Placeholder, prelude::*,
+    render::RenderSet,
+};
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -11,20 +13,23 @@ pub struct PasswordSet;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, (hide_password_text.before(input_mouse),))
-            .add_systems(
-                Update,
-                (restore_password_text
-                    .before(kb_input_text)
-                    .after(kb_move_cursor),),
-            )
-            .add_systems(
-                PostUpdate,
-                (
-                    hide_password_text.before(RenderSet).in_set(PasswordSet),
-                    restore_password_text.before(FocusSet).after(RenderSet),
-                ),
-            );
+        app.add_systems(
+            PreUpdate,
+            (hide_password_text.before(crate::input::input_mouse),),
+        )
+        .add_systems(
+            Update,
+            (restore_password_text
+                .before(crate::input::kb_input_text)
+                .after(crate::input::kb_move_cursor),),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                hide_password_text.before(RenderSet).in_set(PasswordSet),
+                restore_password_text.before(FocusSet).after(RenderSet),
+            ),
+        );
     }
 }
 

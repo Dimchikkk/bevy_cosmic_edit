@@ -1,4 +1,6 @@
-use crate::*;
+use crate::cosmic_edit::*;
+use crate::widget::{CosmicPadding, CosmicWidgetSize};
+use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
 use bevy::{prelude::*, render::render_resource::Extent3d};
 use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};

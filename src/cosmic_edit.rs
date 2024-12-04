@@ -1,6 +1,18 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::prelude::*;
 use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
+
+pub(crate) fn plugin(app: &mut App) {
+    app.register_type::<CosmicWrap>()
+        .register_type::<CosmicTextAlign>()
+        .register_type::<XOffset>()
+        .register_type::<CosmicBackgroundImage>()
+        .register_type::<CosmicBackgroundColor>()
+        .register_type::<CursorColor>()
+        .register_type::<SelectionColor>()
+        .register_type::<MaxLines>()
+        .register_type::<MaxChars>()
+        .register_type::<CosmicSource>();
+}
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Component, Reflect, Clone, PartialEq, Default)]
@@ -196,9 +208,9 @@ pub struct CosmicEditBundle {
     pub x_offset: XOffset,
     pub mode: CosmicWrap,
     pub text_position: CosmicTextAlign,
-    pub padding: CosmicPadding,
-    pub widget_size: CosmicWidgetSize,
-    pub hover_cursor: HoverCursor,
+    pub padding: crate::widget::CosmicPadding,
+    pub widget_size: crate::widget::CosmicWidgetSize,
+    pub hover_cursor: crate::cursor::HoverCursor,
 }
 
 impl Default for CosmicEditBundle {
@@ -246,7 +258,7 @@ impl CosmicEditor {
         Self {
             editor,
             cursor_visible: true,
-            cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
+            cursor_timer: Timer::new(std::time::Duration::from_millis(530), TimerMode::Repeating),
         }
     }
 }

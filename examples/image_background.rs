@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned},
-    *,
+    prelude::*,
+    CosmicBackgroundImage,
 };
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {

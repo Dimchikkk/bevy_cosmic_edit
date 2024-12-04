@@ -1,10 +1,9 @@
 // This will all be rewritten soon, looking toward per-widget cursor control
 // Rewrite should address issue #93 too
 
-use crate::*;
+use crate::prelude::*;
 use bevy::{
     input::mouse::MouseMotion,
-    prelude::*,
     window::{PrimaryWindow, SystemCursorIcon},
     winit::cursor::CursorIcon,
 };
@@ -29,10 +28,13 @@ impl Plugin for CursorPlugin {
         )
         .add_event::<TextHoverIn>()
         .register_type::<TextHoverIn>()
-        .add_event::<TextHoverOut>();
+        .add_event::<TextHoverOut>()
+        .register_type::<TextHoverOut>()
+        .register_type::<HoverCursor>();
     }
 }
 
+/// What cursor icon to show when hovering over a widget
 #[derive(Component, Reflect, Deref)]
 pub struct HoverCursor(pub CursorIcon);
 
@@ -50,13 +52,13 @@ pub struct TextHoverIn(pub CursorIcon);
 
 /// For use with custom cursor control
 /// Event is emitted when cursor leaves a text widget
-#[derive(Event, Debug)]
+#[derive(Event, Reflect, Debug)]
 pub struct TextHoverOut;
 
 pub(crate) fn change_cursor(
     mut evr_hover_in: EventReader<TextHoverIn>,
     evr_hover_out: EventReader<TextHoverOut>,
-    evr_text_changed: EventReader<CosmicTextChanged>,
+    evr_text_changed: EventReader<crate::events::CosmicTextChanged>,
     evr_mouse_motion: EventReader<MouseMotion>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut windows: Query<(&mut Window, &mut CursorIcon), With<PrimaryWindow>>,

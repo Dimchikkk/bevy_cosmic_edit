@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    *,
+    prelude::*,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {

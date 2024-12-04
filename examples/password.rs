@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use bevy_cosmic_edit::{cosmic_text::Attrs, *};
+use bevy_cosmic_edit::{
+    cosmic_text::Attrs, prelude::*, CosmicWrap, InputSet, MaxLines, Password, Placeholder,
+};
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);

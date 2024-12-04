@@ -1,6 +1,6 @@
 // Common functions for examples
-use crate::*;
-use bevy::{prelude::*, window::PrimaryWindow};
+use crate::{cosmic_edit::ReadOnly, prelude::*};
+use bevy::window::PrimaryWindow;
 use cosmic_text::Edit;
 
 /// Trait for adding color conversion from [`bevy::prelude::Color`] to [`cosmic_text::Color`]
@@ -33,7 +33,7 @@ pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<Fo
 }
 
 /// Function to find the location of the mouse cursor in a cosmic widget
-pub fn get_node_cursor_pos(
+pub(crate) fn get_node_cursor_pos(
     window: &Window,
     node_transform: &GlobalTransform,
     size: Vec2,
@@ -148,13 +148,13 @@ pub fn print_editor_text(
 
 /// Calls javascript to get the current timestamp
 #[cfg(target_arch = "wasm32")]
-pub fn get_timestamp() -> f64 {
+pub(crate) fn get_timestamp() -> f64 {
     js_sys::Date::now()
 }
 
 /// Utility function to get the current unix timestamp
 #[cfg(not(target_arch = "wasm32"))]
-pub fn get_timestamp() -> f64 {
+pub(crate) fn get_timestamp() -> f64 {
     use std::time::SystemTime;
     use std::time::UNIX_EPOCH;
     let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();

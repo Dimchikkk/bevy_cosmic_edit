@@ -1,7 +1,10 @@
 use bevy::{prelude::*, window::SystemCursorIcon, winit::cursor::CursorIcon};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned, Metrics},
-    *,
+    prelude::*,
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicRenderOutput, CosmicTextAlign, CosmicWrap,
+    CursorColor, DefaultAttrs, HoverCursor, MaxChars, MaxLines, SelectedTextColor, SelectionColor,
+    XOffset,
 };
 
 #[derive(Resource)]
@@ -40,6 +43,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             // If wanting a sprite, define your own SpriteBundle and
             // leave the visibility on. See examples/basic_sprite.rs
             visibility: Visibility::Hidden,
+            // TODO: Hide this in CosmicBuffer
             output: CosmicRenderOutput::default(),
             // Computed fields
             padding: Default::default(),

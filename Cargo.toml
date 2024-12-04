@@ -33,7 +33,6 @@ bevy = { version = "0.15", default-features = false, features = [
     "x11",
     "webgl2",
 ] }
-cosmic-text = { version = "0.12.0" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 unicode-segmentation = { version = "1.11.0" }
 
@@ -41,7 +40,6 @@ crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"
 document-features = "0.2.8"
-tracing = "0.1.41"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = "3.2.0"

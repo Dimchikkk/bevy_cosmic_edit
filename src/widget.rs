@@ -1,4 +1,10 @@
-use crate::*;
+use crate::buffer::get_x_offset_center;
+use crate::buffer::get_y_offset_center;
+use crate::cosmic_edit::CosmicTextAlign;
+use crate::cosmic_edit::CosmicWrap;
+use crate::cosmic_edit::XOffset;
+use crate::input::InputSet;
+use crate::prelude::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 use cosmic_text::Affinity;
 use cosmic_text::Edit;

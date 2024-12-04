@@ -1,10 +1,9 @@
-use crate::*;
+use crate::prelude::*;
 use bevy::{
     ecs::{
         component::{ComponentHooks, StorageType},
         query::QueryData,
     },
-    prelude::*,
     window::PrimaryWindow,
 };
 use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
@@ -46,7 +45,7 @@ impl BufferExtras for Buffer {
     /// * none, takes the rust magic ref to self
     ///
     /// # Returns
-    ///
+    ///input
     /// A [`String`] containing the cosmic text content.
     fn get_text(&self) -> String {
         let mut text = String::new();

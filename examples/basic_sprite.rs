@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    *,
+    prelude::*,
 };
 
 fn setup(

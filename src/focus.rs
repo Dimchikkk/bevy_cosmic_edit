@@ -1,5 +1,4 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{prelude::*, widget::WidgetSet};
 use cosmic_text::{Edit, Editor};
 
 /// System set for focus systems. Runs in `PostUpdate`

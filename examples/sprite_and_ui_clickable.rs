@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned},
-    *,
+    prelude::*,
+    CosmicTextAlign, CosmicTextChanged, CosmicWrap, MaxLines, TextHoverIn, TextHoverOut,
 };
 
 fn setup(mut commands: Commands) {
