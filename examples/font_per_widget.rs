@@ -7,15 +7,12 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
     let root = commands
-        .spawn(NodeBundle {
-            style: bevy::prelude::Style {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..default()
-            },
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
             ..default()
         })
         .id();
@@ -188,27 +185,29 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     // Spawn the CosmicEditUiBundles as children of root
     commands.entity(root).with_children(|parent| {
         parent
-            .spawn(ButtonBundle {
-                style: Style {
+            .spawn((
+                ImageNode::default(),
+                Button,
+                Node {
                     width: Val::Percent(50.),
                     height: Val::Percent(100.),
                     ..default()
                 },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
+                BackgroundColor(Color::WHITE),
+            ))
             .insert(CosmicSource(cosmic_edit_1));
 
         parent
-            .spawn(ButtonBundle {
-                background_color: BackgroundColor(bevy::prelude::Color::WHITE.with_alpha(0.8)),
-                style: Style {
+            .spawn((
+                ImageNode::default(),
+                Button,
+                Node {
                     width: Val::Percent(50.),
                     height: Val::Percent(100.),
                     ..default()
                 },
-                ..default()
-            })
+                BackgroundColor(Color::WHITE.with_alpha(0.8)),
+            ))
             .insert(CosmicSource(cosmic_edit_2));
     });
 }
