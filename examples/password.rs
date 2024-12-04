@@ -2,25 +2,23 @@ use bevy::prelude::*;
 use bevy_cosmic_edit::{cosmic_text::Attrs, *};
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 
     // Sprite editor
     commands.spawn((
         CosmicEditBundle {
             max_lines: MaxLines(1),
             mode: CosmicWrap::InfiniteLine,
-            sprite: SpriteBundle {
-                // Sets size of text box
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(300., 100.)),
-                    ..default()
-                },
-                // Position of text box
-                transform: Transform::from_xyz(0., 100., 0.),
+            // Sets size of text box
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(300., 100.)),
                 ..default()
             },
+            visibility: Visibility::Visible,
             ..default()
         },
+        // Position of text box
+        Transform::from_xyz(0., 100., 0.),
         Password::default(),
         Placeholder::new("Password", Attrs::new()),
     ));

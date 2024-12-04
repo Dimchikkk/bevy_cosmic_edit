@@ -5,13 +5,13 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    let camera_bundle = Camera2dBundle {
-        camera: Camera {
+    let camera_bundle = (
+        Camera2d,
+        Camera {
             clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
         },
-        ..default()
-    };
+    );
     commands.spawn(camera_bundle);
 
     let mut attrs = Attrs::new();
@@ -34,18 +34,15 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             .id();
 
     commands
-        .spawn(
-            // Use buttonbundle for layout
-            // Includes Interaction and UiImage which are used by the plugin.
-            ButtonBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
+        .spawn((
+            Button,
+            ImageNode::default(),
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..default()
             },
-        )
+        ))
         // point editor at this entity.
         // Plugin looks for UiImage and sets it's
         // texture to the editor's rendered image
