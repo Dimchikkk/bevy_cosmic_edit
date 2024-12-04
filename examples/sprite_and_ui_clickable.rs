@@ -45,6 +45,7 @@ fn setup(mut commands: Commands) {
                 custom_size: Some(Vec2::new(300., 100.)),
                 ..default()
             },
+            visibility: Visibility::Inherited,
             ..default()
         },
         // Position of text box
