@@ -5,7 +5,7 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 
     // UI editor
     let ui_editor = commands
@@ -21,8 +21,10 @@ fn setup(mut commands: Commands) {
         .id();
 
     commands
-        .spawn(ButtonBundle {
-            style: Style {
+        .spawn((
+            Button,
+            ImageNode::default(),
+            Node {
                 // Size and position of text box
                 width: Val::Px(300.),
                 height: Val::Px(50.),
@@ -30,26 +32,24 @@ fn setup(mut commands: Commands) {
                 top: Val::Px(100.),
                 ..default()
             },
-            ..default()
-        })
+        ))
         .insert(CosmicSource(ui_editor));
 
     // Sprite editor
-    commands.spawn((CosmicEditBundle {
-        max_lines: MaxLines(1),
-        mode: CosmicWrap::InfiniteLine,
-        sprite: SpriteBundle {
+    commands.spawn((
+        CosmicEditBundle {
+            max_lines: MaxLines(1),
+            mode: CosmicWrap::InfiniteLine,
             // Sets size of text box
             sprite: Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),
                 ..default()
             },
-            // Position of text box
-            transform: Transform::from_xyz(0., 100., 0.),
             ..default()
         },
-        ..default()
-    },));
+        // Position of text box
+        Transform::from_xyz(0., 100., 0.),
+    ));
 }
 
 fn ev_test(
