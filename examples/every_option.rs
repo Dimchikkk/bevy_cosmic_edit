@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::SystemCursorIcon, winit::cursor::CursorIcon};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned, Metrics},
     *,
@@ -8,7 +8,7 @@ use bevy_cosmic_edit::{
 struct TextChangeTimer(pub Timer);
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 
     let attrs = Attrs::new().color(Color::srgb(0.27, 0.27, 0.27).to_cosmic());
 
@@ -29,20 +29,18 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             max_chars: MaxChars(15),
             max_lines: MaxLines(1),
             mode: CosmicWrap::Wrap,
-            hover_cursor: HoverCursor(CursorIcon::Pointer),
+            hover_cursor: HoverCursor(CursorIcon::System(SystemCursorIcon::Pointer)),
             // CosmicEdit draws to this spritebundle
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    // when using another target like a UI element, this is overridden
-                    custom_size: Some(Vec2::ONE * 128.0),
-                    ..default()
-                },
-                // this is the default behaviour for targeting UI elements.
-                // If wanting a sprite, define your own SpriteBundle and
-                // leave the visibility on. See examples/basic_sprite.rs
-                visibility: Visibility::Hidden,
+            sprite: Sprite {
+                // when using another target like a UI element, this is overridden
+                custom_size: Some(Vec2::ONE * 128.0),
                 ..default()
             },
+            // this is the default behaviour for targeting UI elements.
+            // If wanting a sprite, define your own SpriteBundle and
+            // leave the visibility on. See examples/basic_sprite.rs
+            visibility: Visibility::Hidden,
+            output: CosmicRenderOutput::default(),
             // Computed fields
             padding: Default::default(),
             widget_size: Default::default(),
@@ -51,20 +49,21 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         .id();
 
     commands
-        .spawn(ButtonBundle {
-            border_color: bevy::color::palettes::css::LIMEGREEN.into(),
-            style: Style {
+        .spawn((
+            Button,
+            ImageNode::default(),
+            Node {
                 // Size and position of text box
-                border: UiRect::all(Val::Px(4.)),
                 width: Val::Percent(20.),
                 height: Val::Px(50.),
                 left: Val::Percent(40.),
                 top: Val::Px(100.),
                 ..default()
             },
-            background_color: Color::WHITE.into(),
-            ..default()
-        })
+            BorderRadius::all(Val::Px(10.)),
+            // This is overriden by setting `CosmicBackgroundColor` so you don't see any white
+            BackgroundColor(Color::WHITE),
+        ))
         .insert(CosmicSource(editor));
 
     commands.insert_resource(TextChangeTimer(Timer::from_seconds(
