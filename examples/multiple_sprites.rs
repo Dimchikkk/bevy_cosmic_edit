@@ -10,27 +10,27 @@ fn setup(
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let primary_window = windows.single();
-    let camera_bundle = Camera2dBundle {
-        camera: Camera {
+    let camera_bundle = (
+        Camera2d,
+        Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
         },
-        ..default()
-    };
+    );
     commands.spawn(camera_bundle);
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
-    commands.spawn(CosmicEditBundle {
-        fill_color: CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
-        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "😀😀😀 x => y",
-            attrs,
-        ),
-        sprite: SpriteBundle {
+    commands.spawn((
+        CosmicEditBundle {
+            fill_color: CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "😀😀😀 x => y",
+                attrs,
+            ),
             sprite: Sprite {
                 custom_size: Some(Vec2 {
                     x: primary_window.width() / 2.,
@@ -38,22 +38,22 @@ fn setup(
                 }),
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+            visibility: Visibility::Inherited,
             ..default()
         },
-        ..default()
-    });
+        Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+    ));
 
-    commands.spawn(CosmicEditBundle {
-        fill_color: CosmicBackgroundColor(
-            bevy::color::palettes::basic::GRAY.with_alpha(0.5).into(),
-        ),
-        buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "Widget_2. Click on me",
-            attrs,
-        ),
-        sprite: SpriteBundle {
+    commands.spawn((
+        CosmicEditBundle {
+            fill_color: CosmicBackgroundColor(
+                bevy::color::palettes::basic::GRAY.with_alpha(0.5).into(),
+            ),
+            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "Widget_2. Click on me",
+                attrs,
+            ),
             sprite: Sprite {
                 custom_size: Some(Vec2 {
                     x: primary_window.width() / 2.,
@@ -61,15 +61,15 @@ fn setup(
                 }),
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::new(
-                primary_window.width() / 4.,
-                -primary_window.height() / 4.,
-                1.,
-            )),
+            visibility: Visibility::Inherited,
             ..default()
         },
-        ..default()
-    });
+        Transform::from_translation(Vec3::new(
+            primary_window.width() / 4.,
+            -primary_window.height() / 4.,
+            1.,
+        )),
+    ));
 }
 
 fn main() {
