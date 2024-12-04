@@ -5,7 +5,7 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 
     let bg_image_handle = asset_server.load("img/bevy_logo_light.png");
 
@@ -20,8 +20,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .id();
 
     commands
-        .spawn(ButtonBundle {
-            style: Style {
+        .spawn((
+            Node {
                 // Size and position of text box
                 width: Val::Px(300.),
                 height: Val::Px(50.),
@@ -29,8 +29,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 top: Val::Px(100.),
                 ..default()
             },
-            ..default()
-        })
+            ImageNode::default(),
+            Button,
+        ))
         .insert(CosmicSource(editor));
 }
 
