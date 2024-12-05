@@ -84,7 +84,7 @@ impl Default for CosmicFontConfig {
     }
 }
 
-/// Used to ferry data from a [`CosmicBuffer`] to the receiving entity with [`CosmicSource`]
+/// Used to ferry data from a [`CosmicEditBuffer`] to the receiving entity with [`CosmicSource`]
 ///
 /// See [crate::buffer::swap_target_handle]
 #[derive(Component, Default, Debug, Deref)]

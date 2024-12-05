@@ -138,7 +138,7 @@ fn set_buffer_size(
     }
 }
 
-/// Instantiates a new image for a [`CosmicBuffer`]
+/// Instantiates a new image for a [`CosmicEditBuffer`]
 fn new_image_from_default(
     mut query: Query<&mut CosmicRenderOutput, Added<CosmicEditBuffer>>,
     mut images: ResMut<Assets<Image>>,

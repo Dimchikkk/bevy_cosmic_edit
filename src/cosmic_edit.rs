@@ -35,7 +35,7 @@ impl Default for CosmicTextAlign {
     }
 }
 
-/// Tag component to disable writing to a [`CosmicBuffer`]
+/// Tag component to disable writing to a [`CosmicEditBuffer`]
 // TODO: Code example
 #[derive(Component, Default)]
 pub struct ReadOnly; // tag component
@@ -47,7 +47,7 @@ pub struct XOffset {
     pub width: f32,
 }
 
-/// Default text attributes to be used on a [`CosmicBuffer`]
+/// Default text attributes to be used on a [`CosmicEditBuffer`]
 #[derive(Component, Deref, DerefMut)]
 pub struct DefaultAttrs(pub AttrsOwned);
 

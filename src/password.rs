@@ -33,7 +33,7 @@ impl Plugin for PasswordPlugin {
     }
 }
 
-/// Component to be added to an entity with a [`CosmicEditBundle`] to block contents with a
+/// Component to be added to an entity with a [`CosmicEditBuffer`] to block contents with a
 /// password blocker glyph
 ///
 /// ```
@@ -42,15 +42,11 @@ impl Plugin for PasswordPlugin {
 /// #
 /// # fn setup(mut commands: Commands) {
 /// // Create a new cosmic bundle
-/// commands.spawn((CosmicEditBundle {
-///     sprite_bundle: SpriteBundle {
-///         sprite: Sprite {
-///             custom_size: Some(Vec2::new(300.0, 40.0)),
-///             ..default()
-///         },
+/// commands.spawn((
+///     CosmicEditBuffer::default(),
+///     Sprite {
+///         custom_size: Some(Vec2::new(300.0, 40.0)),
 ///         ..default()
-///     },
-///     ..default()
 ///     },
 ///     Password::default()
 /// ));

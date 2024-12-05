@@ -4,21 +4,17 @@ use crate::{
 };
 use cosmic_text::{Attrs, Edit};
 
-/// Component to be added to an entity with a [`CosmicEditBundle`] add placeholder text
+/// Component to be added to an entity with a [`CosmicEditBuffer`] add placeholder text
 ///
 /// ```
 /// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
+/// # use bevy_cosmic_edit::prelude::*;
 /// # fn setup(mut commands: Commands) {
-/// commands.spawn((CosmicEditBundle {
-///     sprite_bundle: SpriteBundle {
-///         sprite: Sprite {
-///             custom_size: Some(Vec2::new(300.0, 40.0)),
-///             ..default()
-///         },
+/// commands.spawn((
+///     CosmicEditBuffer::default(),
+///     Sprite {
+///         custom_size: Some(Vec2::new(300.0, 40.0)),
 ///         ..default()
-///     },
-///     ..default()
 ///     },
 ///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic())),
 /// ));

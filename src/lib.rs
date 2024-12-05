@@ -51,6 +51,8 @@
 pub mod prelude {
     // external re-exports
     pub(crate) use bevy::prelude::*;
+    #[cfg(doc)]
+    pub(crate) use cosmic_text::Buffer;
 
     // internal re-exports
     pub(crate) use crate::buffer::BufferExtras as _;

@@ -101,7 +101,7 @@ impl<'s, 'r> CosmicEditBuffer {
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
-    /// Add text to a newly created [`CosmicBuffer`]
+    /// Add text to a newly created [`CosmicEditBuffer`]
     pub fn with_text(
         mut self,
         font_system: &mut FontSystem,
@@ -112,7 +112,7 @@ impl<'s, 'r> CosmicEditBuffer {
         self
     }
 
-    /// Add rich text to a newly created [`CosmicBuffer`]
+    /// Add rich text to a newly created [`CosmicEditBuffer`]
     ///
     /// Rich text is an iterable of `(&'s str, Attrs<'r>)`
     pub fn with_rich_text<I>(
@@ -200,7 +200,7 @@ impl<'s, 'r> CosmicEditBuffer {
     }
 }
 
-/// Adds a [`FontSystem`] to a newly created [`CosmicBuffer`] if one was not provided
+/// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
 pub(crate) fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
     mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
@@ -214,7 +214,7 @@ pub(crate) fn add_font_system(
     }
 }
 
-/// Initialises [`CosmicBuffer`] scale factor
+/// Initialises [`CosmicEditBuffer`] scale factor
 pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
@@ -230,7 +230,7 @@ pub(crate) fn set_initial_scale(
     }
 }
 
-/// Initialises new [`CosmicBuffer`] redraw flag to true
+/// Initialises new [`CosmicEditBuffer`] redraw flag to true
 pub(crate) fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
