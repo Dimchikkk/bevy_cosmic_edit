@@ -107,7 +107,7 @@ mod placeholder;
 mod render;
 pub use user_select::UserSelectNone;
 mod user_select;
-mod utils;
+pub mod utils;
 mod widget;
 pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType};
 mod render_targets;
