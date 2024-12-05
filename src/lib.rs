@@ -120,8 +120,8 @@ mod primary;
 pub use buffer::CosmicEditBuffer;
 mod buffer;
 pub use cosmic_edit::{
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicSource,
-    CosmicTextAlign, CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly,
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
+    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollDisabled,
     SelectedTextColor, SelectionColor, XOffset,
 };
 mod cosmic_edit;

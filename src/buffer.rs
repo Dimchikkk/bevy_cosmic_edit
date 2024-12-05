@@ -1,16 +1,15 @@
-use crate::prelude::*;
+use crate::{
+    cosmic_edit::ScrollDisabled,
+    prelude::*,
+    widget::{CosmicPadding, CosmicWidgetSize},
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
+    HoverCursor, MaxChars, MaxLines, SelectionColor, XOffset,
+};
 use bevy::{
-    ecs::{
-        component::{ComponentHooks, StorageType},
-        query::QueryData,
-    },
+    ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
     window::PrimaryWindow,
 };
 use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
-
-/// Set of all buffer setup functions. Runs in [`First`]
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct BufferSet;
 
 pub(crate) struct BufferPlugin;
 
@@ -64,22 +63,34 @@ impl BufferExtras for Buffer {
 }
 
 /// Component wrapper for [`Buffer`]
-#[derive(Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut)]
+#[component(on_remove = remove_focus_from_entity)]
+#[require(
+    CosmicBackgroundColor,
+    CursorColor,
+    SelectionColor,
+    DefaultAttrs,
+    CosmicBackgroundImage,
+    CosmicRenderOutput,
+    MaxLines,
+    MaxChars,
+    XOffset,
+    CosmicWrap,
+    CosmicTextAlign,
+    CosmicPadding,
+    CosmicWidgetSize,
+    HoverCursor,
+    ScrollDisabled
+)]
 pub struct CosmicEditBuffer(pub Buffer);
 
-impl Component for CosmicEditBuffer {
-    const STORAGE_TYPE: StorageType = StorageType::Table;
-
-    fn register_component_hooks(hooks: &mut ComponentHooks) {
-        hooks.on_remove(|mut world, entity, _| {
-            if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
-                if let Some(focused) = focused_widget.0 {
-                    if focused == entity {
-                        focused_widget.0 = None;
-                    }
-                }
+fn remove_focus_from_entity(mut world: DeferredWorld, entity: Entity, _: ComponentId) {
+    if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
+        if let Some(focused) = focused_widget.0 {
+            if focused == entity {
+                focused_widget.0 = None;
             }
-        });
+        }
     }
 }
 
@@ -196,7 +207,7 @@ impl<'s, 'r> CosmicEditBuffer {
 }
 
 /// Adds a [`FontSystem`] to a newly created [`CosmicBuffer`] if one was not provided
-pub fn add_font_system(
+pub(crate) fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
     mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
 ) {
@@ -210,7 +221,7 @@ pub fn add_font_system(
 }
 
 /// Initialises [`CosmicBuffer`] scale factor
-pub fn set_initial_scale(
+pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
@@ -226,16 +237,16 @@ pub fn set_initial_scale(
 }
 
 /// Initialises new [`CosmicBuffer`] redraw flag to true
-pub fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
+pub(crate) fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
 /// Initialises new [`CosmicEditor`] redraw flag to true
-pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
-    for mut b in q.iter_mut() {
-        b.set_redraw(true);
+pub(crate) fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
+    for mut ed in q.iter_mut() {
+        ed.set_redraw(true);
     }
 }
 
@@ -243,7 +254,7 @@ pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
 /// a [`Handle<Image>`]
 #[derive(QueryData)]
 #[query_data(mutable)]
-pub struct OutputToEntity {
+pub(crate) struct OutputToEntity {
     sprite_target: Option<&'static mut Sprite>,
     image_node_target: Option<&'static mut ImageNode>,
 }
@@ -266,7 +277,7 @@ impl OutputToEntityItem<'_> {
 ///
 /// If the entity owning the [`CosmicBuffer`] already has a [`Sprite`] or [`ImageNode`],
 /// see [update_internal_target_handles] instead
-pub fn update_external_target_handles(
+pub(crate) fn update_external_target_handles(
     source_buffers_q: Query<&CosmicRenderOutput, With<CosmicEditBuffer>>,
     mut external_destinations_q: Query<(OutputToEntity, &CosmicSource), Without<CosmicEditBuffer>>,
 ) {
@@ -283,7 +294,7 @@ pub fn update_external_target_handles(
     }
 }
 
-pub fn update_internal_target_handles(
+pub(crate) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
 ) {
     for (output_data, mut output_components) in buffers_q.iter_mut() {

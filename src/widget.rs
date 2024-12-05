@@ -40,14 +40,14 @@ impl Plugin for WidgetPlugin {
 /// This is set programatically, not for user modification.
 /// To set a widget's padding, use [`CosmicTextAlign`]
 #[derive(Component, Reflect, Default, Deref, DerefMut, Debug)]
-pub struct CosmicPadding(pub Vec2);
+pub(crate) struct CosmicPadding(pub(crate) Vec2);
 
 /// Wrapper for a [`Vec2`] describing the horizontal and vertical size of a widget.
 /// This is set programatically, not for user modification.
 /// To set a widget's size, use either it's [`Sprite`] dimensions or modify the target UI element's
 /// size.
 #[derive(Component, Reflect, Default, Deref, DerefMut)]
-pub struct CosmicWidgetSize(pub Vec2);
+pub(crate) struct CosmicWidgetSize(pub(crate) Vec2);
 
 /// Reshapes text in a [`CosmicEditor`]
 fn reshape(mut query: Query<&mut CosmicEditor>, mut font_system: ResMut<CosmicFontSystem>) {

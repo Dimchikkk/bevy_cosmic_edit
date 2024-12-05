@@ -18,17 +18,13 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    let cosmic_edit =
-        commands
-            .spawn((CosmicEditBundle {
-                buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.))
-                    .with_rich_text(&mut font_system, vec![("Banana", attrs)], attrs),
-                ..default()
-            },))
-            .id();
-
-    commands
+    let cosmic_edit = commands
         .spawn((
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+                &mut font_system,
+                vec![("Banana", attrs)],
+                attrs,
+            ),
             // Use buttonbundle for layout
             // Includes Interaction and UiImage which are used by the plugin.
             Button,
@@ -39,10 +35,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 ..default()
             },
         ))
-        // point editor at this entity.
-        // Plugin looks for UiImage and sets it's
-        // texture to the editor's rendered image
-        .insert(CosmicSource(cosmic_edit));
+        .id();
 
     commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }

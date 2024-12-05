@@ -67,12 +67,24 @@ pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 pub struct CosmicBackgroundColor(pub Color);
 
 /// Color to be used for the text cursor
-#[derive(Component, Reflect, Default, Deref)]
+#[derive(Component, Reflect, Deref)]
 pub struct CursorColor(pub Color);
 
+impl Default for CursorColor {
+    fn default() -> Self {
+        CursorColor(Color::BLACK)
+    }
+}
+
 /// Color to be used as the selected text background
-#[derive(Component, Reflect, Default, Deref)]
+#[derive(Component, Reflect, Deref)]
 pub struct SelectionColor(pub Color);
+
+impl Default for SelectionColor {
+    fn default() -> Self {
+        SelectionColor(bevy::color::palettes::basic::GRAY.into())
+    }
+}
 
 /// Color to be used for the selected text
 #[derive(Component, Reflect, Default, Deref)]
@@ -87,9 +99,13 @@ pub struct MaxLines(pub usize);
 #[derive(Component, Reflect, Default)]
 pub struct MaxChars(pub usize);
 
-/// Buffer does not respond to scroll events
+/// Should [`CosmicEditBuffer`] respond to scroll events?
 #[derive(Component, Default)]
-pub struct ScrollDisabled;
+pub enum ScrollDisabled {
+    #[default]
+    Enabled,
+    Disabled,
+}
 
 /// A pointer to an entity with a [`CosmicEditBundle`], used to apply cosmic rendering to a UI
 /// element.
