@@ -9,7 +9,7 @@ pub(crate) struct PasswordPlugin;
 
 /// System set for password blocking systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PasswordSet;
+pub(crate) struct PasswordSet;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {

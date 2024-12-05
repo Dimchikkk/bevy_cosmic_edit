@@ -21,7 +21,8 @@ pub enum CosmicWrap {
     Wrap,
 }
 
-/// Enum representing the text alignment in a cosmic [`Buffer`]
+/// Enum representing the text alignment in a cosmic [`Buffer`].
+/// Defaults to [`CosmicTextAlign::Center`]
 #[derive(Component, Reflect, Clone)]
 pub enum CosmicTextAlign {
     Center { padding: i32 },
@@ -42,7 +43,7 @@ pub struct ReadOnly; // tag component
 
 /// Internal value used to decide what section of a [`Buffer`] to render
 #[derive(Component, Reflect, Debug, Default)]
-pub struct XOffset {
+pub(crate) struct XOffset {
     pub left: f32,
     pub width: f32,
 }
@@ -65,7 +66,8 @@ pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 #[derive(Component, Reflect, Default, Deref)]
 pub struct CosmicBackgroundColor(pub Color);
 
-/// Color to be used for the text cursor
+/// Color to be used for the text cursor.
+/// Defaults to [`Color::BLACK`]
 #[derive(Component, Reflect, Deref)]
 pub struct CursorColor(pub Color);
 
@@ -75,7 +77,8 @@ impl Default for CursorColor {
     }
 }
 
-/// Color to be used as the selected text background
+/// Color to be used as the selected text background.
+/// Defaults to [`Color::GRAY`]
 #[derive(Component, Reflect, Deref)]
 pub struct SelectionColor(pub Color);
 
@@ -90,6 +93,7 @@ impl Default for SelectionColor {
 pub struct SelectedTextColor(pub Color);
 
 /// Maximum number of lines allowed in a buffer
+// TODO: Actually test this? I'm not sure this does anything afaik
 #[derive(Component, Reflect, Default)]
 pub struct MaxLines(pub usize);
 
@@ -120,6 +124,11 @@ impl ScrollEnabled {
 pub struct CosmicFontSystem(pub FontSystem);
 
 /// Wrapper component for an [`Editor`] with a few helpful values for cursor blinking
+///
+/// [`cosmic_text::Editor`] is basically a mutable version of [`cosmic_text::Buffer`].
+///
+/// This component should be on a focussed [`CosmicEditBuffer`]
+// Managed by crate::focus::add_editor_to_focussed and similar systems
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor {
     #[deref]

@@ -1,7 +1,9 @@
 use crate::{
-    cosmic_edit::ScrollEnabled, prelude::*, widget::CosmicPadding, CosmicBackgroundColor,
-    CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
-    MaxLines, SelectionColor, XOffset,
+    cosmic_edit::{ScrollEnabled, XOffset},
+    prelude::*,
+    widget::CosmicPadding,
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
+    HoverCursor, MaxChars, MaxLines, SelectionColor,
 };
 use bevy::{
     ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
@@ -264,6 +266,8 @@ impl OutputToEntityItem<'_> {
     }
 }
 
+/// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
+/// on the same entity, e.g. [`Sprite`]
 pub(crate) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
 ) {
@@ -274,7 +278,7 @@ pub(crate) fn update_internal_target_handles(
 
 // TODO put this on impl CosmicBuffer
 
-pub fn get_text_size(buffer: &Buffer) -> (f32, f32) {
+pub(crate) fn get_text_size(buffer: &Buffer) -> (f32, f32) {
     if buffer.layout_runs().count() == 0 {
         return (0., buffer.metrics().line_height);
     }
@@ -287,12 +291,12 @@ pub fn get_text_size(buffer: &Buffer) -> (f32, f32) {
     (width, height)
 }
 
-pub fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
+pub(crate) fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
     let (_, text_height) = get_text_size(buffer);
     ((widget_height - text_height) / 2.0) as i32
 }
 
-pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
+pub(crate) fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
     let (text_width, _) = get_text_size(buffer);
     ((widget_width - text_width) / 2.0) as i32
 }

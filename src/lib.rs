@@ -11,7 +11,7 @@
 //!
 //!   *Warning: This plugin is currently in early development, and its API is subject to change.*
 //!
-//! ```rust
+//! ```rust,ignore
 #![doc = include_str!("../examples/basic_ui.rs")]
 //! ```
 //!
@@ -92,10 +92,10 @@ mod buffer;
 pub use cosmic_edit::{
     CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
     CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollEnabled,
-    SelectedTextColor, SelectionColor, XOffset,
+    SelectedTextColor, SelectionColor,
 };
 mod cosmic_edit;
-pub use cursor::{HoverCursor, TextHoverIn, TextHoverOut};
+pub use cursor::{CursorPluginDisabled, HoverCursor, TextHoverIn, TextHoverOut};
 mod cursor;
 pub use events::CosmicTextChanged;
 mod events;
@@ -108,6 +108,7 @@ mod password;
 pub use placeholder::Placeholder;
 mod placeholder;
 mod render;
+pub use user_select::UserSelectNone;
 mod user_select;
 pub mod utils;
 mod widget;

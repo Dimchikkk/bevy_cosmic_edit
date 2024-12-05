@@ -7,7 +7,7 @@ use image::{imageops::FilterType, GenericImageView};
 
 /// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct RenderSet;
+pub(crate) struct RenderSet;
 
 pub(crate) struct RenderPlugin;
 

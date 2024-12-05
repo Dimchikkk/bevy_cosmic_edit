@@ -8,7 +8,6 @@ use crate::{
     CosmicWidgetSize,
 };
 use bevy::{
-    ecs::query::QueryData,
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
@@ -56,12 +55,12 @@ impl Plugin for InputPlugin {
 
 /// Timer for double / triple clicks
 #[derive(Resource)]
-pub struct ClickTimer(pub Timer);
+pub(crate) struct ClickTimer(pub(crate) Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
 /// Crossbeam channel struct for Wasm clipboard data
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-pub struct WasmPaste {
+pub(crate) struct WasmPaste {
     text: String,
     entity: Entity,
 }
@@ -69,33 +68,9 @@ pub struct WasmPaste {
 /// Async channel for receiving from the clipboard in Wasm
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 #[derive(Resource)]
-pub struct WasmPasteAsyncChannel {
+pub(crate) struct WasmPasteAsyncChannel {
     pub tx: crossbeam_channel::Sender<WasmPaste>,
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
-}
-
-#[derive(QueryData)]
-#[query_data(mutable)]
-struct SpriteEditorData {
-    editor: &'static mut CosmicEditor,
-    global_transform: &'static GlobalTransform,
-    text_align: &'static CosmicTextAlign,
-    x_offset: &'static XOffset,
-    scroll_disabled: &'static ScrollEnabled,
-
-    sprite: &'static mut Sprite,
-}
-
-#[derive(QueryData)]
-#[query_data(mutable)]
-struct UiEditorData {
-    editor: &'static mut CosmicEditor,
-    global_transform: &'static GlobalTransform,
-    text_align: &'static CosmicTextAlign,
-    x_offset: &'static XOffset,
-    scroll_disabled: &'static ScrollEnabled,
-
-    computed_node: &'static ComputedNode,
 }
 
 pub(crate) fn input_mouse(
@@ -278,7 +253,7 @@ pub(crate) fn input_mouse(
     }
 }
 
-pub fn kb_move_cursor(
+pub(crate) fn kb_move_cursor(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut cosmic_edit_query: Query<(&mut CosmicEditor,)>,
@@ -545,7 +520,7 @@ pub(crate) fn kb_input_text(
     }
 }
 
-pub fn kb_clipboard(
+pub(crate) fn kb_clipboard(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut evw_changed: EventWriter<CosmicTextChanged>,
@@ -674,20 +649,20 @@ fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn write_clipboard_wasm(text: &str) {
+pub(crate) fn write_clipboard_wasm(text: &str) {
     let clipboard = web_sys::window().unwrap().navigator().clipboard();
     let _result = clipboard.write_text(text);
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn read_clipboard_wasm() -> Promise {
+pub(crate) fn read_clipboard_wasm() -> Promise {
     let clipboard = web_sys::window().unwrap().navigator().clipboard();
     clipboard.read_text()
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn poll_wasm_paste(
+pub(crate) fn poll_wasm_paste(
     channel: Res<WasmPasteAsyncChannel>,
     mut editor_q: Query<
         (

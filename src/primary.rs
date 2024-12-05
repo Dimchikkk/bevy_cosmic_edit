@@ -84,13 +84,11 @@ impl Default for CosmicFontConfig {
     }
 }
 
-/// Used to ferry data from a [`CosmicEditBuffer`] to the receiving entity with [`CosmicSource`]
-///
-/// See [crate::buffer::swap_target_handle]
+/// Used to ferry data from a [`CosmicEditBuffer`]
 #[derive(Component, Default, Debug, Deref)]
-pub struct CosmicRenderOutput(pub(crate) Handle<Image>);
+pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
 
-pub trait NodeSizeExt {
+pub(crate) trait NodeSizeExt {
     fn logical_size(&self) -> Vec2;
 }
 

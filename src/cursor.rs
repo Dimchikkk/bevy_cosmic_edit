@@ -8,11 +8,7 @@ use bevy::{
     winit::cursor::CursorIcon,
 };
 
-/// System set for mouse cursor systems. Runs in [`Update`]
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CursorSet;
-
-pub struct CursorPlugin;
+pub(crate) struct CursorPlugin;
 
 /// Unit resource whose existence in the world disables the cursor plugin systems.
 #[derive(Resource)]
@@ -35,6 +31,8 @@ impl Plugin for CursorPlugin {
 }
 
 /// What cursor icon to show when hovering over a widget
+///
+/// By default is [`CursorIcon::System(SystemCursorIcon::Text)`]
 #[derive(Component, Reflect, Deref)]
 pub struct HoverCursor(pub CursorIcon);
 
@@ -45,7 +43,8 @@ impl Default for HoverCursor {
 }
 
 /// For use with custom cursor control
-/// Event is emitted when cursor enters a text widget
+///
+/// Event is emitted when cursor enters a text widget.
 /// Event contains the cursor from the buffer's [`HoverCursor`]
 #[derive(Event, Reflect, Deref, Debug)]
 pub struct TextHoverIn(pub CursorIcon);
@@ -83,6 +82,7 @@ pub(crate) fn change_cursor(
     }
 }
 
+// todo: have builtin multi-cam support using `bevy::picking`
 #[cfg(feature = "multicam")]
 type CameraQuery<'a, 'b, 'c, 'd> =
     Query<'a, 'b, (&'c Camera, &'d GlobalTransform), With<CosmicPrimaryCamera>>;

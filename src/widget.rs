@@ -12,7 +12,7 @@ use cosmic_text::Edit;
 
 /// System set for cosmic text layout systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct WidgetSet;
+pub(crate) struct WidgetSet;
 
 pub(crate) struct WidgetPlugin;
 

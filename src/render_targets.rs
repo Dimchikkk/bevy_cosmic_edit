@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
-pub enum SourceType {
+pub(crate) enum SourceType {
     Ui,
     Sprite,
 }
