@@ -30,6 +30,8 @@ fn setup(
             attrs,
         ),
         Sprite {
+            // You must specify custom size
+            // so the editor knows what size images to render to the sprite
             custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
             ..default()
         },

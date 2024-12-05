@@ -35,29 +35,29 @@ impl Plugin for CosmicEditPlugin {
 /// Will panic if no Camera's without this component exist and the `multicam` feature is enabled.
 ///
 /// A very basic example which doesn't panic:
-/// ```rust
+/// ```rust,no_run
 /// use bevy::prelude::*;
-/// use bevy_cosmic_edit::CosmicPrimaryCamera;
+/// use bevy_cosmic_edit::prelude::*;
 ///
 /// fn main() {
-///   App::new()
-///     .add_plugins((
-///       DefaultPlugins,
-///       bevy_cosmic_edit::CosmicEditPlugin::default(),
-///     ))
+///     App::new()
+///         .add_plugins((
+///             DefaultPlugins,
+///             CosmicEditPlugin::default(),
+///         ))
 ///     .add_systems(Startup, setup)
 ///     .run();
 /// }
 ///
 /// fn setup(mut commands: Commands) {
-///   commands.spawn((Camera3dBundle::default(), CosmicPrimaryCamera));
-///   commands.spawn(Camera3dBundle {
-///     camera: Camera {
-///       order: 2,
-///       ..default()
-///     },
-///     ..default()
-///   });
+///     commands.spawn((Camera3d::default(), CosmicPrimaryCamera));
+///     commands.spawn((
+///         Camera3d::default(),
+///         Camera {
+///             order: 2,
+///             ..default()
+///         },
+///     ));
 /// }
 /// ```
 #[derive(Component, Debug, Default)]

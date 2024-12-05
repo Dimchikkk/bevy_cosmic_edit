@@ -9,6 +9,8 @@ use cosmic_text::{Attrs, Edit};
 /// ```
 /// # use bevy::prelude::*;
 /// # use bevy_cosmic_edit::prelude::*;
+/// use bevy_cosmic_edit::Placeholder;
+///
 /// # fn setup(mut commands: Commands) {
 /// commands.spawn((
 ///     CosmicEditBuffer::default(),
@@ -16,7 +18,7 @@ use cosmic_text::{Attrs, Edit};
 ///         custom_size: Some(Vec2::new(300.0, 40.0)),
 ///         ..default()
 ///     },
-///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic())),
+///     Placeholder::new("Email", Attrs::new().color(Color::from(bevy::color::palettes::css::GRAY).to_cosmic())),
 /// ));
 /// # }
 /// # fn main() {

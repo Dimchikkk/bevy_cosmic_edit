@@ -25,9 +25,10 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 vec![("Banana", attrs)],
                 attrs,
             ),
-            // Use buttonbundle for layout
-            // Includes Interaction and UiImage which are used by the plugin.
+            // `Button` adds `Interaction` which allows for
+            // focussing onto the editor
             Button,
+            // `ImageNode` is required to render the editor
             ImageNode::default(),
             Node {
                 width: Val::Percent(100.),
