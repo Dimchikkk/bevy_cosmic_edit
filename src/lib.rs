@@ -51,7 +51,8 @@
 pub mod prelude {
     // external re-exports
     pub(crate) use bevy::prelude::*;
-    #[cfg(doc)]
+    pub(crate) use bevy::text::SwashCache;
+    #[cfg_attr(not(doc), allow(unused_imports))]
     pub(crate) use cosmic_text::Buffer;
 
     // internal re-exports

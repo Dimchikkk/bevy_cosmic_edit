@@ -2,7 +2,7 @@ use crate::widget::CosmicPadding;
 use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
 use crate::{cosmic_edit::*, CosmicWidgetSize};
 use bevy::render::render_resource::Extent3d;
-use cosmic_text::{Color, Edit, SwashCache};
+use cosmic_text::{Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 
 /// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
@@ -13,20 +13,16 @@ pub(crate) struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SwashCacheState {
-            swash_cache: SwashCache::new(),
-        })
-        .add_systems(Update, blink_cursor)
-        .add_systems(
+        if !app.world().contains_resource::<SwashCache>() {
+            app.insert_resource(SwashCache::default());
+        } else {
+            debug!("Skipping inserting `SwashCache` resource");
+        }
+        app.add_systems(Update, blink_cursor).add_systems(
             PostUpdate,
             (render_texture,).in_set(RenderSet).after(WidgetSet),
         );
     }
-}
-
-#[derive(Resource)]
-pub(crate) struct SwashCacheState {
-    pub swash_cache: SwashCache,
 }
 
 pub(crate) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
@@ -99,7 +95,7 @@ fn render_texture(
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
-    mut swash_cache_state: ResMut<SwashCacheState>,
+    mut swash_cache_state: ResMut<SwashCache>,
 ) {
     for (
         editor,
@@ -211,7 +207,7 @@ fn render_texture(
 
             editor.draw(
                 &mut font_system.0,
-                &mut swash_cache_state.swash_cache,
+                &mut swash_cache_state.0,
                 font_color,
                 cursor_color,
                 selection_color,
@@ -225,7 +221,7 @@ fn render_texture(
             }
             buffer.draw(
                 &mut font_system.0,
-                &mut swash_cache_state.swash_cache,
+                &mut swash_cache_state.0,
                 font_color,
                 draw_closure,
             );
