@@ -154,7 +154,7 @@ pub fn print_editor_text(
 
 /// Quick utility to print the name of an entity if available
 #[derive(QueryData)]
-pub(in crate::utils) struct DebugName {
+struct DebugName {
     name: Option<&'static Name>,
     entity: Entity,
 }
@@ -169,7 +169,8 @@ impl std::fmt::Debug for DebugNameItem<'_> {
     }
 }
 
-pub(in crate::utils) fn print_editor_sizes(
+#[allow(private_interfaces)]
+pub fn print_editor_sizes(
     editors: Query<
         (CosmicWidgetSize, DebugName),
         (With<CosmicEditBuffer>, ChangedCosmicWidgetSize),

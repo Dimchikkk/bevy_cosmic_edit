@@ -114,7 +114,7 @@ pub mod prelude {
 
 pub use bevy::text::cosmic_text;
 
-pub use primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera, CosmicRenderOutput};
+pub use primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
 /// Contains the library global important types you probably want to explore first
 mod primary;
 

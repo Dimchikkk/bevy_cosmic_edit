@@ -2,9 +2,8 @@ use bevy::{prelude::*, window::SystemCursorIcon, winit::cursor::CursorIcon};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned, Metrics},
     prelude::*,
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicRenderOutput, CosmicTextAlign, CosmicWrap,
-    CursorColor, DefaultAttrs, HoverCursor, MaxChars, MaxLines, SelectedTextColor, SelectionColor,
-    XOffset,
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
+    DefaultAttrs, HoverCursor, MaxChars, MaxLines, SelectedTextColor, SelectionColor, XOffset,
 };
 
 #[derive(Resource)]
@@ -15,60 +14,49 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let attrs = Attrs::new().color(Color::srgb(0.27, 0.27, 0.27).to_cosmic());
 
-    let editor = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
+    commands.spawn((
+        (
+            // cosmic edit components
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
                 &mut font_system,
                 "Begin counting.",
                 attrs,
             ),
-            cursor_color: CursorColor(bevy::color::palettes::css::LIME.into()),
-            selection_color: SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
-            fill_color: CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
-            x_offset: XOffset::default(),
-            text_position: CosmicTextAlign::default(),
-            background_image: CosmicBackgroundImage::default(),
-            default_attrs: DefaultAttrs(AttrsOwned::new(attrs)),
-            max_chars: MaxChars(15),
-            max_lines: MaxLines(1),
-            mode: CosmicWrap::Wrap,
-            hover_cursor: HoverCursor(CursorIcon::System(SystemCursorIcon::Pointer)),
-            // CosmicEdit draws to this spritebundle
-            sprite: Sprite {
-                // when using another target like a UI element, this is overridden
-                custom_size: Some(Vec2::ONE * 128.0),
-                ..default()
-            },
-            // this is the default behaviour for targeting UI elements.
-            // If wanting a sprite, define your own SpriteBundle and
-            // leave the visibility on. See examples/basic_sprite.rs
-            visibility: Visibility::Hidden,
-            // TODO: Hide this in CosmicBuffer
-            output: CosmicRenderOutput::default(),
-            // Computed fields
-            padding: Default::default(),
-            widget_size: Default::default(),
-        })
-        .insert(SelectedTextColor(Color::WHITE))
-        .id();
-
-    commands
-        .spawn((
+            CursorColor(bevy::color::palettes::css::LIME.into()),
+            SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
+            CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
+            XOffset::default(),
+            CosmicTextAlign::default(),
+            CosmicBackgroundImage::default(),
+            DefaultAttrs(AttrsOwned::new(attrs)),
+            MaxChars(15),
+            MaxLines(1),
+            CosmicWrap::Wrap,
+            HoverCursor(CursorIcon::System(SystemCursorIcon::Pointer)),
+            SelectedTextColor(Color::WHITE),
+        ),
+        (
+            // rendering components
             Button,
-            ImageNode::default(),
+            // the image mode is optional, but due to bevy 0.15 mechanics is required to
+            // render the border within the `ImageNode`
+            // See bevy issue https://github.com/bevyengine/bevy/issues/16643#issuecomment-2518163688
+            ImageNode::default().with_mode(bevy::ui::widget::NodeImageMode::Stretch),
             Node {
                 // Size and position of text box
+                border: UiRect::all(Val::Px(4.)),
                 width: Val::Percent(20.),
                 height: Val::Px(50.),
                 left: Val::Percent(40.),
                 top: Val::Px(100.),
                 ..default()
             },
+            BorderColor(bevy::color::palettes::css::LIMEGREEN.into()),
             BorderRadius::all(Val::Px(10.)),
             // This is overriden by setting `CosmicBackgroundColor` so you don't see any white
             BackgroundColor(Color::WHITE),
-        ))
-        .insert(CosmicSource(editor));
+        ),
+    ));
 
     commands.insert_resource(TextChangeTimer(Timer::from_seconds(
         1.,

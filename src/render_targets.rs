@@ -16,7 +16,7 @@ pub enum SourceType {
 }
 
 #[derive(Debug)]
-pub enum RenderTargetError {
+pub(crate) enum RenderTargetError {
     /// When no recognized [SourceType] could be found
     NoTargetsAvailable,
 
@@ -34,13 +34,13 @@ pub enum RenderTargetError {
 type Result<T> = core::result::Result<T, RenderTargetError>;
 
 #[derive(QueryData)]
-pub struct CosmicWidgetSize {
+pub(crate) struct CosmicWidgetSize {
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
 }
 
 #[derive(QueryFilter)]
-pub struct ChangedCosmicWidgetSize {
+pub(crate) struct ChangedCosmicWidgetSize {
     sprite: Changed<Sprite>,
     ui: Changed<ComputedNode>,
 }
