@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
-pub(crate) enum SourceType {
+pub enum SourceType {
     Ui,
     Sprite,
 }
@@ -34,13 +34,13 @@ pub enum RenderTargetError {
 type Result<T> = core::result::Result<T, RenderTargetError>;
 
 #[derive(QueryData)]
-pub(crate) struct CosmicWidgetSize {
+pub struct CosmicWidgetSize {
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
 }
 
 #[derive(QueryFilter)]
-pub(crate) struct ChangedCosmicWidgetSize {
+pub struct ChangedCosmicWidgetSize {
     sprite: Changed<Sprite>,
     ui: Changed<ComputedNode>,
 }

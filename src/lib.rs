@@ -93,6 +93,9 @@ pub mod prelude {
     pub(crate) use crate::primary::NodeSizeExt as _;
     pub(crate) use crate::utils::*;
 
+    // public external re-exports
+    pub use cosmic_text::{Attrs, Family, Metrics};
+
     // public internal re-exports
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
@@ -101,7 +104,7 @@ pub mod prelude {
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
     pub use crate::utils::{
         change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
-        print_editor_text, ColorExtras as _,
+        print_editor_sizes, print_editor_text, ColorExtras as _,
     };
     #[doc(no_inline)]
     pub use bevy::text::cosmic_text::{

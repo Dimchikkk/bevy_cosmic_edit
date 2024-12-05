@@ -7,7 +7,6 @@ use crate::input::InputSet;
 use crate::prelude::*;
 use crate::ChangedCosmicWidgetSize;
 use crate::CosmicWidgetSize;
-use bevy::window::PrimaryWindow;
 use cosmic_text::Affinity;
 use cosmic_text::Edit;
 

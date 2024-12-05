@@ -1,6 +1,8 @@
 // Common functions for examples
-use crate::{cosmic_edit::ReadOnly, prelude::*, SourceType};
-use bevy::window::PrimaryWindow;
+use crate::{
+    cosmic_edit::ReadOnly, prelude::*, ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType,
+};
+use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;
 
 /// Trait for adding color conversion from [`bevy::prelude::Color`] to [`cosmic_text::Color`]
@@ -113,7 +115,6 @@ pub fn change_active_editor_sprite(
 
 /// System to allow focus on click for UI widgets
 pub fn change_active_editor_ui(
-    mut commands: Commands,
     mut interaction_query: Query<
         (&Interaction, Entity),
         (
@@ -122,10 +123,11 @@ pub fn change_active_editor_ui(
             With<CosmicEditBuffer>,
         ),
     >,
+    mut focussed_widget: ResMut<FocusedWidget>,
 ) {
     for (interaction, entity) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
-            commands.insert_resource(FocusedWidget(Some(entity)));
+            *focussed_widget = FocusedWidget(Some(entity));
         }
     }
 }
@@ -147,6 +149,34 @@ pub fn print_editor_text(
         }
         previous_value.clone_from(&current_text);
         info!("Widget text: {:?}", current_text);
+    }
+}
+
+/// Quick utility to print the name of an entity if available
+#[derive(QueryData)]
+pub struct DebugName {
+    name: Option<&'static Name>,
+    entity: Entity,
+}
+
+impl std::fmt::Debug for DebugNameItem<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "{:?} {:?}", self.name, self.entity)
+        match self.name {
+            Some(name) => write!(f, "DebugName::Name({:?})", name),
+            None => write!(f, "Entity({:?})", self.entity),
+        }
+    }
+}
+
+pub fn print_editor_sizes(
+    editors: Query<
+        (CosmicWidgetSize, DebugName),
+        (With<CosmicEditBuffer>, ChangedCosmicWidgetSize),
+    >,
+) {
+    for (size, name) in editors.iter() {
+        println!("Size of editor {:?} is: {:?}", name, size.logical_size());
     }
 }
 

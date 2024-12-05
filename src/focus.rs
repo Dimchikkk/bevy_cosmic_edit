@@ -26,14 +26,6 @@ impl Plugin for FocusPlugin {
 #[reflect(Resource)]
 pub struct FocusedWidget(pub Option<Entity>);
 
-impl FocusedWidget {
-    /// warn_once!() that the focused widget is invalid.
-    /// This is simply convenience
-    pub(crate) fn warn_invalid() {
-        warn_once!("FocusedWidget does not point to a valid `CosmicEditBuffer` entity");
-    }
-}
-
 pub(crate) fn add_editor_to_focused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
