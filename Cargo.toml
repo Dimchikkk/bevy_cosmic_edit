@@ -11,7 +11,7 @@ keywords = ["bevy"]
 exclude = ["assets/*"]
 
 [features]
-## Enable to avoid panicing when multiple cameras are used in the same world
+## Enable to avoid panicing when multiple cameras are used in the same world.
 ## Requires you to add `CosmicPrimaryCamera` marker component to the primary camera
 multicam = []
 webgpu = ["bevy/webgpu"]

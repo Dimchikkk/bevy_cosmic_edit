@@ -11,7 +11,7 @@
 //!
 //!   *Warning: This plugin is currently in early development, and its API is subject to change.*
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 #![doc = include_str!("../examples/basic_ui.rs")]
 //! ```
 //!
@@ -61,9 +61,6 @@ pub mod prelude {
     pub(crate) use crate::primary::CosmicRenderOutput;
     pub(crate) use crate::primary::NodeSizeExt as _;
     pub(crate) use crate::utils::*;
-
-    // public external re-exports
-    pub use cosmic_text::{Attrs, Family, Metrics};
 
     // public internal re-exports
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
