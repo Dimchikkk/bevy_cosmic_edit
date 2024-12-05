@@ -26,7 +26,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             ..default()
         },
         BackgroundColor(Color::WHITE),
-        Name::new("Readonly editor"),
     ));
 }
 
@@ -42,13 +41,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                change_active_editor_ui,
-                deselect_editor_on_esc,
-                print_editor_sizes,
-            ),
-        )
+        .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
         .run();
 }

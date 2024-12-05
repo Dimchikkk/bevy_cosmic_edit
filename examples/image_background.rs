@@ -10,30 +10,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let bg_image_handle = asset_server.load("img/bevy_logo_light.png");
 
-    let editor = commands
-        .spawn(CosmicEditBundle {
-            default_attrs: DefaultAttrs(AttrsOwned::new(
-                Attrs::new().color(bevy::color::palettes::basic::LIME.to_cosmic()),
-            )),
-            background_image: CosmicBackgroundImage(Some(bg_image_handle)),
+    commands.spawn((
+        CosmicEditBuffer::default(),
+        DefaultAttrs(AttrsOwned::new(
+            Attrs::new().color(bevy::color::palettes::basic::LIME.to_cosmic()),
+        )),
+        CosmicBackgroundImage(Some(bg_image_handle)),
+        Node {
+            // Size and position of text box
+            width: Val::Px(300.),
+            height: Val::Px(50.),
+            left: Val::Px(100.),
+            top: Val::Px(100.),
             ..default()
-        })
-        .id();
-
-    commands
-        .spawn((
-            Node {
-                // Size and position of text box
-                width: Val::Px(300.),
-                height: Val::Px(50.),
-                left: Val::Px(100.),
-                top: Val::Px(100.),
-                ..default()
-            },
-            ImageNode::default(),
-            Button,
-        ))
-        .insert(CosmicSource(editor));
+        },
+        ImageNode::default(),
+        Button,
+    ));
 }
 
 fn main() {

@@ -25,44 +25,34 @@ fn setup(
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
     commands.spawn((
-        CosmicEditBundle {
-            fill_color: CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
-            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-                &mut font_system,
-                "😀😀😀 x => y",
-                attrs,
-            ),
-            sprite: Sprite {
-                custom_size: Some(Vec2 {
-                    x: primary_window.width() / 2.,
-                    y: primary_window.height(),
-                }),
-                ..default()
-            },
-            visibility: Visibility::Inherited,
+        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+            &mut font_system,
+            "😀😀😀 x => y",
+            attrs,
+        ),
+        CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
+        Sprite {
+            custom_size: Some(Vec2 {
+                x: primary_window.width() / 2.,
+                y: primary_window.height(),
+            }),
             ..default()
         },
         Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
     ));
 
     commands.spawn((
-        CosmicEditBundle {
-            fill_color: CosmicBackgroundColor(
-                bevy::color::palettes::basic::GRAY.with_alpha(0.5).into(),
-            ),
-            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-                &mut font_system,
-                "Widget_2. Click on me",
-                attrs,
-            ),
-            sprite: Sprite {
-                custom_size: Some(Vec2 {
-                    x: primary_window.width() / 2.,
-                    y: primary_window.height() / 2.,
-                }),
-                ..default()
-            },
-            visibility: Visibility::Inherited,
+        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+            &mut font_system,
+            "Widget_2. Click on me",
+            attrs,
+        ),
+        CosmicBackgroundColor(bevy::color::palettes::basic::GRAY.with_alpha(0.5).into()),
+        Sprite {
+            custom_size: Some(Vec2 {
+                x: primary_window.width() / 2.,
+                y: primary_window.height() / 2.,
+            }),
             ..default()
         },
         Transform::from_translation(Vec3::new(

@@ -104,7 +104,7 @@ pub mod prelude {
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
     pub use crate::utils::{
         change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
-        print_editor_sizes, print_editor_text, ColorExtras as _,
+        print_editor_text, ColorExtras as _,
     };
     #[doc(no_inline)]
     pub use bevy::text::cosmic_text::{

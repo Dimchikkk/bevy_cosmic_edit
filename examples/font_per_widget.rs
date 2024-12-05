@@ -156,57 +156,43 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         ),
     ];
 
-    let cosmic_edit_1 =
-        commands
-            .spawn(CosmicEditBundle {
-                buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.))
-                    .with_rich_text(&mut font_system, lines, attrs),
+    commands.entity(root).with_children(|parent| {
+        parent.spawn((
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
+                &mut font_system,
+                lines,
+                attrs,
+            ),
+            ImageNode::default(),
+            Button,
+            Node {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
                 ..default()
-            })
-            .id();
+            },
+            BackgroundColor(Color::WHITE),
+        ));
+    });
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
     attrs_2.color_opt = Some(bevy::color::palettes::css::PURPLE.to_cosmic());
-
-    let cosmic_edit_2 = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
+    commands.entity(root).with_children(|parent| {
+        parent.spawn((
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
                 &mut font_system,
                 "Widget 2.\nClick on me =>",
                 attrs_2,
             ),
-            ..default()
-        })
-        .id();
-
-    // Spawn the CosmicEditUiBundles as children of root
-    commands.entity(root).with_children(|parent| {
-        parent
-            .spawn((
-                ImageNode::default(),
-                Button,
-                Node {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                BackgroundColor(Color::WHITE),
-            ))
-            .insert(CosmicSource(cosmic_edit_1));
-
-        parent
-            .spawn((
-                ImageNode::default(),
-                Button,
-                Node {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                BackgroundColor(Color::WHITE.with_alpha(0.8)),
-            ))
-            .insert(CosmicSource(cosmic_edit_2));
+            ImageNode::default(),
+            Button,
+            Node {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            BackgroundColor(Color::WHITE.with_alpha(0.8)),
+        ));
     });
 }
 

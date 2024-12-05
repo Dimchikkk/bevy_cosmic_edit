@@ -8,15 +8,12 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((
-        CosmicEditBundle {
-            max_lines: MaxLines(1),
-            mode: CosmicWrap::InfiniteLine,
-            // Sets size of text box
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(300., 100.)),
-                ..default()
-            },
-            visibility: Visibility::Visible,
+        CosmicEditBuffer::default(),
+        MaxLines(1),
+        CosmicWrap::InfiniteLine,
+        // Sets size of text box
+        Sprite {
+            custom_size: Some(Vec2::new(300., 100.)),
             ..default()
         },
         // Position of text box
