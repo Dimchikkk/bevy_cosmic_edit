@@ -1,9 +1,7 @@
 use crate::{
-    cosmic_edit::ScrollDisabled,
-    prelude::*,
-    widget::{CosmicPadding, CosmicWidgetSize},
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
-    HoverCursor, MaxChars, MaxLines, SelectionColor, XOffset,
+    cosmic_edit::ScrollDisabled, prelude::*, widget::CosmicPadding, CosmicBackgroundColor,
+    CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
+    MaxLines, SelectionColor, XOffset,
 };
 use bevy::{
     ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
@@ -75,7 +73,6 @@ impl BufferExtras for Buffer {
     CosmicWrap,
     CosmicTextAlign,
     CosmicPadding,
-    CosmicWidgetSize,
     HoverCursor,
     ScrollDisabled
 )]

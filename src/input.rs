@@ -5,7 +5,7 @@ use crate::{
     cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollDisabled, XOffset},
     events::CosmicTextChanged,
     prelude::*,
-    SourceType,
+    CosmicWidgetSize,
 };
 use bevy::{
     ecs::query::QueryData,
@@ -103,18 +103,14 @@ pub(crate) fn input_mouse(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    // TODO: generalize over more than just sprite and node
     mut editor_q: Query<(
         &mut CosmicEditor,
-        Entity,
         &GlobalTransform,
         &CosmicTextAlign,
         &XOffset,
         &ScrollDisabled,
+        CosmicWidgetSize,
     )>,
-    sprite_editor_q: Query<&Sprite>,
-    node_editor_q: Query<&ComputedNode>,
-    //
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -152,39 +148,19 @@ pub(crate) fn input_mouse(
     };
 
     // TODO // generalize this over UI and sprite
-    if let Ok((mut editor, editor_entity, transform, text_position, x_offset, scroll_disabled)) =
+    if let Ok((mut editor, transform, text_position, x_offset, scroll_disabled, target_size)) =
         editor_q.get_mut(active_editor_entity)
     {
         let buffer = editor.with_buffer(|b| b.clone());
 
         // get size of render target
-        let source_type: SourceType;
-        let (mut width, mut height) = match (
-            node_editor_q.get(editor_entity),
-            sprite_editor_q.get(editor_entity),
-        ) {
-            (Ok(computed_node), Err(_)) => {
-                let node_size = computed_node.logical_size();
-                source_type = SourceType::Ui;
-                (node_size.x, node_size.y)
-            }
-            (Err(_), Ok(sprite)) => {
-                let sprite_size = sprite.custom_size.expect("Must specify Sprite.custom_size");
-                source_type = SourceType::Sprite;
-                (sprite_size.x, sprite_size.y)
-            }
-            (Err(_), Err(_)) => {
-                FocusedWidget::warn_invalid();
-                return;
-            }
-            (Ok(_), Ok(_)) => {
-                warn_once!(
-                    message = "Cannot have both `Sprite` and `ImageNode` components on `CosmicEditBuffer` entity",
-                    note = "Pick only one render target output type"
-                );
-                return;
-            }
+        let Ok(source_type) = target_size.source_type() else {
+            return;
         };
+        let Ok(size) = target_size.logical_size() else {
+            return;
+        };
+        let (width, height) = (size.x, size.y);
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 

@@ -128,11 +128,10 @@ mod tests {
         mut font_system: ResMut<CosmicFontSystem>,
     ) {
         let attrs = cosmic_text::Attrs::new();
-        commands.spawn(CosmicEditBundle {
-            buffer: CosmicEditBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.))
+        commands.spawn(
+            CosmicEditBuffer::new(&mut font_system, cosmic_text::Metrics::new(20., 20.))
                 .with_rich_text(&mut font_system, vec![("Blah", attrs)], attrs),
-            ..Default::default()
-        });
+        );
     }
 
     #[test]
@@ -145,6 +144,8 @@ mod tests {
         )));
         app.add_systems(Update, test_spawn_cosmic_edit_system);
 
+        // todo: these lines probably won't do anything now,
+        // maybe we should test for something different?
         let input = ButtonInput::<KeyCode>::default();
         app.insert_resource(input);
         let mouse_input: ButtonInput<MouseButton> = ButtonInput::<MouseButton>::default();

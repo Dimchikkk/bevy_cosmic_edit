@@ -1,6 +1,6 @@
-use crate::cosmic_edit::*;
-use crate::widget::{CosmicPadding, CosmicWidgetSize};
+use crate::widget::CosmicPadding;
 use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
+use crate::{cosmic_edit::*, CosmicWidgetSize};
 use bevy::render::render_resource::Extent3d;
 use cosmic_text::{Color, Edit, SwashCache};
 use image::{imageops::FilterType, GenericImageView};
@@ -91,7 +91,7 @@ fn render_texture(
         &SelectionColor,
         Option<&SelectedTextColor>,
         &CosmicRenderOutput,
-        &CosmicWidgetSize,
+        CosmicWidgetSize,
         &CosmicPadding,
         &XOffset,
         Option<&ReadOnly>,
@@ -118,15 +118,28 @@ fn render_texture(
         position,
     ) in query.iter_mut()
     {
+        let Ok(size) = size.logical_size() else {
+            continue;
+        };
+
+        // avoids a panic
+        if size.x == 0. || size.y == 0. {
+            debug!(
+                message = "Size of buffer is zero, skipping",
+                // once = "This log only appears once"
+            );
+            continue;
+        }
+
         // Draw background
-        let mut pixels = vec![0; size.0.x as usize * size.0.y as usize * 4];
+        let mut pixels = vec![0; size.x as usize * size.y as usize * 4];
         if let Some(bg_image) = background_image.0.clone() {
             if let Some(image) = images.get(&bg_image) {
                 let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
-                if image.size().x != size.0.x as u32 || image.size().y != size.0.y as u32 {
+                if image.size() != size.as_uvec2() {
                     dynamic_image = dynamic_image.resize_to_fill(
-                        size.0.x as u32,
-                        size.0.y as u32,
+                        size.x as u32,
+                        size.y as u32,
                         FilterType::Triangle,
                     );
                 }
@@ -165,8 +178,8 @@ fn render_texture(
                 for col in 0..w as i32 {
                     draw_pixel(
                         &mut pixels,
-                        size.0.x as i32,
-                        size.0.y as i32,
+                        size.x as i32,
+                        size.y as i32,
                         x + col + padding.x.max(min_pad) as i32 - x_offset.left as i32,
                         y + row + padding.y as i32,
                         color,
@@ -224,8 +237,8 @@ fn render_texture(
             // Updates the stored asset image with the computed pixels
             prev_image.data.extend_from_slice(pixels.as_slice());
             prev_image.resize(Extent3d {
-                width: size.0.x as u32,
-                height: size.0.y as u32,
+                width: size.x as u32,
+                height: size.y as u32,
                 depth_or_array_layers: 1,
             });
         }

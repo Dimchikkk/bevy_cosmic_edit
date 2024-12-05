@@ -5,6 +5,8 @@ use crate::cosmic_edit::CosmicWrap;
 use crate::cosmic_edit::XOffset;
 use crate::input::InputSet;
 use crate::prelude::*;
+use crate::ChangedCosmicWidgetSize;
+use crate::CosmicWidgetSize;
 use bevy::window::PrimaryWindow;
 use cosmic_text::Affinity;
 use cosmic_text::Edit;
@@ -22,7 +24,6 @@ impl Plugin for WidgetPlugin {
                 PostUpdate,
                 (
                     new_image_from_default,
-                    set_widget_size,
                     set_buffer_size,
                     set_padding,
                     set_x_offset,
@@ -31,8 +32,7 @@ impl Plugin for WidgetPlugin {
                     .in_set(WidgetSet)
                     .after(TransformSystem::TransformPropagate),
             )
-            .register_type::<CosmicPadding>()
-            .register_type::<CosmicWidgetSize>();
+            .register_type::<CosmicPadding>();
     }
 }
 
@@ -42,12 +42,12 @@ impl Plugin for WidgetPlugin {
 #[derive(Component, Reflect, Default, Deref, DerefMut, Debug)]
 pub(crate) struct CosmicPadding(pub(crate) Vec2);
 
-/// Wrapper for a [`Vec2`] describing the horizontal and vertical size of a widget.
-/// This is set programatically, not for user modification.
-/// To set a widget's size, use either it's [`Sprite`] dimensions or modify the target UI element's
-/// size.
-#[derive(Component, Reflect, Default, Deref, DerefMut)]
-pub(crate) struct CosmicWidgetSize(pub(crate) Vec2);
+// /// Wrapper for a [`Vec2`] describing the horizontal and vertical size of a widget.
+// /// This is set programatically, not for user modification.
+// /// To set a widget's size, use either it's [`Sprite`] dimensions or modify the target UI element's
+// /// size.
+// #[derive(Component, Reflect, Default, Deref, DerefMut)]
+// pub(crate) struct CosmicWidgetSize(pub(crate) Vec2);
 
 /// Reshapes text in a [`CosmicEditor`]
 fn reshape(mut query: Query<&mut CosmicEditor>, mut font_system: ResMut<CosmicFontSystem>) {
@@ -63,18 +63,22 @@ fn set_padding(
             &mut CosmicPadding,
             &CosmicTextAlign,
             &CosmicEditBuffer,
-            &CosmicWidgetSize,
+            CosmicWidgetSize,
             Option<&CosmicEditor>,
         ),
         Or<(
             With<CosmicEditor>,
             Changed<CosmicTextAlign>,
             Changed<CosmicEditBuffer>,
-            Changed<CosmicWidgetSize>,
+            ChangedCosmicWidgetSize,
         )>,
     >,
 ) {
     for (mut padding, position, buffer, size, editor_opt) in query.iter_mut() {
+        let Ok(size) = size.logical_size() else {
+            continue;
+        };
+
         // TODO: At least one of these clones is uneccessary
         let mut buffer = buffer.0.clone();
 
@@ -88,30 +92,14 @@ fn set_padding(
 
         padding.0 = match position {
             CosmicTextAlign::Center { padding: _ } => Vec2::new(
-                get_x_offset_center(size.0.x, &buffer) as f32,
-                get_y_offset_center(size.0.y, &buffer) as f32,
+                get_x_offset_center(size.x, &buffer) as f32,
+                get_y_offset_center(size.y, &buffer) as f32,
             ),
             CosmicTextAlign::TopLeft { padding } => Vec2::new(*padding as f32, *padding as f32),
-            CosmicTextAlign::Left { padding } => Vec2::new(
-                *padding as f32,
-                get_y_offset_center(size.0.y, &buffer) as f32,
-            ),
+            CosmicTextAlign::Left { padding } => {
+                Vec2::new(*padding as f32, get_y_offset_center(size.y, &buffer) as f32)
+            }
         }
-    }
-}
-
-/// Programatically sets the [`CosmicWidgetSize`] of a widget based on it's [`Sprite`] properties
-fn set_widget_size(
-    mut query: Query<(&mut CosmicWidgetSize, &Sprite), Changed<Sprite>>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    if windows.iter().len() == 0 {
-        return;
-    }
-    // TODO: early return if sprite size is unchanged
-    let scale = windows.single().scale_factor();
-    for (mut size, sprite) in query.iter_mut() {
-        size.0 = sprite.custom_size.unwrap().ceil() * scale;
     }
 }
 
@@ -121,18 +109,21 @@ fn set_buffer_size(
         (
             &mut CosmicEditBuffer,
             &CosmicWrap,
-            &CosmicWidgetSize,
+            CosmicWidgetSize,
             &CosmicTextAlign,
         ),
         Or<(
             Changed<CosmicWrap>,
-            Changed<CosmicWidgetSize>,
+            ChangedCosmicWidgetSize,
             Changed<CosmicTextAlign>,
         )>,
     >,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mode, size, position) in query.iter_mut() {
+        let Ok(size) = size.logical_size() else {
+            continue;
+        };
         let padding_x = match position {
             CosmicTextAlign::Center { padding: _ } => 0.,
             CosmicTextAlign::TopLeft { padding } => *padding as f32,
@@ -140,8 +131,8 @@ fn set_buffer_size(
         };
 
         let (buffer_width, buffer_height) = match mode {
-            CosmicWrap::InfiniteLine => (f32::MAX, size.0.y),
-            CosmicWrap::Wrap => (size.0.x - padding_x, size.0.y),
+            CosmicWrap::InfiniteLine => (f32::MAX, size.y),
+            CosmicWrap::Wrap => (size.x - padding_x, size.y),
         };
 
         buffer.set_size(&mut font_system.0, Some(buffer_width), Some(buffer_height));
@@ -164,13 +155,16 @@ fn set_x_offset(
         &mut XOffset,
         &CosmicWrap,
         &CosmicEditor,
-        &CosmicWidgetSize,
+        CosmicWidgetSize,
         &CosmicTextAlign,
     )>,
 ) {
     for (mut x_offset, mode, editor, size, position) in query.iter_mut() {
+        let Ok(size) = size.logical_size() else {
+            continue;
+        };
         if mode != &CosmicWrap::InfiniteLine {
-            return;
+            continue; // this used to be `return` though I feel like it should be continue
         }
 
         let mut cursor_x = 0.;

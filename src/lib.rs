@@ -96,7 +96,7 @@ pub mod prelude {
     // public internal re-exports
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
-    pub use crate::cosmic_edit::{CosmicEditBundle, CosmicEditor, DefaultAttrs, ReadOnly};
+    pub use crate::cosmic_edit::{CosmicEditor, DefaultAttrs, ReadOnly};
     pub use crate::focus::FocusedWidget;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
     pub use crate::utils::{
@@ -139,10 +139,5 @@ mod render;
 mod user_select;
 pub mod utils;
 mod widget;
-
-/// TODO: Generalize implementations depending on this
-/// and add 3D
-pub(crate) enum SourceType {
-    Ui,
-    Sprite,
-}
+pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType};
+mod render_targets;
