@@ -11,44 +11,8 @@
 //!
 //!   *Warning: This plugin is currently in early development, and its API is subject to change.*
 //!
-//! ```
-//! use bevy::prelude::*;
-//! use bevy_cosmic_edit::*;
-//!
-//! fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-//!     commands.spawn(Camera2dBundle::default());
-//!
-//!     // Text attributes
-//!     let font_size = 16.0;
-//!     let line_height = 18.0;
-//!     let attrs = Attrs::new()
-//!         .family(Family::Monospace)
-//!         .color(Color::DARK_GRAY.to_cosmic())
-//!         .weight(FontWeight::BOLD);
-//!
-//!     // Spawning
-//!     commands.spawn(CosmicEditBundle {
-//!         buffer: CosmicBuffer::new(&mut font_system, Metrics::new(font_size, line_height))
-//!             .with_text(&mut font_system, "Hello, Cosmic!", attrs),
-//!         sprite_bundle: SpriteBundle {
-//!             sprite: Sprite {
-//!                 custom_size: Some(Vec2::new(300.0, 40.0)),
-//!                 ..default()
-//!             },
-//!             ..default()
-//!         },
-//!         ..default()
-//!     });
-//! }
-//!
-//! fn main() {
-//!     App::new()
-//!         .add_plugins(DefaultPlugins)
-//!         .add_plugins(CosmicEditPlugin::default())
-//!         .add_systems(Startup, setup)
-//!         .add_systems(Update, change_active_editor_sprite)
-//!         .run();
-//! }
+//! ```rust
+#![doc = include_str!("../examples/basic_ui.rs")]
 //! ```
 //!
 //! Check the examples folder for much more!
@@ -70,7 +34,9 @@
 //!
 //! | bevy   | bevy_cosmic_edit |
 //! | ------ | ---------------- |
-//! | 0.13.0 | 0.16 - latest    |
+//! | 0.15.0 | 0.26 - latest    |
+//! | 0.14.0 | 0.21 - 0.25      |
+//! | 0.13.0 | 0.16 - 0.20      |
 //! | 0.12.* | 0.15             |
 //! | 0.11.* | 0.8 - 0.14       |
 //!
@@ -122,7 +88,7 @@ pub use buffer::CosmicEditBuffer;
 mod buffer;
 pub use cosmic_edit::{
     CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
-    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollDisabled,
+    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollEnabled,
     SelectedTextColor, SelectionColor, XOffset,
 };
 mod cosmic_edit;

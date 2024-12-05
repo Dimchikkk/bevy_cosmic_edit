@@ -1,6 +1,6 @@
 [package]
 name = "bevy_cosmic_edit"
-version = "0.25.0"
+version = "0.26.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Bevy cosmic-text multiline text input"
@@ -33,9 +33,8 @@ bevy = { version = "0.15", default-features = false, features = [
     "x11",
     "webgl2",
 ] }
-# TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 unicode-segmentation = { version = "1.11.0" }
-
+# TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"

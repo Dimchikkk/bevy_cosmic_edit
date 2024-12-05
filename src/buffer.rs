@@ -1,5 +1,5 @@
 use crate::{
-    cosmic_edit::ScrollDisabled, prelude::*, widget::CosmicPadding, CosmicBackgroundColor,
+    cosmic_edit::ScrollEnabled, prelude::*, widget::CosmicPadding, CosmicBackgroundColor,
     CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
     MaxLines, SelectionColor, XOffset,
 };
@@ -74,7 +74,7 @@ impl BufferExtras for Buffer {
     CosmicTextAlign,
     CosmicPadding,
     HoverCursor,
-    ScrollDisabled
+    ScrollEnabled
 )]
 pub struct CosmicEditBuffer(pub Buffer);
 

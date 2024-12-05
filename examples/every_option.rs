@@ -3,7 +3,7 @@ use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned, Metrics},
     prelude::*,
     CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
-    DefaultAttrs, HoverCursor, MaxChars, MaxLines, SelectedTextColor, SelectionColor, XOffset,
+    DefaultAttrs, HoverCursor, MaxChars, MaxLines, SelectedTextColor, SelectionColor,
 };
 
 #[derive(Resource)]
@@ -25,9 +25,8 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             CursorColor(bevy::color::palettes::css::LIME.into()),
             SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
             CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
-            XOffset::default(),
-            CosmicTextAlign::default(),
-            CosmicBackgroundImage::default(),
+            CosmicTextAlign::Center { padding: 0 },
+            CosmicBackgroundImage(None),
             DefaultAttrs(AttrsOwned::new(attrs)),
             MaxChars(15),
             MaxLines(1),

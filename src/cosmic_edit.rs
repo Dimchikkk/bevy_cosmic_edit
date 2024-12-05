@@ -100,20 +100,20 @@ pub struct MaxChars(pub usize);
 
 /// Should [`CosmicEditBuffer`] respond to scroll events?
 #[derive(Component, Default)]
-pub enum ScrollDisabled {
+pub enum ScrollEnabled {
     #[default]
     Enabled,
     Disabled,
 }
 
-impl ScrollDisabled {
+impl ScrollEnabled {
     pub fn should_scroll(&self) -> bool {
-        matches!(self, ScrollDisabled::Enabled)
+        matches!(self, ScrollEnabled::Enabled)
     }
 }
 
 /// Holds the font system used internally by [`cosmic_text`]
-/// 
+///
 /// Note: When bevy provides enough initialisation flexibility,
 /// this should be merged with its builtin resource
 #[derive(Resource, Deref, DerefMut)]

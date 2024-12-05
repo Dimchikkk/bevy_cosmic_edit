@@ -2,7 +2,7 @@
 
 use crate::{
     buffer::{get_x_offset_center, get_y_offset_center},
-    cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollDisabled, XOffset},
+    cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollEnabled, XOffset},
     events::CosmicTextChanged,
     prelude::*,
     CosmicWidgetSize,
@@ -81,7 +81,7 @@ struct SpriteEditorData {
     global_transform: &'static GlobalTransform,
     text_align: &'static CosmicTextAlign,
     x_offset: &'static XOffset,
-    scroll_disabled: &'static ScrollDisabled,
+    scroll_disabled: &'static ScrollEnabled,
 
     sprite: &'static mut Sprite,
 }
@@ -93,7 +93,7 @@ struct UiEditorData {
     global_transform: &'static GlobalTransform,
     text_align: &'static CosmicTextAlign,
     x_offset: &'static XOffset,
-    scroll_disabled: &'static ScrollDisabled,
+    scroll_disabled: &'static ScrollEnabled,
 
     computed_node: &'static ComputedNode,
 }
@@ -108,7 +108,7 @@ pub(crate) fn input_mouse(
         &GlobalTransform,
         &CosmicTextAlign,
         &XOffset,
-        &ScrollDisabled,
+        &ScrollEnabled,
         CosmicWidgetSize,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
