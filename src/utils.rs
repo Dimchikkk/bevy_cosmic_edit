@@ -169,13 +169,11 @@ impl std::fmt::Debug for DebugNameItem<'_> {
     }
 }
 
+/// Debug print the size of all editors
 #[allow(dead_code)]
 #[allow(private_interfaces)]
 pub fn print_editor_sizes(
-    editors: Query<
-        (CosmicWidgetSize, DebugName),
-        (With<CosmicEditBuffer>, ChangedCosmicWidgetSize),
-    >,
+    editors: Query<(CosmicWidgetSize, DebugName), (With<CosmicEditor>, ChangedCosmicWidgetSize)>,
 ) {
     for (size, name) in editors.iter() {
         println!("Size of editor {:?} is: {:?}", name, size.logical_size());
