@@ -17,10 +17,9 @@ use bevy::{
 use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
-use crate::DefaultAttrs;
-#[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;
 #[cfg(target_arch = "wasm32")]
+#[allow(unused_imports)]
 use js_sys::Promise;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -649,14 +648,14 @@ fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub(crate) fn write_clipboard_wasm(text: &str) {
+pub fn write_clipboard_wasm(text: &str) {
     let clipboard = web_sys::window().unwrap().navigator().clipboard();
     let _result = clipboard.write_text(text);
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub(crate) fn read_clipboard_wasm() -> Promise {
+pub fn read_clipboard_wasm() -> Promise {
     let clipboard = web_sys::window().unwrap().navigator().clipboard();
     clipboard.read_text()
 }
@@ -668,7 +667,6 @@ pub(crate) fn poll_wasm_paste(
         (
             &mut CosmicEditor,
             &mut CosmicEditBuffer,
-            &crate::DefaultAttrs,
             &MaxChars,
             &MaxChars,
         ),
@@ -681,11 +679,8 @@ pub(crate) fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, mut buffer, attrs, max_chars, max_lines)) =
-                editor_q.get_mut(entity)
-            {
+            if let Ok((mut editor, buffer, max_chars, max_lines)) = editor_q.get_mut(entity) {
                 let text = inlet.text;
-                let attrs = &attrs.0;
                 for c in text.chars() {
                     if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
                         if c == 0xA as char {
