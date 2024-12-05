@@ -169,6 +169,7 @@ impl std::fmt::Debug for DebugNameItem<'_> {
     }
 }
 
+#[allow(dead_code)]
 #[allow(private_interfaces)]
 pub fn print_editor_sizes(
     editors: Query<
