@@ -22,10 +22,7 @@ impl Plugin for BufferPlugin {
                 set_initial_scale,
                 set_redraw,
                 set_editor_redraw,
-                (
-                    update_external_target_handles,
-                    update_internal_target_handles,
-                ),
+                update_internal_target_handles,
             )
                 .chain(),
         );
@@ -266,30 +263,6 @@ impl OutputToEntityItem<'_> {
         }
         if let Some(image_node) = self.image_node_target.as_mut() {
             image_node.image = image.clone_weak();
-        }
-    }
-}
-
-/// Sets image of sprite/UI elements to the [`CosmicBuffer`] output ([`CosmicRenderOutput`]) every frame.
-///
-/// This ferries the handle produced by the [`CosmicBuffer`] entity from
-/// [`CosmicRenderOutput`] to either [`Sprite`] or [`ImageNode`] entities.
-///
-/// If the entity owning the [`CosmicBuffer`] already has a [`Sprite`] or [`ImageNode`],
-/// see [update_internal_target_handles] instead
-pub(crate) fn update_external_target_handles(
-    source_buffers_q: Query<&CosmicRenderOutput, With<CosmicEditBuffer>>,
-    mut external_destinations_q: Query<(OutputToEntity, &CosmicSource), Without<CosmicEditBuffer>>,
-) {
-    // TODO: do this once
-    for (mut output_components, source_entity) in external_destinations_q.iter_mut() {
-        if let Ok(CosmicRenderOutput(source_handle)) = source_buffers_q.get(source_entity.0) {
-            output_components.write_image_data(source_handle);
-        } else {
-            warn_once!(
-                message = format!("A `CosmicSource` component {:?} referenced an unknown entity that isn't a `CosmicBuffer`", source_entity),
-                once = "This message will only log once"
-            )
         }
     }
 }

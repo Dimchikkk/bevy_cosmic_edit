@@ -21,7 +21,7 @@ impl Plugin for WidgetPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    (new_image_from_default, set_sprite_size_from_ui),
+                    new_image_from_default,
                     set_widget_size,
                     set_buffer_size,
                     set_padding,
@@ -211,17 +211,6 @@ fn set_x_offset(
         if cursor_x < x_offset.left {
             let diff = x_offset.left - cursor_x;
             x_offset.left -= diff;
-        }
-    }
-}
-
-fn set_sprite_size_from_ui(
-    mut source_q: Query<&mut Sprite, With<CosmicEditBuffer>>,
-    dest_q: Query<(&ComputedNode, &CosmicSource), Changed<Node>>,
-) {
-    for (node, source) in dest_q.iter() {
-        if let Ok(mut sprite) = source_q.get_mut(source.0) {
-            sprite.custom_size = Some(node.logical_size().ceil().max(Vec2::ONE));
         }
     }
 }

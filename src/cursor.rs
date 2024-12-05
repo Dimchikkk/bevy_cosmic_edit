@@ -1,7 +1,7 @@
 // This will all be rewritten soon, looking toward per-widget cursor control
 // Rewrite should address issue #93 too
 
-use crate::prelude::*;
+use crate::{prelude::*, SourceType};
 use bevy::{
     input::mouse::MouseMotion,
     window::{PrimaryWindow, SystemCursorIcon},
@@ -121,7 +121,7 @@ pub(crate) fn hover_sprites(
             window,
             node_transform,
             size,
-            false,
+            SourceType::Sprite,
             camera,
             camera_transform,
         )
@@ -144,20 +144,20 @@ pub(crate) fn hover_sprites(
 }
 
 pub(crate) fn hover_ui(
-    interaction_query: Query<(&Interaction, &CosmicSource), Changed<Interaction>>,
-    cosmic_query: Query<&HoverCursor, With<CosmicEditBuffer>>,
+    interaction_query: Query<
+        (&Interaction, &HoverCursor),
+        (With<CosmicEditBuffer>, Changed<Interaction>),
+    >,
     mut evw_hover_in: EventWriter<TextHoverIn>,
     mut evw_hover_out: EventWriter<TextHoverOut>,
 ) {
-    for (interaction, source) in interaction_query.iter() {
+    for (interaction, hover) in interaction_query.iter() {
         match interaction {
             Interaction::None => {
                 evw_hover_out.send(TextHoverOut);
             }
             Interaction::Hovered => {
-                if let Ok(hover) = cosmic_query.get(source.0) {
-                    evw_hover_in.send(TextHoverIn(hover.0.clone()));
-                }
+                evw_hover_in.send(TextHoverIn(hover.0.clone()));
             }
             _ => {}
         }

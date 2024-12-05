@@ -10,8 +10,7 @@ pub(crate) fn plugin(app: &mut App) {
         .register_type::<CursorColor>()
         .register_type::<SelectionColor>()
         .register_type::<MaxLines>()
-        .register_type::<MaxChars>()
-        .register_type::<CosmicSource>();
+        .register_type::<MaxChars>();
 }
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
@@ -107,40 +106,11 @@ pub enum ScrollDisabled {
     Disabled,
 }
 
-/// A pointer to an entity with a [`CosmicEditBundle`], used to apply cosmic rendering to a UI
-/// element.
-///
-///```
-/// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
-/// #
-/// # fn setup(mut commands: Commands) {
-/// // Create a new cosmic bundle
-/// let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
-///
-/// // Spawn the target bundle
-/// commands
-///     .spawn(ButtonBundle {
-///         style: Style {
-///             width: Val::Percent(100.),
-///             height: Val::Percent(100.),
-///             ..default()
-///         },
-///         background_color: BackgroundColor(Color::WHITE),
-///         ..default()
-///     })
-///     // Add the source component to the target element
-///     .insert(CosmicSource(cosmic_edit));
-/// # }
-/// #
-/// # fn main() {
-/// #     App::new()
-/// #         .add_plugins(MinimalPlugins)
-/// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, setup);
-/// # }
-#[derive(Component, Reflect, Debug)]
-pub struct CosmicSource(pub Entity);
+impl ScrollDisabled {
+    pub fn should_scroll(&self) -> bool {
+        matches!(self, ScrollDisabled::Enabled)
+    }
+}
 
 /// A bundle containing all the required components for [`CosmicBuffer`] functionality.
 ///

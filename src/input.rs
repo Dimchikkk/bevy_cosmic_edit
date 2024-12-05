@@ -5,8 +5,10 @@ use crate::{
     cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollDisabled, XOffset},
     events::CosmicTextChanged,
     prelude::*,
+    SourceType,
 };
 use bevy::{
+    ecs::query::QueryData,
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
@@ -72,21 +74,47 @@ pub struct WasmPasteAsyncChannel {
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
 
+#[derive(QueryData)]
+#[query_data(mutable)]
+struct SpriteEditorData {
+    editor: &'static mut CosmicEditor,
+    global_transform: &'static GlobalTransform,
+    text_align: &'static CosmicTextAlign,
+    x_offset: &'static XOffset,
+    scroll_disabled: &'static ScrollDisabled,
+
+    sprite: &'static mut Sprite,
+}
+
+#[derive(QueryData)]
+#[query_data(mutable)]
+struct UiEditorData {
+    editor: &'static mut CosmicEditor,
+    global_transform: &'static GlobalTransform,
+    text_align: &'static CosmicTextAlign,
+    x_offset: &'static XOffset,
+    scroll_disabled: &'static ScrollDisabled,
+
+    computed_node: &'static ComputedNode,
+}
+
 pub(crate) fn input_mouse(
     windows: Query<&Window, With<PrimaryWindow>>,
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     buttons: Res<ButtonInput<MouseButton>>,
+    // TODO: generalize over more than just sprite and node
     mut editor_q: Query<(
         &mut CosmicEditor,
+        Entity,
         &GlobalTransform,
         &CosmicTextAlign,
-        Entity,
         &XOffset,
-        &mut Sprite,
-        Option<&ScrollDisabled>,
+        &ScrollDisabled,
     )>,
-    node_q: Query<(&ComputedNode, &GlobalTransform, &CosmicSource)>,
+    sprite_editor_q: Query<&Sprite>,
+    node_editor_q: Query<&ComputedNode>,
+    //
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -123,33 +151,40 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((
-        mut editor,
-        sprite_transform,
-        text_position,
-        entity,
-        x_offset,
-        sprite,
-        scroll_disabled,
-    )) = editor_q.get_mut(active_editor_entity)
+    // TODO // generalize this over UI and sprite
+    if let Ok((mut editor, editor_entity, transform, text_position, x_offset, scroll_disabled)) =
+        editor_q.get_mut(active_editor_entity)
     {
         let buffer = editor.with_buffer(|b| b.clone());
 
-        let mut is_ui_node = false;
-        let mut transform = sprite_transform;
-        let sprite_size = sprite.custom_size.expect("Must specify Sprite.custom_size");
-        let (mut width, mut height) = (sprite_size.x, sprite_size.y);
-
-        // TODO: this is bad loop nesting, rethink system with relationships in mind
-        for (node, node_transform, source) in node_q.iter() {
-            if source.0 != entity {
-                continue;
+        // get size of render target
+        let source_type: SourceType;
+        let (mut width, mut height) = match (
+            node_editor_q.get(editor_entity),
+            sprite_editor_q.get(editor_entity),
+        ) {
+            (Ok(computed_node), Err(_)) => {
+                let node_size = computed_node.logical_size();
+                source_type = SourceType::Ui;
+                (node_size.x, node_size.y)
             }
-            is_ui_node = true;
-            transform = node_transform;
-            width = node.logical_size().x;
-            height = node.logical_size().y;
-        }
+            (Err(_), Ok(sprite)) => {
+                let sprite_size = sprite.custom_size.expect("Must specify Sprite.custom_size");
+                source_type = SourceType::Sprite;
+                (sprite_size.x, sprite_size.y)
+            }
+            (Err(_), Err(_)) => {
+                FocusedWidget::warn_invalid();
+                return;
+            }
+            (Ok(_), Ok(_)) => {
+                warn_once!(
+                    message = "Cannot have both `Sprite` and `ImageNode` components on `CosmicEditBuffer` entity",
+                    note = "Pick only one render target output type"
+                );
+                return;
+            }
+        };
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
@@ -186,7 +221,7 @@ pub(crate) fn input_mouse(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
-                is_ui_node,
+                source_type,
                 camera,
                 camera_transform,
             ) {
@@ -226,7 +261,7 @@ pub(crate) fn input_mouse(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
-                is_ui_node,
+                source_type,
                 camera,
                 camera_transform,
             ) {
@@ -241,7 +276,7 @@ pub(crate) fn input_mouse(
             return;
         }
 
-        if scroll_disabled.is_none() {
+        if scroll_disabled.should_scroll() {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
