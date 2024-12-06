@@ -59,7 +59,6 @@ pub mod prelude {
     pub(crate) use crate::buffer::BufferExtras as _;
     pub(crate) use crate::cosmic_text;
     pub(crate) use crate::primary::CosmicRenderOutput;
-    pub(crate) use crate::primary::NodeSizeExt as _;
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
@@ -110,4 +109,4 @@ mod user_select;
 pub mod utils;
 mod widget;
 pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType};
-mod render_targets;
+pub mod render_targets;

@@ -88,16 +88,6 @@ impl Default for CosmicFontConfig {
 #[derive(Component, Default, Debug, Deref)]
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
 
-pub(crate) trait NodeSizeExt {
-    fn logical_size(&self) -> Vec2;
-}
-
-impl NodeSizeExt for ComputedNode {
-    fn logical_size(&self) -> Vec2 {
-        self.size() * self.inverse_scale_factor()
-    }
-}
-
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
     let mut db = cosmic_text::fontdb::Database::new();

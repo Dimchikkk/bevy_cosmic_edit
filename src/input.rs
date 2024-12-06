@@ -128,7 +128,7 @@ pub(crate) fn input_mouse(
         let buffer = editor.with_buffer(|b| b.clone());
 
         // get size of render target
-        let Ok(source_type) = target_size.source_type() else {
+        let Ok(source_type) = target_size.scan() else {
             return;
         };
         let Ok(size) = target_size.logical_size() else {

@@ -80,6 +80,7 @@ impl Password {
     }
 }
 
+/// Stores [`CosmicEditBuffer`] contents into [`Password.real_text`]
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
@@ -93,6 +94,7 @@ fn hide_password_text(
     for (mut password, mut buffer, attrs, editor_opt, placeholder_opt) in q.iter_mut() {
         if let Some(placeholder) = placeholder_opt {
             if placeholder.is_active() {
+                // doesn't override placeholder
                 continue;
             }
         }
@@ -158,6 +160,7 @@ fn hide_password_text(
     }
 }
 
+/// Replaces [`CosmicEditBuffer`] contents with [`Password.real_text`]
 fn restore_password_text(
     mut q: Query<(
         &Password,
