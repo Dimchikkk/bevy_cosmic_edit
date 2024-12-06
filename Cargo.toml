@@ -1,6 +1,6 @@
 [package]
 name = "bevy_cosmic_edit"
-version = "0.25.0"
+version = "0.26.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Bevy cosmic-text multiline text input"
@@ -11,15 +11,14 @@ keywords = ["bevy"]
 exclude = ["assets/*"]
 
 [features]
-## Enable to avoid panicing when multiple cameras are used in the same world
+## Enable to avoid panicing when multiple cameras are used in the same world.
 ## Requires you to add `CosmicPrimaryCamera` marker component to the primary camera
 multicam = []
-webgpu = ["bevy/webgpu"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.14", default-features = false, features = [
+bevy = { version = "0.15", default-features = false, features = [
     "bevy_asset",
     "bevy_core_pipeline",
     "bevy_render",
@@ -28,14 +27,13 @@ bevy = { version = "0.14", default-features = false, features = [
     "bevy_text",
     "bevy_ui",
     "bevy_winit",
+    "bevy_window",
     "png",
     "x11",
     "webgl2",
 ] }
-cosmic-text = { version = "0.12.0" }
-# TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 unicode-segmentation = { version = "1.11.0" }
-
+# TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
 crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"
@@ -56,3 +54,10 @@ web-sys = { version = "0.3.70", features = [
 
 [dev-dependencies]
 insta = "1.29.0"
+bevy_editor_pls = "0.11.0"
+
+[patch.crates-io]
+# remove once https://github.com/jakobhellermann/bevy_editor_pls/pull/118 lands and is published
+bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.git" }
+# remove once https://github.com/urholaukkarinen/transform-gizmo/pull/85 lands and is published
+transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }

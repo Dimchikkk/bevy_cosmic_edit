@@ -1,21 +1,25 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use crate::*;
+use crate::{
+    buffer::{get_x_offset_center, get_y_offset_center},
+    cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollEnabled, XOffset},
+    events::CosmicTextChanged,
+    prelude::*,
+    CosmicWidgetSize,
+};
 use bevy::{
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     },
-    prelude::*,
     window::PrimaryWindow,
 };
 use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
-use crate::DefaultAttrs;
-#[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;
 #[cfg(target_arch = "wasm32")]
+#[allow(unused_imports)]
 use js_sys::Promise;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -38,24 +42,32 @@ impl Plugin for InputPlugin {
                     .in_set(InputSet),
             )
             .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
+            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
+                .add_systems(Update, poll_wasm_paste);
+        }
     }
 }
 
 /// Timer for double / triple clicks
 #[derive(Resource)]
-pub struct ClickTimer(pub Timer);
+pub(crate) struct ClickTimer(pub(crate) Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
 /// Crossbeam channel struct for Wasm clipboard data
-#[allow(dead_code)]
-pub struct WasmPaste {
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub(crate) struct WasmPaste {
     text: String,
     entity: Entity,
 }
 
 /// Async channel for receiving from the clipboard in Wasm
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 #[derive(Resource)]
-pub struct WasmPasteAsyncChannel {
+pub(crate) struct WasmPasteAsyncChannel {
     pub tx: crossbeam_channel::Sender<WasmPaste>,
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
@@ -69,12 +81,10 @@ pub(crate) fn input_mouse(
         &mut CosmicEditor,
         &GlobalTransform,
         &CosmicTextAlign,
-        Entity,
         &XOffset,
-        &mut Sprite,
-        Option<&ScrollDisabled>,
+        &ScrollEnabled,
+        CosmicWidgetSize,
     )>,
-    node_q: Query<(&Node, &GlobalTransform, &CosmicSource)>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -83,11 +93,8 @@ pub(crate) fn input_mouse(
     time: Res<Time>,
     evr_mouse_motion: EventReader<MouseMotion>,
 ) {
+    // handle click timer and click_count
     click_timer.0.tick(time.delta());
-
-    let Some(active_editor_entity) = active_editor.0 else {
-        return;
-    };
 
     if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
         *click_count = 0;
@@ -102,6 +109,11 @@ pub(crate) fn input_mouse(
         *click_count = 0;
     }
 
+    // unwrap resources
+    let Some(active_editor_entity) = active_editor.0 else {
+        return;
+    };
+
     let Ok(primary_window) = windows.get_single() else {
         return;
     };
@@ -111,33 +123,20 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    if let Ok((
-        mut editor,
-        sprite_transform,
-        text_position,
-        entity,
-        x_offset,
-        sprite,
-        scroll_disabled,
-    )) = editor_q.get_mut(active_editor_entity)
+    // TODO: generalize this over UI and sprite
+    if let Ok((mut editor, transform, text_position, x_offset, scroll_disabled, target_size)) =
+        editor_q.get_mut(active_editor_entity)
     {
         let buffer = editor.with_buffer(|b| b.clone());
 
-        let mut is_ui_node = false;
-        let mut transform = sprite_transform;
-        let sprite_size = sprite.custom_size.expect("Must specify Sprite.custom_size");
-        let (mut width, mut height) = (sprite_size.x, sprite_size.y);
-
-        // TODO: this is bad loop nesting, rethink system with relationships in mind
-        for (node, node_transform, source) in node_q.iter() {
-            if source.0 != entity {
-                continue;
-            }
-            is_ui_node = true;
-            transform = node_transform;
-            width = node.size().x;
-            height = node.size().y;
-        }
+        // get size of render target
+        let Ok(source_type) = target_size.scan() else {
+            return;
+        };
+        let Ok(size) = target_size.logical_size() else {
+            return;
+        };
+        let (width, height) = (size.x, size.y);
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
@@ -159,7 +158,8 @@ pub(crate) fn input_mouse(
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
         };
-        let point = |node_cursor_pos: Vec2| {
+        // Converts a node-relative space coordinate to a screen space physical coord
+        let screen_physical = |node_cursor_pos: Vec2| {
             (
                 (node_cursor_pos.x * scale_factor) as i32 - padding_x,
                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
@@ -170,15 +170,15 @@ pub(crate) fn input_mouse(
             editor.cursor_visible = true;
             editor.cursor_timer.reset();
 
-            if let Some(node_cursor_pos) = get_node_cursor_pos(
+            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
-                is_ui_node,
+                source_type,
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = point(node_cursor_pos);
+                let (mut x, y) = screen_physical(node_cursor_pos);
                 x += x_offset.left as i32;
                 if shift {
                     editor.action(&mut font_system.0, Action::Drag { x, y });
@@ -210,15 +210,15 @@ pub(crate) fn input_mouse(
         }
 
         if buttons.pressed(MouseButton::Left) && *click_count == 0 {
-            if let Some(node_cursor_pos) = get_node_cursor_pos(
+            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
-                is_ui_node,
+                source_type,
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = point(node_cursor_pos);
+                let (mut x, y) = screen_physical(node_cursor_pos);
                 x += x_offset.left as i32;
                 if active_editor.is_changed() && !shift {
                     editor.action(&mut font_system.0, Action::Click { x, y });
@@ -229,7 +229,7 @@ pub(crate) fn input_mouse(
             return;
         }
 
-        if scroll_disabled.is_none() {
+        if scroll_disabled.should_scroll() {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
@@ -255,7 +255,7 @@ pub(crate) fn input_mouse(
     }
 }
 
-pub fn kb_move_cursor(
+pub(crate) fn kb_move_cursor(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut cosmic_edit_query: Query<(&mut CosmicEditor,)>,
@@ -408,7 +408,7 @@ pub(crate) fn kb_input_text(
     mut char_evr: EventReader<KeyboardInput>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -522,14 +522,14 @@ pub(crate) fn kb_input_text(
     }
 }
 
-pub fn kb_clipboard(
+pub(crate) fn kb_clipboard(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut evw_changed: EventWriter<CosmicTextChanged>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -664,13 +664,12 @@ pub fn read_clipboard_wasm() -> Promise {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn poll_wasm_paste(
+pub(crate) fn poll_wasm_paste(
     channel: Res<WasmPasteAsyncChannel>,
     mut editor_q: Query<
         (
             &mut CosmicEditor,
-            &mut CosmicBuffer,
-            &crate::DefaultAttrs,
+            &mut CosmicEditBuffer,
             &MaxChars,
             &MaxChars,
         ),
@@ -683,11 +682,8 @@ pub fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, mut buffer, attrs, max_chars, max_lines)) =
-                editor_q.get_mut(entity)
-            {
+            if let Ok((mut editor, buffer, max_chars, max_lines)) = editor_q.get_mut(entity) {
                 let text = inlet.text;
-                let attrs = &attrs.0;
                 for c in text.chars() {
                     if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
                         if c == 0xA as char {

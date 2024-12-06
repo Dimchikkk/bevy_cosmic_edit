@@ -1,10 +1,9 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{prelude::*, widget::WidgetSet};
 use cosmic_text::{Edit, Editor};
 
 /// System set for focus systems. Runs in `PostUpdate`
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FocusSet;
+pub(crate) struct FocusSet;
 
 pub(crate) struct FocusPlugin;
 
@@ -23,14 +22,18 @@ impl Plugin for FocusPlugin {
 }
 
 /// Resource struct that keeps track of the currently active editor entity.
+///
+/// The focussed entity must have a [`CosmicEditBuffer`], and should have a
+/// [`CosmicEditor`] component as well if it can be mutated (i.e. isn't [`Readonly`]).
 #[derive(Resource, Reflect, Default, Deref, DerefMut)]
 #[reflect(Resource)]
 pub struct FocusedWidget(pub Option<Entity>);
 
+/// Adds [`CosmicEditor`] by copying from existing [`CosmicEditBuffer`].
 pub(crate) fn add_editor_to_focused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
-    q: Query<&CosmicBuffer, Without<CosmicEditor>>,
+    q: Query<&CosmicEditBuffer, Without<CosmicEditor>>,
 ) {
     if let Some(e) = active_editor.0 {
         let Ok(b) = q.get(e) else {
@@ -42,10 +45,11 @@ pub(crate) fn add_editor_to_focused(
     }
 }
 
+/// Removes [`CosmicEditor`]
 pub(crate) fn drop_editor_unfocused(
     mut commands: Commands,
     active_editor: Res<FocusedWidget>,
-    mut q: Query<(Entity, &mut CosmicBuffer, &CosmicEditor)>,
+    mut q: Query<(Entity, &mut CosmicEditBuffer, &CosmicEditor)>,
 ) {
     if active_editor.0.is_none() {
         for (e, mut b, ed) in q.iter_mut() {

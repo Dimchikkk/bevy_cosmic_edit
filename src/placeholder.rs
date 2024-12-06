@@ -1,24 +1,24 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{
+    cosmic_edit::DefaultAttrs, events::CosmicTextChanged, input::InputSet, prelude::*,
+    render::RenderSet,
+};
 use cosmic_text::{Attrs, Edit};
 
-/// Component to be added to an entity with a [`CosmicEditBundle`] add placeholder text
+/// Component to be added to an entity with a [`CosmicEditBuffer`] add placeholder text
 ///
 /// ```
 /// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
+/// # use bevy_cosmic_edit::prelude::*;
+/// use bevy_cosmic_edit::Placeholder;
+///
 /// # fn setup(mut commands: Commands) {
-/// commands.spawn((CosmicEditBundle {
-///     sprite_bundle: SpriteBundle {
-///         sprite: Sprite {
-///             custom_size: Some(Vec2::new(300.0, 40.0)),
-///             ..default()
-///         },
+/// commands.spawn((
+///     CosmicEditBuffer::default(),
+///     Sprite {
+///         custom_size: Some(Vec2::new(300.0, 40.0)),
 ///         ..default()
 ///     },
-///     ..default()
-///     },
-///     Placeholder::new("Email", Attrs::new().color(Color::GRAY.to_cosmic())),
+///     Placeholder::new("Email", Attrs::new().color(Color::from(bevy::color::palettes::css::GRAY).to_cosmic())),
 /// ));
 /// # }
 /// # fn main() {
@@ -71,7 +71,7 @@ impl Plugin for PlaceholderPlugin {
 }
 
 fn add_placeholder_to_buffer(
-    mut q: Query<(&mut CosmicBuffer, &mut Placeholder)>,
+    mut q: Query<(&mut CosmicEditBuffer, &mut Placeholder)>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mut placeholder) in q.iter_mut() {

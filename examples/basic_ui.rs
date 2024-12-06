@@ -1,17 +1,17 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    *,
+    prelude::*,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    let camera_bundle = Camera2dBundle {
-        camera: Camera {
+    let camera_bundle = (
+        Camera2d,
+        Camera {
             clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
         },
-        ..default()
-    };
+    );
     commands.spawn(camera_bundle);
 
     let mut attrs = Attrs::new();
@@ -19,33 +19,20 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
     let cosmic_edit = commands
-        .spawn((CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+        .spawn((
+            TextEdit,
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
                 &mut font_system,
                 vec![("Banana", attrs)],
                 attrs,
             ),
-            ..default()
-        },))
-        .id();
-
-    commands
-        .spawn(
-            // Use buttonbundle for layout
-            // Includes Interaction and UiImage which are used by the plugin.
-            ButtonBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..default()
             },
-        )
-        // point editor at this entity.
-        // Plugin looks for UiImage and sets it's
-        // texture to the editor's rendered image
-        .insert(CosmicSource(cosmic_edit));
+        ))
+        .id();
 
     commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
@@ -60,10 +47,7 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin {
-            font_config,
-            ..default()
-        })
+        .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
         .add_systems(
             Update,

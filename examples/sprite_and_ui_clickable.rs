@@ -1,55 +1,46 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned},
-    *,
+    prelude::*,
+    CosmicTextAlign, CosmicTextChanged, CosmicWrap, MaxLines, TextHoverIn, TextHoverOut,
 };
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 
-    // UI editor
-    let ui_editor = commands
-        .spawn(CosmicEditBundle {
-            default_attrs: DefaultAttrs(AttrsOwned::new(
-                Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
-            )),
-            max_lines: MaxLines(1),
-            mode: CosmicWrap::InfiniteLine,
-            text_position: CosmicTextAlign::Left { padding: 5 },
-            ..default()
-        })
-        .id();
-
-    commands
-        .spawn(ButtonBundle {
-            style: Style {
-                // Size and position of text box
-                width: Val::Px(300.),
-                height: Val::Px(50.),
-                left: Val::Px(100.),
-                top: Val::Px(100.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(CosmicSource(ui_editor));
-
-    // Sprite editor
-    commands.spawn((CosmicEditBundle {
-        max_lines: MaxLines(1),
-        mode: CosmicWrap::InfiniteLine,
-        sprite_bundle: SpriteBundle {
-            // Sets size of text box
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(300., 100.)),
-                ..default()
-            },
-            // Position of text box
-            transform: Transform::from_xyz(0., 100., 0.),
+    // Ui editor
+    commands.spawn((
+        TextEdit,
+        CosmicEditBuffer::default(),
+        DefaultAttrs(AttrsOwned::new(
+            Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
+        )),
+        MaxLines(1),
+        CosmicWrap::InfiniteLine,
+        CosmicTextAlign::Left { padding: 5 },
+        Node {
+            // Size and position of text box
+            width: Val::Px(300.),
+            height: Val::Px(50.),
+            left: Val::Px(100.),
+            top: Val::Px(100.),
             ..default()
         },
-        ..default()
-    },));
+    ));
+
+    // Sprite editor
+    commands.spawn((
+        CosmicEditBuffer::default(),
+        MaxLines(1),
+        CosmicWrap::InfiniteLine,
+        // Sets size of text box
+        Sprite {
+            custom_size: Some(Vec2::new(300., 100.)),
+            ..default()
+        },
+        // Position of text box
+        Transform::from_xyz(0., 100., 0.),
+    ));
 }
 
 fn ev_test(

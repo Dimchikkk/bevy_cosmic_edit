@@ -1,55 +1,32 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    *,
+    prelude::*,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2dBundle::default());
-    let root = commands
-        .spawn(NodeBundle {
-            style: Style {
-                display: Display::Flex,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            ..default()
-        })
-        .id();
+    commands.spawn(Camera2d);
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
     // spawn editor
-    let cosmic_edit = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-                &mut font_system,
-                "😀😀😀 x => y\nRead only widget",
-                attrs,
-            ),
+    commands.spawn((
+        TextEdit,
+        ReadOnly,
+        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+            &mut font_system,
+            "😀😀😀 x => y\nRead only widget",
+            attrs,
+        ),
+        Node {
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
             ..default()
-        })
-        .insert(ReadOnly)
-        .id();
-
-    // Spawn the ButtonBundle as a child of root
-    commands.entity(root).with_children(|parent| {
-        parent
-            .spawn(ButtonBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
-                ..default()
-            })
-            // add cosmic source
-            .insert(CosmicSource(cosmic_edit));
-    });
+        },
+        BackgroundColor(Color::WHITE),
+    ));
 }
 
 fn main() {
@@ -62,11 +39,8 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin {
-            font_config,
-            ..default()
-        })
+        .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(Update, change_active_editor_ui)
+        .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
         .run();
 }

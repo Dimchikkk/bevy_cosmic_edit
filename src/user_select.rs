@@ -1,5 +1,4 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{input::InputSet, prelude::*};
 use cosmic_text::Edit;
 
 pub(crate) struct UserSelectPlugin;

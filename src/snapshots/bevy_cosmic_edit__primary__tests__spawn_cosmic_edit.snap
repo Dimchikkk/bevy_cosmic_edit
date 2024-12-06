@@ -1,0 +1,8 @@
+---
+source: src/primary.rs
+expression: "cosmic_editor.lines.iter().map(|line| line.text()).collect::<Vec<_>>()"
+snapshot_kind: text
+---
+[
+    "Blah",
+]

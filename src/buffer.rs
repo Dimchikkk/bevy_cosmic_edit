@@ -1,14 +1,15 @@
-use crate::*;
-use bevy::{
-    ecs::component::{ComponentHooks, StorageType},
+use crate::{
+    cosmic_edit::{ScrollEnabled, XOffset},
     prelude::*,
+    widget::CosmicPadding,
+    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
+    HoverCursor, MaxChars, MaxLines, SelectionColor,
+};
+use bevy::{
+    ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
     window::PrimaryWindow,
 };
 use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
-
-/// Set of all buffer setup functions. Runs in [`First`]
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct BufferSet;
 
 pub(crate) struct BufferPlugin;
 
@@ -21,7 +22,7 @@ impl Plugin for BufferPlugin {
                 set_initial_scale,
                 set_redraw,
                 set_editor_redraw,
-                swap_target_handle,
+                update_internal_target_handles,
             )
                 .chain(),
         );
@@ -40,7 +41,7 @@ impl BufferExtras for Buffer {
     /// * none, takes the rust magic ref to self
     ///
     /// # Returns
-    ///
+    ///input
     /// A [`String`] containing the cosmic text content.
     fn get_text(&self) -> String {
         let mut text = String::new();
@@ -59,39 +60,50 @@ impl BufferExtras for Buffer {
 }
 
 /// Component wrapper for [`Buffer`]
-#[derive(Deref, DerefMut)]
-pub struct CosmicBuffer(pub Buffer);
+#[derive(Component, Deref, DerefMut)]
+#[component(on_remove = remove_focus_from_entity)]
+#[require(
+    CosmicBackgroundColor,
+    CursorColor,
+    SelectionColor,
+    DefaultAttrs,
+    CosmicBackgroundImage,
+    CosmicRenderOutput,
+    MaxLines,
+    MaxChars,
+    XOffset,
+    CosmicWrap,
+    CosmicTextAlign,
+    CosmicPadding,
+    HoverCursor,
+    ScrollEnabled
+)]
+pub struct CosmicEditBuffer(pub Buffer);
 
-impl Component for CosmicBuffer {
-    const STORAGE_TYPE: StorageType = StorageType::Table;
-
-    fn register_component_hooks(hooks: &mut ComponentHooks) {
-        hooks.on_remove(|mut world, entity, _| {
-            if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
-                if let Some(focused) = focused_widget.0 {
-                    if focused == entity {
-                        focused_widget.0 = None;
-                    }
-                }
+fn remove_focus_from_entity(mut world: DeferredWorld, entity: Entity, _: ComponentId) {
+    if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
+        if let Some(focused) = focused_widget.0 {
+            if focused == entity {
+                focused_widget.0 = None;
             }
-        });
+        }
     }
 }
 
-impl Default for CosmicBuffer {
+impl Default for CosmicEditBuffer {
     fn default() -> Self {
-        CosmicBuffer(Buffer::new_empty(Metrics::new(20., 20.)))
+        CosmicEditBuffer(Buffer::new_empty(Metrics::new(20., 20.)))
     }
 }
 
-impl<'s, 'r> CosmicBuffer {
+impl<'s, 'r> CosmicEditBuffer {
     /// Create a new buffer with a font system
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
         Self(Buffer::new(font_system, metrics))
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
-    /// Add text to a newly created [`CosmicBuffer`]
+    /// Add text to a newly created [`CosmicEditBuffer`]
     pub fn with_text(
         mut self,
         font_system: &mut FontSystem,
@@ -102,7 +114,7 @@ impl<'s, 'r> CosmicBuffer {
         self
     }
 
-    /// Add rich text to a newly created [`CosmicBuffer`]
+    /// Add rich text to a newly created [`CosmicEditBuffer`]
     ///
     /// Rich text is an iterable of `(&'s str, Attrs<'r>)`
     pub fn with_rich_text<I>(
@@ -190,10 +202,10 @@ impl<'s, 'r> CosmicBuffer {
     }
 }
 
-/// Adds a [`FontSystem`] to a newly created [`CosmicBuffer`] if one was not provided
-pub fn add_font_system(
+/// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
+pub(crate) fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
-    mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
+    mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
 ) {
     for mut b in q.iter_mut() {
         if !b.lines.is_empty() {
@@ -204,10 +216,10 @@ pub fn add_font_system(
     }
 }
 
-/// Initialises [`CosmicBuffer`] scale factor
-pub fn set_initial_scale(
+/// Initialises [`CosmicEditBuffer`] scale factor
+pub(crate) fn set_initial_scale(
     window_q: Query<&Window, With<PrimaryWindow>>,
-    mut cosmic_query: Query<&mut CosmicBuffer, Added<CosmicBuffer>>,
+    mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     if let Ok(window) = window_q.get_single() {
@@ -220,66 +232,76 @@ pub fn set_initial_scale(
     }
 }
 
-/// Initialises new [`CosmicBuffer`] redraw flag to true
-pub fn set_redraw(mut q: Query<&mut CosmicBuffer, Added<CosmicBuffer>>) {
+/// Initialises new [`CosmicEditBuffer`] redraw flag to true
+pub(crate) fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
     for mut b in q.iter_mut() {
         b.set_redraw(true);
     }
 }
 
 /// Initialises new [`CosmicEditor`] redraw flag to true
-pub fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
-    for mut b in q.iter_mut() {
-        b.set_redraw(true);
+pub(crate) fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
+    for mut ed in q.iter_mut() {
+        ed.set_redraw(true);
     }
 }
 
-/// Sets image of UI elements to the [`CosmicBuffer`] output
-pub fn swap_target_handle(
-    source_q: Query<&Handle<Image>, With<CosmicBuffer>>,
-    mut dest_q: Query<
-        (
-            Option<&mut Handle<Image>>,
-            Option<&mut UiImage>,
-            &CosmicSource,
-        ),
-        Without<CosmicBuffer>,
-    >,
-) {
-    // TODO: do this once
-    for (dest_handle_opt, dest_ui_opt, source_entity) in dest_q.iter_mut() {
-        if let Ok(source_handle) = source_q.get(source_entity.0) {
-            if let Some(mut dest_handle) = dest_handle_opt {
-                *dest_handle = source_handle.clone_weak();
-            }
-            if let Some(mut dest_ui) = dest_ui_opt {
-                dest_ui.texture = source_handle.clone_weak();
-            }
+/// Will attempt to find a place on the receiving entity to place
+/// a [`Handle<Image>`]
+#[derive(QueryData)]
+#[query_data(mutable)]
+pub(crate) struct OutputToEntity {
+    sprite_target: Option<&'static mut Sprite>,
+    image_node_target: Option<&'static mut ImageNode>,
+}
+
+impl OutputToEntityItem<'_> {
+    pub fn write_image_data(&mut self, image: &Handle<Image>) {
+        if let Some(sprite) = self.sprite_target.as_mut() {
+            sprite.image = image.clone_weak();
         }
+        if let Some(image_node) = self.image_node_target.as_mut() {
+            image_node.image = image.clone_weak();
+        }
+    }
+}
+
+/// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
+/// on the same entity, e.g. [`Sprite`]
+pub(crate) fn update_internal_target_handles(
+    mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
+) {
+    for (output_data, mut output_components) in buffers_q.iter_mut() {
+        output_components.write_image_data(&output_data.0);
     }
 }
 
 // TODO put this on impl CosmicBuffer
 
-pub fn get_text_size(buffer: &Buffer) -> (f32, f32) {
+/// Returns in physical pixels
+pub(crate) fn get_text_size(buffer: &Buffer) -> Vec2 {
     if buffer.layout_runs().count() == 0 {
-        return (0., buffer.metrics().line_height);
+        return Vec2::new(0., buffer.metrics().line_height);
     }
+    // get max width
     let width = buffer
         .layout_runs()
         .map(|run| run.line_w)
         .reduce(f32::max)
         .unwrap();
+    // get total height
     let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    (width, height)
+    Vec2::new(width, height)
 }
 
-pub fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
-    let (_, text_height) = get_text_size(buffer);
+/// Returns in physical pixels
+pub(crate) fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
+    let text_height = get_text_size(buffer).y;
     ((widget_height - text_height) / 2.0) as i32
 }
 
-pub fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
-    let (text_width, _) = get_text_size(buffer);
+/// Returns in physical pixels
+pub(crate) fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
+    let text_width = get_text_size(buffer).x;
     ((widget_width - text_width) / 2.0) as i32
 }

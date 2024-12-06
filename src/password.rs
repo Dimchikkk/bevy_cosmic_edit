@@ -1,5 +1,7 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::{
+    cosmic_edit::DefaultAttrs, focus::FocusSet, placeholder::Placeholder, prelude::*,
+    render::RenderSet,
+};
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -7,28 +9,31 @@ pub(crate) struct PasswordPlugin;
 
 /// System set for password blocking systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PasswordSet;
+pub(crate) struct PasswordSet;
 
 impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, (hide_password_text.before(input_mouse),))
-            .add_systems(
-                Update,
-                (restore_password_text
-                    .before(kb_input_text)
-                    .after(kb_move_cursor),),
-            )
-            .add_systems(
-                PostUpdate,
-                (
-                    hide_password_text.before(RenderSet).in_set(PasswordSet),
-                    restore_password_text.before(FocusSet).after(RenderSet),
-                ),
-            );
+        app.add_systems(
+            PreUpdate,
+            (hide_password_text.before(crate::input::input_mouse),),
+        )
+        .add_systems(
+            Update,
+            (restore_password_text
+                .before(crate::input::kb_input_text)
+                .after(crate::input::kb_move_cursor),),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                hide_password_text.before(RenderSet).in_set(PasswordSet),
+                restore_password_text.before(FocusSet).after(RenderSet),
+            ),
+        );
     }
 }
 
-/// Component to be added to an entity with a [`CosmicEditBundle`] to block contents with a
+/// Component to be added to an entity with a [`CosmicEditBuffer`] to block contents with a
 /// password blocker glyph
 ///
 /// ```
@@ -37,15 +42,11 @@ impl Plugin for PasswordPlugin {
 /// #
 /// # fn setup(mut commands: Commands) {
 /// // Create a new cosmic bundle
-/// commands.spawn((CosmicEditBundle {
-///     sprite_bundle: SpriteBundle {
-///         sprite: Sprite {
-///             custom_size: Some(Vec2::new(300.0, 40.0)),
-///             ..default()
-///         },
+/// commands.spawn((
+///     CosmicEditBuffer::default(),
+///     Sprite {
+///         custom_size: Some(Vec2::new(300.0, 40.0)),
 ///         ..default()
-///     },
-///     ..default()
 ///     },
 ///     Password::default()
 /// ));
@@ -79,10 +80,11 @@ impl Password {
     }
 }
 
+/// Stores [`CosmicEditBuffer`] contents into [`Password.real_text`]
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
         Option<&Placeholder>,
@@ -92,6 +94,7 @@ fn hide_password_text(
     for (mut password, mut buffer, attrs, editor_opt, placeholder_opt) in q.iter_mut() {
         if let Some(placeholder) = placeholder_opt {
             if placeholder.is_active() {
+                // doesn't override placeholder
                 continue;
             }
         }
@@ -157,10 +160,11 @@ fn hide_password_text(
     }
 }
 
+/// Replaces [`CosmicEditBuffer`] contents with [`Password.real_text`]
 fn restore_password_text(
     mut q: Query<(
         &Password,
-        &mut CosmicBuffer,
+        &mut CosmicEditBuffer,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
         Option<&Placeholder>,

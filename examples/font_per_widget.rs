@@ -3,19 +3,16 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
-    *,
+    prelude::*,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
     let root = commands
-        .spawn(NodeBundle {
-            style: bevy::prelude::Style {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..default()
-            },
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
             ..default()
         })
         .id();
@@ -159,57 +156,42 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         ),
     ];
 
-    let cosmic_edit_1 = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
+    commands.entity(root).with_children(|parent| {
+        parent.spawn((
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
                 &mut font_system,
                 lines,
                 attrs,
             ),
-            ..default()
-        })
-        .id();
+            TextEdit,
+            Node {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            BackgroundColor(Color::WHITE),
+        ));
+    });
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
     attrs_2.color_opt = Some(bevy::color::palettes::css::PURPLE.to_cosmic());
-
-    let cosmic_edit_2 = commands
-        .spawn(CosmicEditBundle {
-            buffer: CosmicBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
+    commands.entity(root).with_children(|parent| {
+        parent.spawn((
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
                 &mut font_system,
                 "Widget 2.\nClick on me =>",
                 attrs_2,
             ),
-            ..default()
-        })
-        .id();
-
-    // Spawn the CosmicEditUiBundles as children of root
-    commands.entity(root).with_children(|parent| {
-        parent
-            .spawn(ButtonBundle {
-                style: Style {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::WHITE),
+            ImageNode::default(),
+            Button,
+            Node {
+                width: Val::Percent(50.),
+                height: Val::Percent(100.),
                 ..default()
-            })
-            .insert(CosmicSource(cosmic_edit_1));
-
-        parent
-            .spawn(ButtonBundle {
-                background_color: BackgroundColor(bevy::prelude::Color::WHITE.with_alpha(0.8)),
-                style: Style {
-                    width: Val::Percent(50.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(CosmicSource(cosmic_edit_2));
+            },
+            BackgroundColor(Color::WHITE.with_alpha(0.8)),
+        ));
     });
 }
 

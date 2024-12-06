@@ -1,6 +1,18 @@
-use crate::*;
-use bevy::prelude::*;
+use crate::prelude::*;
 use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
+
+pub(crate) fn plugin(app: &mut App) {
+    app.register_type::<CosmicWrap>()
+        .register_type::<CosmicTextAlign>()
+        .register_type::<XOffset>()
+        .register_type::<CosmicBackgroundImage>()
+        .register_type::<CosmicBackgroundColor>()
+        .register_type::<CursorColor>()
+        .register_type::<SelectionColor>()
+        .register_type::<MaxLines>()
+        .register_type::<MaxChars>()
+        .register_type::<ScrollEnabled>();
+}
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Component, Reflect, Clone, PartialEq, Default)]
@@ -10,7 +22,8 @@ pub enum CosmicWrap {
     Wrap,
 }
 
-/// Enum representing the text alignment in a cosmic [`Buffer`]
+/// Enum representing the text alignment in a cosmic [`Buffer`].
+/// Defaults to [`CosmicTextAlign::Center`]
 #[derive(Component, Reflect, Clone)]
 pub enum CosmicTextAlign {
     Center { padding: i32 },
@@ -24,19 +37,26 @@ impl Default for CosmicTextAlign {
     }
 }
 
-/// Tag component to disable writing to a [`CosmicBuffer`]
+/// Tag component to disable writing to a [`CosmicEditBuffer`]
 // TODO: Code example
 #[derive(Component, Default)]
 pub struct ReadOnly; // tag component
 
 /// Internal value used to decide what section of a [`Buffer`] to render
 #[derive(Component, Reflect, Debug, Default)]
-pub struct XOffset {
+pub(crate) struct XOffset {
+    /// How much space in logical units from the left of the [`Buffer`]
+    /// to start rendering text.
     pub left: f32,
-    pub width: f32,
+
+    /// Width of buffer that includes text that should be rendered,
+    /// in logical units.
+    ///
+    /// Should only be [None] if in default state
+    pub width: Option<f32>,
 }
 
-/// Default text attributes to be used on a [`CosmicBuffer`]
+/// Default text attributes to be used on a [`CosmicEditBuffer`]
 #[derive(Component, Deref, DerefMut)]
 pub struct DefaultAttrs(pub AttrsOwned);
 
@@ -54,19 +74,34 @@ pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 #[derive(Component, Reflect, Default, Deref)]
 pub struct CosmicBackgroundColor(pub Color);
 
-/// Color to be used for the text cursor
-#[derive(Component, Reflect, Default, Deref)]
+/// Color to be used for the text cursor.
+/// Defaults to [`Color::BLACK`]
+#[derive(Component, Reflect, Deref)]
 pub struct CursorColor(pub Color);
 
-/// Color to be used as the selected text background
-#[derive(Component, Reflect, Default, Deref)]
+impl Default for CursorColor {
+    fn default() -> Self {
+        CursorColor(Color::BLACK)
+    }
+}
+
+/// Color to be used as the selected text background.
+/// Defaults to [`Color::GRAY`]
+#[derive(Component, Reflect, Deref)]
 pub struct SelectionColor(pub Color);
+
+impl Default for SelectionColor {
+    fn default() -> Self {
+        SelectionColor(bevy::color::palettes::basic::GRAY.into())
+    }
+}
 
 /// Color to be used for the selected text
 #[derive(Component, Reflect, Default, Deref)]
 pub struct SelectedTextColor(pub Color);
 
 /// Maximum number of lines allowed in a buffer
+// TODO: Actually test this? I'm not sure this does anything afaik
 #[derive(Component, Reflect, Default)]
 pub struct MaxLines(pub usize);
 
@@ -75,164 +110,33 @@ pub struct MaxLines(pub usize);
 #[derive(Component, Reflect, Default)]
 pub struct MaxChars(pub usize);
 
-/// Buffer does not respond to scroll events
-#[derive(Component, Default)]
-pub struct ScrollDisabled;
-
-/// A pointer to an entity with a [`CosmicEditBundle`], used to apply cosmic rendering to a UI
-/// element.
-///
-///```
-/// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
-/// #
-/// # fn setup(mut commands: Commands) {
-/// // Create a new cosmic bundle
-/// let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
-///
-/// // Spawn the target bundle
-/// commands
-///     .spawn(ButtonBundle {
-///         style: Style {
-///             width: Val::Percent(100.),
-///             height: Val::Percent(100.),
-///             ..default()
-///         },
-///         background_color: BackgroundColor(Color::WHITE),
-///         ..default()
-///     })
-///     // Add the source component to the target element
-///     .insert(CosmicSource(cosmic_edit));
-/// # }
-/// #
-/// # fn main() {
-/// #     App::new()
-/// #         .add_plugins(MinimalPlugins)
-/// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, setup);
-/// # }
-#[derive(Component, Reflect)]
-pub struct CosmicSource(pub Entity);
-
-/// A bundle containing all the required components for [`CosmicBuffer`] functionality.
-///
-/// Uses an invisible [`SpriteBundle`] for rendering by default, so should either be paired with another
-/// entity with a [`CosmicSource`] pointing to it's entity, or have the sprite set.
-///
-/// ### UI mode
-///
-///```
-/// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
-/// #
-/// # fn setup(mut commands: Commands) {
-/// // Create a new cosmic bundle
-/// let cosmic_edit = commands.spawn(CosmicEditBundle::default()).id();
-///
-/// // Spawn the target bundle
-/// commands
-///     .spawn(ButtonBundle {
-///         style: Style {
-///             width: Val::Percent(100.),
-///             height: Val::Percent(100.),
-///             ..default()
-///         },
-///         background_color: BackgroundColor(Color::WHITE),
-///         ..default()
-///     })
-///     // Add the source component to the target element
-///     .insert(CosmicSource(cosmic_edit));
-/// # }
-/// #
-/// # fn main() {
-/// #     App::new()
-/// #         .add_plugins(MinimalPlugins)
-/// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, setup);
-/// # }
-/// ```
-/// ### Sprite mode
-/// ```
-/// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
-/// #
-/// # fn setup(mut commands: Commands) {
-/// // Create a new cosmic bundle
-/// commands.spawn(CosmicEditBundle {
-///     sprite_bundle: SpriteBundle {
-///         sprite: Sprite {
-///             custom_size: Some(Vec2::new(300.0, 40.0)),
-///             ..default()
-///         },
-///         ..default()
-///     },
-///     ..default()
-/// });
-/// # }
-/// #
-/// # fn main() {
-/// #     App::new()
-/// #         .add_plugins(MinimalPlugins)
-/// #         .add_plugins(CosmicEditPlugin::default())
-/// #         .add_systems(Startup, setup);
-/// # }
-#[derive(Bundle)]
-pub struct CosmicEditBundle {
-    // cosmic bits
-    pub buffer: CosmicBuffer,
-    // render bits
-    pub fill_color: CosmicBackgroundColor,
-    pub cursor_color: CursorColor,
-    pub selection_color: SelectionColor,
-    pub default_attrs: DefaultAttrs,
-    pub background_image: CosmicBackgroundImage,
-    pub sprite_bundle: SpriteBundle,
-    // restriction bits
-    pub max_lines: MaxLines,
-    pub max_chars: MaxChars,
-    // layout bits
-    pub x_offset: XOffset,
-    pub mode: CosmicWrap,
-    pub text_position: CosmicTextAlign,
-    pub padding: CosmicPadding,
-    pub widget_size: CosmicWidgetSize,
-    pub hover_cursor: HoverCursor,
+/// Should [`CosmicEditBuffer`] respond to scroll events?
+#[derive(Component, Reflect, Default)]
+pub enum ScrollEnabled {
+    #[default]
+    Enabled,
+    Disabled,
 }
 
-impl Default for CosmicEditBundle {
-    fn default() -> Self {
-        CosmicEditBundle {
-            buffer: Default::default(),
-            fill_color: Default::default(),
-            cursor_color: CursorColor(Color::BLACK),
-            selection_color: SelectionColor(bevy::color::palettes::basic::GRAY.into()),
-            text_position: Default::default(),
-            default_attrs: Default::default(),
-            background_image: Default::default(),
-            max_lines: Default::default(),
-            max_chars: Default::default(),
-            mode: Default::default(),
-            sprite_bundle: SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::ONE * 128.0),
-                    ..default()
-                },
-                visibility: Visibility::Hidden,
-                ..default()
-            },
-            x_offset: Default::default(),
-            padding: Default::default(),
-            widget_size: Default::default(),
-            hover_cursor: Default::default(),
-        }
+impl ScrollEnabled {
+    pub fn should_scroll(&self) -> bool {
+        matches!(self, ScrollEnabled::Enabled)
     }
 }
 
 /// Holds the font system used internally by [`cosmic_text`]
+///
+/// Note: When bevy provides enough initialisation flexibility,
+/// this should be merged with its builtin resource
 #[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
 
 /// Wrapper component for an [`Editor`] with a few helpful values for cursor blinking
+///
+/// [`cosmic_text::Editor`] is basically a mutable version of [`cosmic_text::Buffer`].
+///
+/// This component should be on a focussed [`CosmicEditBuffer`]
+// Managed by crate::focus::add_editor_to_focussed and similar systems
 #[derive(Component, Deref, DerefMut)]
 pub struct CosmicEditor {
     #[deref]
@@ -246,7 +150,7 @@ impl CosmicEditor {
         Self {
             editor,
             cursor_visible: true,
-            cursor_timer: Timer::new(Duration::from_millis(530), TimerMode::Repeating),
+            cursor_timer: Timer::new(std::time::Duration::from_millis(530), TimerMode::Repeating),
         }
     }
 }
