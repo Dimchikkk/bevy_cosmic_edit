@@ -5,7 +5,7 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn((Camera2d, IsDefaultUiCamera, CosmicPrimaryCamera));
+    commands.spawn(Camera2d);
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
@@ -40,7 +40,6 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
-        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
         .run();

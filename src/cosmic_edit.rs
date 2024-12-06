@@ -10,7 +10,8 @@ pub(crate) fn plugin(app: &mut App) {
         .register_type::<CursorColor>()
         .register_type::<SelectionColor>()
         .register_type::<MaxLines>()
-        .register_type::<MaxChars>();
+        .register_type::<MaxChars>()
+        .register_type::<ScrollEnabled>();
 }
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
@@ -110,7 +111,7 @@ pub struct MaxLines(pub usize);
 pub struct MaxChars(pub usize);
 
 /// Should [`CosmicEditBuffer`] respond to scroll events?
-#[derive(Component, Default)]
+#[derive(Component, Reflect, Default)]
 pub enum ScrollEnabled {
     #[default]
     Enabled,

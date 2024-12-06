@@ -28,6 +28,8 @@ impl Plugin for CosmicEditPlugin {
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));
+
+        app.register_type::<CosmicRenderOutput>();
     }
 }
 
@@ -91,7 +93,7 @@ impl Default for CosmicFontConfig {
 }
 
 /// Used to ferry data from a [`CosmicEditBuffer`]
-#[derive(Component, Default, Debug, Deref)]
+#[derive(Component, Reflect, Default, Debug, Deref)]
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {

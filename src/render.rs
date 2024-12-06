@@ -76,6 +76,7 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
 }
 
 /// Renders to the [CosmicRenderOutput]
+#[allow(unused_mut)] // for .set_redraw(false) commented out
 fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
@@ -214,7 +215,9 @@ fn render_texture(
                 selected_text_color,
                 draw_closure,
             );
-            editor.set_redraw(false);
+            // TODO: Performance optimization, read all possible render-input
+            // changes and only redraw if necessary
+            // editor.set_redraw(false);
         } else {
             if !buffer.redraw() {
                 continue;
@@ -225,7 +228,9 @@ fn render_texture(
                 font_color,
                 draw_closure,
             );
-            buffer.set_redraw(false);
+            // TODO: Performance optimization, read all possible render-input
+            // changes and only redraw if necessary
+            // buffer.set_redraw(false);
         }
 
         if let Some(prev_image) = images.get_mut(&canvas.0) {
