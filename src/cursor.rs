@@ -85,7 +85,6 @@ pub(crate) fn change_cursor(
     }
 }
 
-
 pub(crate) fn hover_ui(
     interaction_query: Query<
         (&Interaction, &HoverCursor),
