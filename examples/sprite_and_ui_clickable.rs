@@ -10,6 +10,7 @@ fn setup(mut commands: Commands) {
 
     // Ui editor
     commands.spawn((
+        TextEdit,
         CosmicEditBuffer::default(),
         DefaultAttrs(AttrsOwned::new(
             Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
@@ -17,8 +18,6 @@ fn setup(mut commands: Commands) {
         MaxLines(1),
         CosmicWrap::InfiniteLine,
         CosmicTextAlign::Left { padding: 5 },
-        Button,
-        ImageNode::default(),
         Node {
             // Size and position of text box
             width: Val::Px(300.),

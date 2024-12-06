@@ -163,8 +163,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 lines,
                 attrs,
             ),
-            ImageNode::default(),
-            Button,
+            TextEdit,
             Node {
                 width: Val::Percent(50.),
                 height: Val::Percent(100.),

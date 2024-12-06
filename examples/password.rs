@@ -8,6 +8,7 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((
+        TextEdit2d,
         CosmicEditBuffer::default(),
         MaxLines(1),
         CosmicWrap::InfiniteLine,

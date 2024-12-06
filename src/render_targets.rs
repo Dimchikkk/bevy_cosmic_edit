@@ -13,7 +13,7 @@ use bevy::{
     winit::cursor::CursorIcon,
 };
 
-use crate::{prelude::*, HoverCursor, TextHoverIn, TextHoverOut};
+use crate::{prelude::*, primary::CameraFilter, HoverCursor, TextHoverIn, TextHoverOut};
 
 /// The top level UI text edit component
 ///
@@ -194,7 +194,7 @@ pub(crate) fn hover_sprites(
         (&mut Sprite, &Visibility, &GlobalTransform, &HoverCursor),
         With<CosmicEditBuffer>,
     >,
-    camera_q: crate::cursor::CameraQuery,
+    camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
     mut hovered: Local<bool>,
     mut last_hovered: Local<bool>,
     mut evw_hover_in: EventWriter<TextHoverIn>,

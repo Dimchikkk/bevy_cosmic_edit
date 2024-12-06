@@ -11,6 +11,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let bg_image_handle = asset_server.load("img/bevy_logo_light.png");
 
     commands.spawn((
+        TextEdit,
         CosmicEditBuffer::default(),
         DefaultAttrs(AttrsOwned::new(
             Attrs::new().color(bevy::color::palettes::basic::LIME.to_cosmic()),
@@ -24,8 +25,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             top: Val::Px(100.),
             ..default()
         },
-        ImageNode::default(),
-        Button,
     ));
 }
 

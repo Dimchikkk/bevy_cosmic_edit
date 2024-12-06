@@ -35,8 +35,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             SelectedTextColor(Color::WHITE),
         ),
         (
-            // rendering components
-            Button,
+            TextEdit,
             // the image mode is optional, but due to bevy 0.15 mechanics is required to
             // render the border within the `ImageNode`
             // See bevy issue https://github.com/bevyengine/bevy/issues/16643#issuecomment-2518163688

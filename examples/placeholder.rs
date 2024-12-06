@@ -20,6 +20,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
     commands.spawn((
+        TextEdit,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
             &mut font_system,
             vec![("", attrs)],
@@ -29,8 +30,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             "Placeholder",
             attrs.color(bevy::color::palettes::basic::GRAY.to_cosmic()),
         ),
-        ImageNode::default(),
-        Button,
         Node {
             width: Val::Percent(100.),
             height: Val::Percent(100.),

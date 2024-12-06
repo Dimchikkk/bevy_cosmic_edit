@@ -25,6 +25,7 @@ fn setup(
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
     commands.spawn((
+        TextEdit2d,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
             "😀😀😀 x => y",

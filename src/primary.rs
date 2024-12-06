@@ -63,6 +63,12 @@ impl Plugin for CosmicEditPlugin {
 #[derive(Component, Debug, Default)]
 pub struct CosmicPrimaryCamera;
 
+#[cfg(feature = "multicam")]
+pub(crate) type CameraFilter = With<CosmicPrimaryCamera>;
+
+#[cfg(not(feature = "multicam"))]
+pub(crate) type CameraFilter = ();
+
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
 pub struct CosmicFontConfig {

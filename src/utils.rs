@@ -1,5 +1,8 @@
 // Common functions for examples
-use crate::{cosmic_edit::ReadOnly, prelude::*, ChangedCosmicWidgetSize, CosmicWidgetSize};
+use crate::{
+    cosmic_edit::ReadOnly, prelude::*, primary::CameraFilter, ChangedCosmicWidgetSize,
+    CosmicWidgetSize,
+};
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;
 
@@ -32,7 +35,6 @@ pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<Fo
     }
 }
 
-
 /// System to allow focus on click for sprite widgets
 pub fn change_active_editor_sprite(
     mut commands: Commands,
@@ -42,7 +44,7 @@ pub fn change_active_editor_sprite(
         (&mut Sprite, &GlobalTransform, &Visibility, Entity),
         (With<CosmicEditBuffer>, Without<ReadOnly>),
     >,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
+    camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
 ) {
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();

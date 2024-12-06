@@ -5,7 +5,7 @@ use bevy_cosmic_edit::{
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, IsDefaultUiCamera, CosmicPrimaryCamera));
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
@@ -13,14 +13,13 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     // spawn editor
     commands.spawn((
+        TextEdit,
         ReadOnly,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
             "😀😀😀 x => y\nRead only widget",
             attrs,
         ),
-        Button,
-        ImageNode::default(),
         Node {
             width: Val::Percent(100.),
             height: Val::Percent(100.),
@@ -41,6 +40,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
+        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
         .run();

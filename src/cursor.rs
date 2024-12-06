@@ -85,13 +85,6 @@ pub(crate) fn change_cursor(
     }
 }
 
-// todo: have builtin multi-cam support using `bevy::picking`
-#[cfg(feature = "multicam")]
-pub(crate) type CameraQuery<'a, 'b, 'c, 'd> =
-    Query<'a, 'b, (&'c Camera, &'d GlobalTransform), With<CosmicPrimaryCamera>>;
-
-#[cfg(not(feature = "multicam"))]
-pub(crate) type CameraQuery<'a, 'b, 'c, 'd> = Query<'a, 'b, (&'c Camera, &'d GlobalTransform)>;
 
 pub(crate) fn hover_ui(
     interaction_query: Query<

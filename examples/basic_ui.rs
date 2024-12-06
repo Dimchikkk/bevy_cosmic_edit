@@ -7,6 +7,8 @@ use bevy_cosmic_edit::{
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = (
         Camera2d,
+        CosmicPrimaryCamera,
+        IsDefaultUiCamera,
         Camera {
             clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
@@ -20,16 +22,12 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let cosmic_edit = commands
         .spawn((
+            TextEdit,
             CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
                 &mut font_system,
                 vec![("Banana", attrs)],
                 attrs,
             ),
-            // `Button` adds `Interaction` which allows for
-            // focussing onto the editor
-            Button,
-            // `ImageNode` is required to render the editor
-            ImageNode::default(),
             Node {
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
@@ -52,6 +50,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
+        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(
             Update,

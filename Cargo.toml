@@ -55,3 +55,8 @@ web-sys = { version = "0.3.70", features = [
 
 [dev-dependencies]
 insta = "1.29.0"
+bevy_editor_pls = "0.11.0"
+
+[patch.crates-io]
+bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.git" }
+transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }
