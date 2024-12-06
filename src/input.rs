@@ -93,11 +93,8 @@ pub(crate) fn input_mouse(
     time: Res<Time>,
     evr_mouse_motion: EventReader<MouseMotion>,
 ) {
+    // handle click timer and click_count
     click_timer.0.tick(time.delta());
-
-    let Some(active_editor_entity) = active_editor.0 else {
-        return;
-    };
 
     if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
         *click_count = 0;
@@ -112,6 +109,11 @@ pub(crate) fn input_mouse(
         *click_count = 0;
     }
 
+    // unwrap resources
+    let Some(active_editor_entity) = active_editor.0 else {
+        return;
+    };
+
     let Ok(primary_window) = windows.get_single() else {
         return;
     };
@@ -121,7 +123,7 @@ pub(crate) fn input_mouse(
         return;
     };
 
-    // TODO // generalize this over UI and sprite
+    // TODO: generalize this over UI and sprite
     if let Ok((mut editor, transform, text_position, x_offset, scroll_disabled, target_size)) =
         editor_q.get_mut(active_editor_entity)
     {
@@ -156,7 +158,8 @@ pub(crate) fn input_mouse(
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
         };
-        let point = |node_cursor_pos: Vec2| {
+        // Converts a node-relative space coordinate to a screen space physical coord
+        let screen_physical = |node_cursor_pos: Vec2| {
             (
                 (node_cursor_pos.x * scale_factor) as i32 - padding_x,
                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
@@ -167,7 +170,7 @@ pub(crate) fn input_mouse(
             editor.cursor_visible = true;
             editor.cursor_timer.reset();
 
-            if let Some(node_cursor_pos) = get_node_cursor_pos(
+            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
@@ -175,7 +178,7 @@ pub(crate) fn input_mouse(
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = point(node_cursor_pos);
+                let (mut x, y) = screen_physical(node_cursor_pos);
                 x += x_offset.left as i32;
                 if shift {
                     editor.action(&mut font_system.0, Action::Drag { x, y });
@@ -207,7 +210,7 @@ pub(crate) fn input_mouse(
         }
 
         if buttons.pressed(MouseButton::Left) && *click_count == 0 {
-            if let Some(node_cursor_pos) = get_node_cursor_pos(
+            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
                 primary_window,
                 transform,
                 Vec2::new(width, height),
@@ -215,7 +218,7 @@ pub(crate) fn input_mouse(
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = point(node_cursor_pos);
+                let (mut x, y) = screen_physical(node_cursor_pos);
                 x += x_offset.left as i32;
                 if active_editor.is_changed() && !shift {
                     editor.action(&mut font_system.0, Action::Click { x, y });

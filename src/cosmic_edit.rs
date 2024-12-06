@@ -44,8 +44,15 @@ pub struct ReadOnly; // tag component
 /// Internal value used to decide what section of a [`Buffer`] to render
 #[derive(Component, Reflect, Debug, Default)]
 pub(crate) struct XOffset {
+    /// How much space in logical units from the left of the [`Buffer`]
+    /// to start rendering text.
     pub left: f32,
-    pub width: f32,
+
+    /// Width of buffer that includes text that should be rendered,
+    /// in logical units.
+    ///
+    /// Should only be [None] if in default state
+    pub width: Option<f32>,
 }
 
 /// Default text attributes to be used on a [`CosmicEditBuffer`]

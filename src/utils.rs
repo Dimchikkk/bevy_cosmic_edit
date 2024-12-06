@@ -1,7 +1,5 @@
 // Common functions for examples
-use crate::{
-    cosmic_edit::ReadOnly, prelude::*, ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType,
-};
+use crate::{cosmic_edit::ReadOnly, prelude::*, ChangedCosmicWidgetSize, CosmicWidgetSize};
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;
 
@@ -34,50 +32,6 @@ pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<Fo
     }
 }
 
-/// Function to find the location of the mouse cursor in a cosmic widget
-// TODO: Change this to use builtin `bevy::picking` instead
-pub(crate) fn get_node_cursor_pos(
-    window: &Window,
-    node_transform: &GlobalTransform,
-    size: Vec2,
-    source_type: SourceType,
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-) -> Option<Vec2> {
-    let node_translation = node_transform.affine().translation;
-    let node_bounds = Rect::new(
-        node_translation.x - size.x / 2.,
-        node_translation.y - size.y / 2.,
-        node_translation.x + size.x / 2.,
-        node_translation.y + size.y / 2.,
-    );
-
-    window.cursor_position().and_then(|pos| match source_type {
-        SourceType::Ui => {
-            if node_bounds.contains(pos) {
-                Some(Vec2::new(
-                    pos.x - node_bounds.min.x,
-                    pos.y - node_bounds.min.y,
-                ))
-            } else {
-                None
-            }
-        }
-        SourceType::Sprite => camera
-            .viewport_to_world_2d(camera_transform, pos)
-            .ok()
-            .and_then(|pos| {
-                if node_bounds.contains(pos) {
-                    Some(Vec2::new(
-                        pos.x - node_bounds.min.x,
-                        node_bounds.max.y - pos.y,
-                    ))
-                } else {
-                    None
-                }
-            }),
-    })
-}
 
 /// System to allow focus on click for sprite widgets
 pub fn change_active_editor_sprite(

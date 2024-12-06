@@ -278,25 +278,30 @@ pub(crate) fn update_internal_target_handles(
 
 // TODO put this on impl CosmicBuffer
 
-pub(crate) fn get_text_size(buffer: &Buffer) -> (f32, f32) {
+/// Returns in physical pixels
+pub(crate) fn get_text_size(buffer: &Buffer) -> Vec2 {
     if buffer.layout_runs().count() == 0 {
-        return (0., buffer.metrics().line_height);
+        return Vec2::new(0., buffer.metrics().line_height);
     }
+    // get max width
     let width = buffer
         .layout_runs()
         .map(|run| run.line_w)
         .reduce(f32::max)
         .unwrap();
+    // get total height
     let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    (width, height)
+    Vec2::new(width, height)
 }
 
+/// Returns in physical pixels
 pub(crate) fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
-    let (_, text_height) = get_text_size(buffer);
+    let text_height = get_text_size(buffer).y;
     ((widget_height - text_height) / 2.0) as i32
 }
 
+/// Returns in physical pixels
 pub(crate) fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
-    let (text_width, _) = get_text_size(buffer);
+    let text_width = get_text_size(buffer).x;
     ((widget_width - text_width) / 2.0) as i32
 }

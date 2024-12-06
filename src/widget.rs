@@ -169,18 +169,24 @@ fn set_x_offset(
         let mut cursor_x = 0.;
         let cursor = editor.cursor();
 
+        // counts the width of the glyphs up to the cursor in `cursor_x`
         if let Some(line) = editor.with_buffer(|b| b.clone()).layout_runs().next() {
             for (idx, glyph) in line.glyphs.iter().enumerate() {
-                if cursor.affinity == Affinity::Before {
-                    if idx <= cursor.index {
-                        cursor_x += glyph.w;
-                    } else {
-                        break;
+                match cursor.affinity {
+                    Affinity::Before => {
+                        if idx <= cursor.index {
+                            cursor_x += glyph.w;
+                        } else {
+                            break;
+                        }
                     }
-                } else if idx < cursor.index {
-                    cursor_x += glyph.w;
-                } else {
-                    break;
+                    Affinity::After => {
+                        if idx < cursor.index {
+                            cursor_x += glyph.w;
+                        } else {
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -191,11 +197,11 @@ fn set_x_offset(
             CosmicTextAlign::Left { padding } => *padding as f32,
         };
 
-        if x_offset.width == 0. {
-            x_offset.width = size.x - padding_x * 2.;
+        if x_offset.width.is_none() {
+            x_offset.width = Some(size.x - padding_x * 2.);
         }
 
-        let right = x_offset.width + x_offset.left;
+        let right = x_offset.width.unwrap() + x_offset.left;
 
         if cursor_x > right {
             let diff = cursor_x - right;
