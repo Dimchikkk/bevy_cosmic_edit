@@ -1,8 +1,6 @@
-use crate::widget::CosmicPadding;
 use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
 use crate::{cosmic_edit::*, CosmicWidgetSize};
 use bevy::render::render_resource::Extent3d;
-use cosmic_text::Align;
 use cosmic_text::{Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 
@@ -90,10 +88,9 @@ fn render_texture(
         Option<&SelectedTextColor>,
         &CosmicRenderOutput,
         CosmicWidgetSize,
-        &CosmicPadding,
-        &XOffset,
         Option<&ReadOnly>,
         &CosmicTextAlign,
+        &CosmicWrap,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut images: ResMut<Assets<Image>>,
@@ -110,18 +107,17 @@ fn render_texture(
         selected_text_color_option,
         canvas,
         size,
-        padding,
-        x_offset,
         readonly_opt,
-        position,
+        text_align,
+        wrap,
     ) in query.iter_mut()
     {
-        let Ok(size) = size.logical_size() else {
+        let Ok(render_target_size) = size.logical_size() else {
             continue;
         };
 
         // avoids a panic
-        if size.x == 0. || size.y == 0. {
+        if render_target_size.x == 0. || render_target_size.y == 0. {
             debug!(
                 message = "Size of buffer is zero, skipping",
                 // once = "This log only appears once"
@@ -130,14 +126,14 @@ fn render_texture(
         }
 
         // Draw background
-        let mut pixels = vec![0; size.x as usize * size.y as usize * 4];
+        let mut pixels = vec![0; render_target_size.x as usize * render_target_size.y as usize * 4];
         if let Some(bg_image) = background_image.0.clone() {
             if let Some(image) = images.get(&bg_image) {
                 let mut dynamic_image = image.clone().try_into_dynamic().unwrap();
-                if image.size() != size.as_uvec2() {
+                if image.size() != render_target_size.as_uvec2() {
                     dynamic_image = dynamic_image.resize_to_fill(
-                        size.x as u32,
-                        size.y as u32,
+                        render_target_size.x as u32,
+                        render_target_size.y as u32,
                         FilterType::Triangle,
                     );
                 }
@@ -165,23 +161,46 @@ fn render_texture(
             .color_opt
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
-        let min_pad = match position {
-            CosmicTextAlign::Center { padding } => *padding as f32,
-            CosmicTextAlign::TopLeft { padding } => *padding as f32,
-            CosmicTextAlign::Left { padding } => *padding as f32,
-        };
+        // compute alignment and y-offset
+        // TODO: Compute aligment stuff for size
+        let buffer_height = buffer.height();
+        let render_target_height = render_target_size.y;
+
+        let top_padding = match text_align.vertical {
+            VerticalAlign::Top => 0.0,
+            VerticalAlign::Bottom => render_target_height - buffer_height,
+            VerticalAlign::Center => (render_target_height - buffer_height) / 2.0,
+        } as i32;
 
         let draw_closure = |x, y, w, h, color| {
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     draw_pixel(
                         &mut pixels,
-                        size.x as i32,
-                        size.y as i32,
+                        render_target_size.x as i32,
+                        render_target_size.y as i32,
                         x + col, // + padding.x.max(min_pad) as i32 - x_offset.left as i32,
-                        y + row, // + padding.y as i32,
+                        y + row + top_padding,
                         color,
                     );
+                }
+            }
+        };
+
+        let mut update_buffer_size = |buffer: &mut Buffer| {
+            buffer.set_size(
+                &mut font_system.0,
+                Some(match wrap {
+                    CosmicWrap::Wrap => render_target_size.x,
+                    CosmicWrap::InfiniteLine => f32::MAX,
+                }),
+                Some(render_target_size.y),
+            );
+        };
+        let mut update_buffer_horizontal_alignment = |buffer: &mut Buffer| {
+            if let Some(alignment) = text_align.horizontal {
+                for line in &mut buffer.lines {
+                    line.set_align(Some(alignment.into()));
                 }
             }
         };
@@ -207,16 +226,10 @@ fn render_texture(
                 .map(|selected_text_color| selected_text_color.0.to_cosmic())
                 .unwrap_or(font_color);
 
-            editor.with_buffer_mut(|buffer| {
-                buffer.set_size(&mut font_system.0, Some(size.x), Some(size.y));
-                for line in &mut buffer.lines {
-                    line.set_align(Some(Align::Center));
-                }
-            });
+            editor.with_buffer_mut(update_buffer_size);
+            editor.with_buffer_mut(update_buffer_horizontal_alignment);
 
-            // Is there a better method here?
-            // When implementing scrolling this may become important
-            buffer.shape_until_scroll(&mut font_system.0, false);
+            editor.with_buffer_mut(|buffer| buffer.shape_until_scroll(&mut font_system.0, false));
 
             editor.draw(
                 &mut font_system.0,
@@ -227,7 +240,7 @@ fn render_texture(
                 selected_text_color,
                 draw_closure,
             );
-            
+
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
             // editor.set_redraw(false);
@@ -236,13 +249,9 @@ fn render_texture(
             //     continue;
             // }
 
-            buffer.set_size(&mut font_system.0, Some(size.x), Some(size.y));
-            for line in &mut buffer.lines {
-                line.set_align(Some(Align::Center));
-            }
+            update_buffer_size(&mut buffer);
+            update_buffer_horizontal_alignment(&mut buffer);
 
-            // Is there a better method here?
-            // When implementing scrolling this may become important
             buffer.shape_until_scroll(&mut font_system.0, false);
 
             buffer.draw(
@@ -261,8 +270,8 @@ fn render_texture(
             // Updates the stored asset image with the computed pixels
             prev_image.data.extend_from_slice(pixels.as_slice());
             prev_image.resize(Extent3d {
-                width: size.x as u32,
-                height: size.y as u32,
+                width: render_target_size.x as u32,
+                height: render_target_size.y as u32,
                 depth_or_array_layers: 1,
             });
         }

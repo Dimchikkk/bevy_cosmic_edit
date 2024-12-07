@@ -1,9 +1,6 @@
 use crate::{
-    cosmic_edit::{ScrollEnabled, XOffset},
-    prelude::*,
-    widget::CosmicPadding,
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
-    HoverCursor, MaxChars, MaxLines, SelectionColor,
+    prelude::*, CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap,
+    CursorColor, HoverCursor, MaxChars, MaxLines, SelectionColor,
 };
 use bevy::{
     ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
@@ -31,18 +28,12 @@ impl Plugin for BufferPlugin {
 
 pub trait BufferExtras {
     fn get_text(&self) -> String;
+
+    fn height(&self) -> f32;
 }
 
 impl BufferExtras for Buffer {
     /// Retrieves the text content from a buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * none, takes the rust magic ref to self
-    ///
-    /// # Returns
-    ///input
-    /// A [`String`] containing the cosmic text content.
     fn get_text(&self) -> String {
         let mut text = String::new();
         let line_count = self.lines.len();
@@ -56,6 +47,13 @@ impl BufferExtras for Buffer {
         }
 
         text
+    }
+
+    /// Height that buffer text would take up if rendered
+    ///
+    /// Used for [`VerticalAlign`](crate::VerticalAlign)
+    fn height(&self) -> f32 {
+        self.metrics().line_height * self.lines.len() as f32
     }
 }
 
@@ -71,10 +69,8 @@ impl BufferExtras for Buffer {
     CosmicRenderOutput,
     MaxLines,
     MaxChars,
-    XOffset,
     CosmicWrap,
     CosmicTextAlign,
-    CosmicPadding,
     HoverCursor,
     crate::input::InputState
 )]
@@ -274,34 +270,4 @@ pub(crate) fn update_internal_target_handles(
     for (output_data, mut output_components) in buffers_q.iter_mut() {
         output_components.write_image_data(&output_data.0);
     }
-}
-
-// TODO put this on impl CosmicBuffer
-
-/// Returns in physical pixels
-pub(crate) fn get_text_size(buffer: &Buffer) -> Vec2 {
-    if buffer.layout_runs().count() == 0 {
-        return Vec2::new(0., buffer.metrics().line_height);
-    }
-    // get max width
-    let width = buffer
-        .layout_runs()
-        .map(|run| run.line_w)
-        .reduce(f32::max)
-        .unwrap();
-    // get total height
-    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    Vec2::new(width, height)
-}
-
-/// Returns in physical pixels
-pub(crate) fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
-    let text_height = get_text_size(buffer).y;
-    ((widget_height - text_height) / 2.0) as i32
-}
-
-/// Returns in physical pixels
-pub(crate) fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
-    let text_width = get_text_size(buffer).x;
-    ((widget_width - text_width) / 2.0) as i32
 }

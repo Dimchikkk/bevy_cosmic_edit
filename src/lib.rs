@@ -86,11 +86,7 @@ mod primary;
 
 pub use buffer::CosmicEditBuffer;
 mod buffer;
-pub use cosmic_edit::{
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
-    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollEnabled,
-    SelectedTextColor, SelectionColor,
-};
+pub use cosmic_edit::*;
 mod cosmic_edit;
 pub use cursor::{CursorPluginDisabled, HoverCursor, TextHoverIn, TextHoverOut};
 mod cursor;
