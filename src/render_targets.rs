@@ -121,7 +121,16 @@ impl NodeSizeExt for ComputedNode {
 }
 
 impl CosmicWidgetSizeItem<'_> {
+    /// Automatically logs any errors
     pub fn logical_size(&self) -> Result<Vec2> {
+        let ret = self._logical_size();
+        if let Err(err) = &ret {
+            debug!(message = "Finding the size of a widget failed", ?err);
+        }
+        ret
+    }
+    
+    fn _logical_size(&self) -> Result<Vec2> {
         let source_type = self.scan.scan()?;
         match source_type {
             SourceType::Ui => {

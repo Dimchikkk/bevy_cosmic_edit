@@ -66,5 +66,9 @@ bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.
 transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }
 
 [[example]]
-name = "bevy_editor_pls"
+name = "basic_ui_editor"
+required-features = ["multicam"]
+
+[[example]]
+name = "multiple_sprites_editor"
 required-features = ["multicam"]

@@ -188,9 +188,9 @@ fn render_texture(
 
         // Draw glyphs
         if let Some(mut editor) = editor {
-            if !editor.redraw() {
-                continue;
-            }
+            // if !editor.redraw() {
+            //     continue;
+            // }
 
             let cursor_color = cursor_color.0;
             let cursor_opacity = if editor.cursor_visible && readonly_opt.is_none() {
@@ -227,9 +227,9 @@ fn render_texture(
             // changes and only redraw if necessary
             // editor.set_redraw(false);
         } else {
-            if !buffer.redraw() {
-                continue;
-            }
+            // if !buffer.redraw() {
+            //     continue;
+            // }
 
             buffer.set_size(&mut font_system.0, Some(size.x), Some(size.y));
             for line in &mut buffer.lines {
