@@ -30,6 +30,12 @@ pub trait BufferExtras {
     fn get_text(&self) -> String;
 
     fn height(&self) -> f32;
+
+    fn width(&self) -> f32;
+
+    fn logical_size(&self) -> Vec2 {
+        Vec2::new(self.width(), self.height())
+    }
 }
 
 impl BufferExtras for Buffer {
@@ -53,7 +59,16 @@ impl BufferExtras for Buffer {
     ///
     /// Used for [`VerticalAlign`](crate::VerticalAlign)
     fn height(&self) -> f32 {
-        self.metrics().line_height * self.lines.len() as f32
+        // TODO: which implementation is correct?
+        self.metrics().line_height * self.layout_runs().count() as f32
+        // self.layout_runs().map(|line| line.line_height).sum()
+    }
+
+    fn width(&self) -> f32 {
+        self.layout_runs()
+            .map(|line| line.line_w)
+            .reduce(f32::max)
+            .unwrap_or(0.0)
     }
 }
 

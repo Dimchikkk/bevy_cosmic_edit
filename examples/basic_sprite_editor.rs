@@ -2,6 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
     prelude::*,
+    CosmicBackgroundColor,
 };
 
 fn setup(
@@ -29,15 +30,19 @@ fn setup(
         TextEdit2d,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
-            "😀😀😀 x => y",
+            &"😀😀😀 x => y 1234576890\n".repeat(15),
             attrs,
         ),
         Sprite {
             // You must specify custom size
             // so the editor knows what size images to render to the sprite
-            custom_size: Some(Vec2::new(primary_window.width(), primary_window.height())),
+            custom_size: Some(Vec2::new(
+                primary_window.width() / 4.,
+                primary_window.height() / 4.,
+            )),
             ..default()
         },
+        CosmicBackgroundColor(bevy::color::palettes::css::MEDIUM_VIOLET_RED.into()),
         Name::new("Main Editor"),
     );
 

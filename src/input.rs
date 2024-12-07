@@ -4,6 +4,8 @@ use crate::{
     cosmic_edit::{MaxChars, MaxLines, ReadOnly, ScrollEnabled},
     events::CosmicTextChanged,
     prelude::*,
+    render::WidgetBufferCoordTransformation,
+    CosmicTextAlign, CosmicWidgetSize,
 };
 use bevy::{
     ecs::{component::ComponentId, world::DeferredWorld},
@@ -92,11 +94,26 @@ fn add_event_handlers(
 
 fn handle_click(
     mut trigger: Trigger<Pointer<Click>>,
-    mut editor: Query<(&mut InputState, &GlobalTransform), With<CosmicEditBuffer>>,
+    mut editor: Query<(
+        &mut InputState,
+        &mut CosmicEditor,
+        &GlobalTransform,
+        &CosmicTextAlign,
+        CosmicWidgetSize,
+    )>,
+    mut font_system: ResMut<CosmicFontSystem>,
 ) {
+    trigger.propagate(false);
     let target = trigger.target;
-    let (input_state, global_transform) = editor.get_mut(target).unwrap();
+    let (input_state, mut editor, global_transform, text_align, size) =
+        editor.get_mut(target).unwrap();
     let click = &trigger.event().event;
+
+    if click.hit.normal != Some(Vec3::Z) {
+        warn!(?click, "Normal is not out of screen, skipping");
+        return;
+    }
+
     let Some(world_position) = click.hit.position else {
         return;
     };
@@ -104,13 +121,36 @@ fn handle_click(
     let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
     let relative_position = position_transform.reparented_to(global_transform);
 
-    debug!(?relative_position, ?world_position);
+    let Ok(render_target_size) = size.logical_size() else {
+        return;
+    };
+    let buffer_height = editor.with_buffer(|b| b.height());
+    let transformation = WidgetBufferCoordTransformation::new(
+        text_align.vertical,
+        render_target_size.y,
+        buffer_height,
+    );
+    // .xy swizzle depends on normal vector being perfectly out of screen
+    let buffer_coord = transformation.widget_to_buffer(relative_position.translation.xy());
+    let buffer_coord =
+        buffer_coord + editor.with_buffer(|b| b.logical_size()) / 2.0 * Vec2::new(1., 1.);
+    let Some(cursor_hit) = editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
+    else {
+        return;
+    };
+    debug!(?cursor_hit, ?buffer_coord);
 
-    trigger.propagate(false);
+    editor.action(
+        &mut font_system.0,
+        Action::Click {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        },
+    );
 }
 
 fn handle_drag(trigger: Trigger<Pointer<Drag>>) {
-    debug!(?trigger, "drag");
+    // debug!(?trigger, "drag");
 }
 
 // let (padding_x, padding_y) = match text_position {

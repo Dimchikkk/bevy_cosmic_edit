@@ -104,6 +104,5 @@ mod render;
 pub use user_select::UserSelectNone;
 mod user_select;
 pub mod utils;
-mod widget;
 pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize};
 pub mod render_targets;

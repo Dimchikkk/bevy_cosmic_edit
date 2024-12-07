@@ -17,7 +17,6 @@ impl Plugin for CosmicEditPlugin {
             crate::cosmic_edit::plugin,
             crate::buffer::BufferPlugin,
             crate::render::RenderPlugin,
-            crate::widget::WidgetPlugin,
             crate::input::InputPlugin,
             crate::focus::FocusPlugin,
             crate::cursor::CursorPlugin,

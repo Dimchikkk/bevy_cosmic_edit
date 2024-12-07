@@ -1,5 +1,7 @@
-use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
+use crate::{cosmic_edit::ReadOnly, prelude::*};
 use crate::{cosmic_edit::*, CosmicWidgetSize};
+use bevy::ecs::query::QueryData;
+use bevy::ecs::system::SystemParam;
 use bevy::render::render_resource::Extent3d;
 use cosmic_text::{Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
@@ -17,10 +19,8 @@ impl Plugin for RenderPlugin {
         } else {
             debug!("Skipping inserting `SwashCache` resource");
         }
-        app.add_systems(Update, blink_cursor).add_systems(
-            PostUpdate,
-            (render_texture,).in_set(RenderSet).after(WidgetSet),
-        );
+        app.add_systems(Update, blink_cursor)
+            .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
     }
 }
 
@@ -74,8 +74,39 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
     buffer[offset + 3] = (out.alpha * 255.0) as u8;
 }
 
+pub(crate) struct WidgetBufferCoordTransformation {
+    /// Padding between the top of the render target and the
+    /// top of the buffer
+    top_padding: f32,
+}
+
+impl WidgetBufferCoordTransformation {
+    pub fn new(
+        vertical_align: VerticalAlign,
+        render_target_height: f32,
+        buffer_height: f32,
+    ) -> Self {
+        let top_padding = match vertical_align {
+            VerticalAlign::Top => 0.0,
+            VerticalAlign::Bottom => (render_target_height - buffer_height).max(0.0),
+            VerticalAlign::Center => ((render_target_height - buffer_height) / 2.0).max(0.0),
+        };
+        // debug!(?top_padding, ?render_target_height, ?buffer_height);
+        Self { top_padding }
+    }
+
+    /// If you have the buffer coord, e.g. buffer is rendering
+    pub fn buffer_to_widget(&self, buffer: Vec2) -> Vec2 {
+        Vec2::new(buffer.x, buffer.y + self.top_padding)
+    }
+
+    /// Ifyou have the relative widget coord, e.g. mouse input
+    pub fn widget_to_buffer(&self, widget: Vec2) -> Vec2 {
+        Vec2::new(widget.x, widget.y - self.top_padding)
+    }
+}
+
 /// Renders to the [CosmicRenderOutput]
-#[allow(unused_mut)] // for .set_redraw(false) commented out
 fn render_texture(
     mut query: Query<(
         Option<&mut CosmicEditor>,
@@ -162,25 +193,27 @@ fn render_texture(
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         // compute alignment and y-offset
-        // TODO: Compute aligment stuff for size
         let buffer_height = buffer.height();
         let render_target_height = render_target_size.y;
-
-        let top_padding = match text_align.vertical {
-            VerticalAlign::Top => 0.0,
-            VerticalAlign::Bottom => render_target_height - buffer_height,
-            VerticalAlign::Center => (render_target_height - buffer_height) / 2.0,
-        } as i32;
+        let transformation = WidgetBufferCoordTransformation::new(
+            text_align.vertical,
+            render_target_height,
+            buffer_height,
+        );
 
         let draw_closure = |x, y, w, h, color| {
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
+                    let buffer_coord = IVec2::new(x + col, y + row);
+                    let widget_coord = transformation
+                        .buffer_to_widget(buffer_coord.as_vec2())
+                        .as_ivec2();
                     draw_pixel(
                         &mut pixels,
                         render_target_size.x as i32,
                         render_target_size.y as i32,
-                        x + col, // + padding.x.max(min_pad) as i32 - x_offset.left as i32,
-                        y + row + top_padding,
+                        widget_coord.x,
+                        widget_coord.y,
                         color,
                     );
                 }
@@ -197,7 +230,7 @@ fn render_texture(
                 Some(render_target_size.y),
             );
         };
-        let mut update_buffer_horizontal_alignment = |buffer: &mut Buffer| {
+        let update_buffer_horizontal_alignment = |buffer: &mut Buffer| {
             if let Some(alignment) = text_align.horizontal {
                 for line in &mut buffer.lines {
                     line.set_align(Some(alignment.into()));
@@ -207,9 +240,11 @@ fn render_texture(
 
         // Draw glyphs
         if let Some(mut editor) = editor {
-            // if !editor.redraw() {
-            //     continue;
-            // }
+            // todo: optimizations (see below comments)
+            editor.set_redraw(true);
+            if !editor.redraw() {
+                continue;
+            }
 
             let cursor_color = cursor_color.0;
             let cursor_opacity = if editor.cursor_visible && readonly_opt.is_none() {
@@ -245,9 +280,11 @@ fn render_texture(
             // changes and only redraw if necessary
             // editor.set_redraw(false);
         } else {
-            // if !buffer.redraw() {
-            //     continue;
-            // }
+            // todo: performance optimizations (see comments above/below)
+            buffer.set_redraw(true);
+            if !buffer.redraw() {
+                continue;
+            }
 
             update_buffer_size(&mut buffer);
             update_buffer_horizontal_alignment(&mut buffer);
@@ -260,6 +297,7 @@ fn render_texture(
                 font_color,
                 draw_closure,
             );
+
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
             // buffer.set_redraw(false);
