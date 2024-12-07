@@ -172,7 +172,6 @@ fn render_texture(
         };
 
         let draw_closure = |x, y, w, h, color| {
-            trace!("Drawing");
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     draw_pixel(
@@ -215,6 +214,10 @@ fn render_texture(
                 }
             });
 
+            // Is there a better method here?
+            // When implementing scrolling this may become important
+            buffer.shape_until_scroll(&mut font_system.0, false);
+
             editor.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.0,
@@ -224,6 +227,7 @@ fn render_texture(
                 selected_text_color,
                 draw_closure,
             );
+            
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
             // editor.set_redraw(false);
