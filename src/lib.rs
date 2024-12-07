@@ -56,7 +56,7 @@ pub mod prelude {
     pub(crate) use cosmic_text::Buffer;
 
     // internal re-exports
-    pub(crate) use crate::buffer::BufferExtras as _;
+    pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
     pub(crate) use crate::cosmic_text;
     pub(crate) use crate::primary::CosmicRenderOutput;
     pub(crate) use crate::utils::*;

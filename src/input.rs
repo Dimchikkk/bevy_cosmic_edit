@@ -119,26 +119,25 @@ fn handle_click(
     };
 
     let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
-    let relative_position = position_transform.reparented_to(global_transform);
+    let relative_transform = position_transform.reparented_to(global_transform);
+    let relative_position = relative_transform.translation.xy();
 
     let Ok(render_target_size) = size.logical_size() else {
         return;
     };
-    let buffer_height = editor.with_buffer(|b| b.height());
-    let transformation = WidgetBufferCoordTransformation::new(
-        text_align.vertical,
-        render_target_size.y,
-        buffer_height,
-    );
+    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(&mut font_system.0).logical_size());
+    let transformation =
+        WidgetBufferCoordTransformation::new(text_align.vertical, render_target_size, buffer_size);
     // .xy swizzle depends on normal vector being perfectly out of screen
-    let buffer_coord = transformation.widget_to_buffer(relative_position.translation.xy());
-    let buffer_coord =
-        buffer_coord + editor.with_buffer(|b| b.logical_size()) / 2.0 * Vec2::new(1., 1.);
+    let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
+    let buffer_coord = buffer_coord * Vec2::new(1., 1.);
     let Some(cursor_hit) = editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
     else {
         return;
     };
-    debug!(?cursor_hit, ?buffer_coord);
+
+    // transformation.debug_top_padding();
+    // debug!(?cursor_hit, ?buffer_coord, ?relative_position);
 
     editor.action(
         &mut font_system.0,

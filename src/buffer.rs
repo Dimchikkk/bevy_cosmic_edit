@@ -6,7 +6,9 @@ use bevy::{
     ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
     window::PrimaryWindow,
 };
-use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
+use cosmic_text::{
+    Attrs, AttrsOwned, BorrowedWithFontSystem, Buffer, Edit, FontSystem, Metrics, Shaping,
+};
 
 pub(crate) struct BufferPlugin;
 
@@ -26,19 +28,23 @@ impl Plugin for BufferPlugin {
     }
 }
 
-pub trait BufferExtras {
+pub trait BufferRefExtras {
     fn get_text(&self) -> String;
+}
 
-    fn height(&self) -> f32;
+pub trait BufferMutExtras {
+    fn compute(&mut self);
 
-    fn width(&self) -> f32;
+    fn height(&mut self) -> f32;
 
-    fn logical_size(&self) -> Vec2 {
+    fn width(&mut self) -> f32;
+
+    fn logical_size(&mut self) -> Vec2 {
         Vec2::new(self.width(), self.height())
     }
 }
 
-impl BufferExtras for Buffer {
+impl BufferRefExtras for Buffer {
     /// Retrieves the text content from a buffer.
     fn get_text(&self) -> String {
         let mut text = String::new();
@@ -54,21 +60,28 @@ impl BufferExtras for Buffer {
 
         text
     }
+}
 
+impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
     /// Height that buffer text would take up if rendered
     ///
     /// Used for [`VerticalAlign`](crate::VerticalAlign)
-    fn height(&self) -> f32 {
+    fn height(&mut self) -> f32 {
+        self.compute();
         // TODO: which implementation is correct?
         self.metrics().line_height * self.layout_runs().count() as f32
         // self.layout_runs().map(|line| line.line_height).sum()
     }
 
-    fn width(&self) -> f32 {
+    fn width(&mut self) -> f32 {
         self.layout_runs()
             .map(|line| line.line_w)
             .reduce(f32::max)
             .unwrap_or(0.0)
+    }
+
+    fn compute(&mut self) {
+        self.shape_until_scroll(false);
     }
 }
 

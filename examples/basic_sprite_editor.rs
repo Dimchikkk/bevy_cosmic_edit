@@ -38,7 +38,7 @@ fn setup(
             // so the editor knows what size images to render to the sprite
             custom_size: Some(Vec2::new(
                 primary_window.width() / 4.,
-                primary_window.height() / 4.,
+                primary_window.height() / 2.,
             )),
             ..default()
         },

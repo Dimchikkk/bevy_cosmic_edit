@@ -1,9 +1,7 @@
 use crate::{cosmic_edit::ReadOnly, prelude::*};
 use crate::{cosmic_edit::*, CosmicWidgetSize};
-use bevy::ecs::query::QueryData;
-use bevy::ecs::system::SystemParam;
 use bevy::render::render_resource::Extent3d;
-use cosmic_text::{Color, Edit};
+use cosmic_text::{BorrowedWithFontSystem, Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 
 /// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
@@ -78,31 +76,42 @@ pub(crate) struct WidgetBufferCoordTransformation {
     /// Padding between the top of the render target and the
     /// top of the buffer
     top_padding: f32,
+
+    render_target_size: Vec2,
 }
 
 impl WidgetBufferCoordTransformation {
-    pub fn new(
-        vertical_align: VerticalAlign,
-        render_target_height: f32,
-        buffer_height: f32,
-    ) -> Self {
+    pub fn new(vertical_align: VerticalAlign, render_target_size: Vec2, buffer_size: Vec2) -> Self {
         let top_padding = match vertical_align {
             VerticalAlign::Top => 0.0,
-            VerticalAlign::Bottom => (render_target_height - buffer_height).max(0.0),
-            VerticalAlign::Center => ((render_target_height - buffer_height) / 2.0).max(0.0),
+            VerticalAlign::Bottom => (render_target_size.y - buffer_size.y).max(0.0),
+            VerticalAlign::Center => ((render_target_size.y - buffer_size.y) / 2.0).max(0.0),
         };
         // debug!(?top_padding, ?render_target_height, ?buffer_height);
-        Self { top_padding }
+        Self {
+            top_padding,
+            render_target_size,
+        }
     }
 
-    /// If you have the buffer coord, e.g. buffer is rendering
+    /// If you have the buffer coord, used for rendering
+    // Confusing ngl, but it works
     pub fn buffer_to_widget(&self, buffer: Vec2) -> Vec2 {
         Vec2::new(buffer.x, buffer.y + self.top_padding)
     }
 
-    /// Ifyou have the relative widget coord, e.g. mouse input
-    pub fn widget_to_buffer(&self, widget: Vec2) -> Vec2 {
-        Vec2::new(widget.x, widget.y - self.top_padding)
+    /// If you have the relative widget coord centered (0, 0) in the middle of the widget,
+    /// returns the buffer coord starting (0, 0) top left and working downward
+    pub fn widget_origined_to_buffer_topleft(&self, widget: Vec2) -> Vec2 {
+        Vec2::new(
+            widget.x + self.render_target_size.x / 2.,
+            -widget.y + self.render_target_size.y / 2. - self.top_padding,
+        )
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn debug_top_padding(&self) {
+        debug!(?self.top_padding);
     }
 }
 
@@ -143,6 +152,7 @@ fn render_texture(
         wrap,
     ) in query.iter_mut()
     {
+        let font_system = &mut font_system.0;
         let Ok(render_target_size) = size.logical_size() else {
             continue;
         };
@@ -193,12 +203,10 @@ fn render_texture(
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         // compute alignment and y-offset
-        let buffer_height = buffer.height();
-        let render_target_height = render_target_size.y;
         let transformation = WidgetBufferCoordTransformation::new(
             text_align.vertical,
-            render_target_height,
-            buffer_height,
+            render_target_size,
+            buffer.borrow_with(font_system).logical_size(),
         );
 
         let draw_closure = |x, y, w, h, color| {
@@ -220,10 +228,10 @@ fn render_texture(
             }
         };
 
-        let mut update_buffer_size = |buffer: &mut Buffer| {
+        let update_buffer_size = |buffer: &mut BorrowedWithFontSystem<'_, Buffer>| {
             buffer.set_size(
-                &mut font_system.0,
                 Some(match wrap {
+                    // todo: this panics atm
                     CosmicWrap::Wrap => render_target_size.x,
                     CosmicWrap::InfiniteLine => f32::MAX,
                 }),
@@ -261,13 +269,13 @@ fn render_texture(
                 .map(|selected_text_color| selected_text_color.0.to_cosmic())
                 .unwrap_or(font_color);
 
-            editor.with_buffer_mut(update_buffer_size);
+            editor.with_buffer_mut(|b| update_buffer_size(&mut b.borrow_with(font_system)));
             editor.with_buffer_mut(update_buffer_horizontal_alignment);
 
-            editor.with_buffer_mut(|buffer| buffer.shape_until_scroll(&mut font_system.0, false));
+            editor.with_buffer_mut(|buffer| buffer.borrow_with(font_system).compute());
 
             editor.draw(
-                &mut font_system.0,
+                font_system,
                 &mut swash_cache_state.0,
                 font_color,
                 cursor_color,
@@ -286,17 +294,14 @@ fn render_texture(
                 continue;
             }
 
+            let mut buffer = buffer.borrow_with(font_system);
+
             update_buffer_size(&mut buffer);
             update_buffer_horizontal_alignment(&mut buffer);
 
-            buffer.shape_until_scroll(&mut font_system.0, false);
+            buffer.compute();
 
-            buffer.draw(
-                &mut font_system.0,
-                &mut swash_cache_state.0,
-                font_color,
-                draw_closure,
-            );
+            buffer.draw(&mut swash_cache_state.0, font_color, draw_closure);
 
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
