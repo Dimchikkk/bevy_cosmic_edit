@@ -54,10 +54,3 @@ web-sys = { version = "0.3.70", features = [
 
 [dev-dependencies]
 insta = "1.29.0"
-bevy_editor_pls = "0.11.0"
-
-[patch.crates-io]
-# remove once https://github.com/jakobhellermann/bevy_editor_pls/pull/118 lands and is published
-bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.git" }
-# remove once https://github.com/urholaukkarinen/transform-gizmo/pull/85 lands and is published
-transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }
