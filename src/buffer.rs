@@ -76,7 +76,7 @@ impl BufferExtras for Buffer {
     CosmicTextAlign,
     CosmicPadding,
     HoverCursor,
-    ScrollEnabled
+    crate::input::InputState
 )]
 pub struct CosmicEditBuffer(pub Buffer);
 

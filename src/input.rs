@@ -1,3 +1,5 @@
+//!
+
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 use crate::{
@@ -8,6 +10,7 @@ use crate::{
     CosmicWidgetSize,
 };
 use bevy::{
+    ecs::{component::ComponentId, world::DeferredWorld},
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
@@ -37,19 +40,14 @@ pub(crate) struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreUpdate,
-            take_click_input
-                .pipe(input_mouse)
-                .in_set(InputSet::PreUpdate),
-        )
-        .add_systems(
-            Update,
-            (kb_move_cursor, kb_input_text, kb_clipboard)
-                .chain()
-                .in_set(InputSet::Update),
-        )
-        .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+        app.add_systems(PreUpdate, scroll.in_set(InputSet::PreUpdate))
+            .add_systems(
+                Update,
+                (kb_move_cursor, kb_input_text, kb_clipboard)
+                    .chain()
+                    .in_set(InputSet::Update),
+            )
+            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -80,196 +78,87 @@ pub(crate) struct WasmPasteAsyncChannel {
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
 
-#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
-pub(crate) enum ClickState {
-    #[default]
-    None,
-    Dragging,
-    Single,
-    Double,
-    Triple,
+#[derive(Component, Default)]
+#[require(ScrollEnabled)]
+#[component(on_add = add_event_handlers)]
+pub struct InputState;
+
+fn add_event_handlers(
+    mut world: DeferredWorld,
+    targeted_entity: Entity,
+    _component_id: ComponentId,
+) {
+    let mut observers = [Observer::new(handle_click), Observer::new(handle_drag)];
+    for observer in &mut observers {
+        observer.watch_entity(targeted_entity);
+    }
+    world.commands().spawn_batch(observers);
 }
 
-pub(crate) fn take_click_input(
-    // todo: convert to local, no need for resource
-    mut click_timer: ResMut<ClickTimer>,
-    mut click_count: Local<u8>,
-    time: Res<Time>,
-    buttons: Res<ButtonInput<MouseButton>>,
-    evr_mouse_motion: EventReader<MouseMotion>,
-) -> ClickState {
-    // handle click timer and click_count
-    click_timer.0.tick(time.delta());
-    let mouse_has_moved = !evr_mouse_motion.is_empty();
+fn handle_click(
+    mut trigger: Trigger<Pointer<Click>>,
+    mut editor: Query<(&mut InputState, &GlobalTransform), With<CosmicEditBuffer>>,
+) {
+    let target = trigger.target;
+    let (input_state, global_transform) = editor.get_mut(target).unwrap();
+    let click = &trigger.event().event;
+    let Some(world_position) = click.hit.position else {
+        return;
+    };
 
-    if mouse_has_moved {
-        *click_count = 0;
-        return ClickState::Dragging;
-    }
+    let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
+    let relative_position = position_transform.reparented_to(global_transform);
 
-    if click_timer.0.finished() {
-        *click_count = 0;
-        return ClickState::None;
-    }
+    debug!(?relative_position, ?world_position);
 
-    if buttons.just_pressed(MouseButton::Left) {
-        click_timer.0.reset();
-        *click_count += 1;
-        if *click_count > 3 {
-            *click_count = 0;
-        }
-
-        match *click_count {
-            1 => ClickState::Single,
-            2 => ClickState::Double,
-            3 => ClickState::Triple,
-            _ => ClickState::None,
-        }
-    } else {
-        ClickState::None
-    }
+    trigger.propagate(false);
 }
 
-pub(crate) fn input_mouse(
-    In(click_state): In<ClickState>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    active_editor: Res<FocusedWidget>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut editor_q: Query<(
-        &mut CosmicEditor,
-        &GlobalTransform,
-        &CosmicTextAlign,
-        &XOffset,
-        &ScrollEnabled,
-        CosmicWidgetSize,
-    )>,
+fn handle_drag(trigger: Trigger<Pointer<Drag>>) {
+    debug!(?trigger, "drag");
+}
+
+// let (padding_x, padding_y) = match text_position {
+//             CosmicTextAlign::Center { padding: _ } => (
+//                 get_x_offset_center(width * scale_factor, &buffer),
+//                 get_y_offset_center(height * scale_factor, &buffer),
+//             ),
+//             CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
+//             CosmicTextAlign::Left { padding } => (
+//                 *padding,
+//                 get_y_offset_center(height * scale_factor, &buffer),
+//             ),
+//         };
+//         // Converts a node-relative space coordinate to an i32 glyph position
+//         let glyph_coord = |node_cursor_pos: Vec2| {
+//             (
+//                 (node_cursor_pos.x * scale_factor) as i32 - padding_x + x_offset.left as i32,
+//                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
+//             )
+//         };
+
+//         if click_state == ClickState::Single {
+//             editor.cursor_visible = true;
+//             editor.cursor_timer.reset();
+
+//             if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
+//                 primary_window,
+//                 transform,
+//                 Vec2::new(width, height),
+//                 source_type,
+//                 camera,
+//                 camera_transform,
+//             ) {
+//                 let (x, y) = glyph_coord(node_cursor_pos);
+
+pub(crate) fn scroll(
+    mut editor: Query<(&mut CosmicEditor, &ScrollEnabled)>,
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
-    mut previous_click_state: Local<ClickState>,
 ) {
-    if click_state != *previous_click_state {
-        trace!(?click_state);
-        *previous_click_state = click_state;
-    }
-
-    // unwrap resources
-    let Some(active_editor_entity) = active_editor.0 else {
-        return;
-    };
-
-    let Ok(primary_window) = windows.get_single() else {
-        return;
-    };
-
-    let scale_factor = primary_window.scale_factor();
-    let Some((camera, camera_transform)) = camera_q.iter().find(|(c, _)| c.is_active) else {
-        return;
-    };
-
-    // TODO: generalize this over UI and sprite
-    if let Ok((mut editor, transform, text_position, x_offset, scroll_disabled, target_size)) =
-        editor_q.get_mut(active_editor_entity)
-    {
+    for (mut editor, scroll_enabled) in editor.iter_mut() {
         let buffer = editor.with_buffer(|b| b.clone());
-
-        // get size of render target
-        let Ok(source_type) = target_size.scan() else {
-            return;
-        };
-        let Ok(size) = target_size.logical_size() else {
-            return;
-        };
-        // logical pixels
-        let (width, height) = (size.x, size.y);
-
-        let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-
-        // if shift key is pressed
-        let doesnt_have_selection = editor.selection() == Selection::None;
-        if shift && doesnt_have_selection {
-            let cursor = editor.cursor();
-            editor.set_selection(Selection::Normal(cursor));
-        }
-
-        let (padding_x, padding_y) = match text_position {
-            CosmicTextAlign::Center { padding: _ } => (
-                get_x_offset_center(width * scale_factor, &buffer),
-                get_y_offset_center(height * scale_factor, &buffer),
-            ),
-            CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
-            CosmicTextAlign::Left { padding } => (
-                *padding,
-                get_y_offset_center(height * scale_factor, &buffer),
-            ),
-        };
-        // Converts a node-relative space coordinate to an i32 glyph position
-        let glyph_coord = |node_cursor_pos: Vec2| {
-            (
-                (node_cursor_pos.x * scale_factor) as i32 - padding_x + x_offset.left as i32,
-                (node_cursor_pos.y * scale_factor) as i32 - padding_y,
-            )
-        };
-
-        if click_state == ClickState::Single {
-            editor.cursor_visible = true;
-            editor.cursor_timer.reset();
-
-            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
-                primary_window,
-                transform,
-                Vec2::new(width, height),
-                source_type,
-                camera,
-                camera_transform,
-            ) {
-                let (x, y) = glyph_coord(node_cursor_pos);
-                if shift {
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
-                } else {
-                    match click_state {
-                        ClickState::Single => {
-                            editor.action(&mut font_system.0, Action::Click { x, y });
-                        }
-                        ClickState::Double => {
-                            // select word
-                            editor.action(&mut font_system.0, Action::Motion(Motion::LeftWord));
-                            let cursor = editor.cursor();
-                            editor.set_selection(Selection::Normal(cursor));
-                            editor.action(&mut font_system.0, Action::Motion(Motion::RightWord));
-                        }
-                        ClickState::Triple => {
-                            // select paragraph
-                            editor
-                                .action(&mut font_system.0, Action::Motion(Motion::ParagraphStart));
-                            let cursor = editor.cursor();
-                            editor.set_selection(Selection::Normal(cursor));
-                            editor.action(&mut font_system.0, Action::Motion(Motion::ParagraphEnd));
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            return;
-        }
-
-        if click_state == ClickState::Dragging {
-            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
-                primary_window,
-                transform,
-                Vec2::new(width, height),
-                source_type,
-                camera,
-                camera_transform,
-            ) {
-                let (x, y) = glyph_coord(node_cursor_pos);
-
-                editor.action(&mut font_system.0, Action::Drag { x, y });
-            }
-            return;
-        }
-
-        if scroll_disabled.should_scroll() {
+        if scroll_enabled.should_scroll() {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {

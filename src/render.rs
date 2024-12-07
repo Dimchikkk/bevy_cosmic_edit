@@ -2,6 +2,7 @@ use crate::widget::CosmicPadding;
 use crate::{cosmic_edit::ReadOnly, prelude::*, widget::WidgetSet};
 use crate::{cosmic_edit::*, CosmicWidgetSize};
 use bevy::render::render_resource::Extent3d;
+use cosmic_text::Align;
 use cosmic_text::{Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 
@@ -177,8 +178,8 @@ fn render_texture(
                         &mut pixels,
                         size.x as i32,
                         size.y as i32,
-                        x + col + padding.x.max(min_pad) as i32 - x_offset.left as i32,
-                        y + row + padding.y as i32,
+                        x + col, // + padding.x.max(min_pad) as i32 - x_offset.left as i32,
+                        y + row, // + padding.y as i32,
                         color,
                     );
                 }
@@ -206,6 +207,13 @@ fn render_texture(
                 .map(|selected_text_color| selected_text_color.0.to_cosmic())
                 .unwrap_or(font_color);
 
+            editor.with_buffer_mut(|buffer| {
+                buffer.set_size(&mut font_system.0, Some(size.x), Some(size.y));
+                for line in &mut buffer.lines {
+                    line.set_align(Some(Align::Center));
+                }
+            });
+
             editor.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.0,
@@ -222,6 +230,12 @@ fn render_texture(
             if !buffer.redraw() {
                 continue;
             }
+
+            buffer.set_size(&mut font_system.0, Some(size.x), Some(size.y));
+            for line in &mut buffer.lines {
+                line.set_align(Some(Align::Center));
+            }
+
             buffer.draw(
                 &mut font_system.0,
                 &mut swash_cache_state.0,
