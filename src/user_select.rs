@@ -5,7 +5,7 @@ pub(crate) struct UserSelectPlugin;
 
 impl Plugin for UserSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, clear_selection.after(InputSet));
+        app.add_systems(Update, clear_selection.after(InputSet::Update));
     }
 }
 

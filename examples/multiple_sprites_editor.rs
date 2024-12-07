@@ -13,6 +13,8 @@ fn setup(
     let primary_window = windows.single();
     let camera_bundle = (
         Camera2d,
+        IsDefaultUiCamera,
+        CosmicPrimaryCamera,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
@@ -40,6 +42,7 @@ fn setup(
             ..default()
         },
         Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+        Name::new("Left editor"),
     ));
 
     commands.spawn((
@@ -62,6 +65,7 @@ fn setup(
             -primary_window.height() / 4.,
             1.,
         )),
+        Name::new("Right editor")
     ));
 }
 
@@ -76,6 +80,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
+        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, change_active_editor_sprite)
         .run();

@@ -64,7 +64,7 @@ impl Plugin for PlaceholderPlugin {
                 remove_placeholder_on_input,
             )
                 .chain()
-                .after(InputSet)
+                .after(InputSet::Update)
                 .before(RenderSet),
         );
     }

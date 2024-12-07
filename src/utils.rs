@@ -1,7 +1,10 @@
 // Common functions for examples
 use crate::{
-    cosmic_edit::ReadOnly, prelude::*, primary::CameraFilter, ChangedCosmicWidgetSize,
-    CosmicWidgetSize,
+    cosmic_edit::ReadOnly,
+    prelude::*,
+    primary::CameraFilter,
+    render_targets::{get_node_cursor_pos, SourceType},
+    ChangedCosmicWidgetSize, CosmicWidgetSize,
 };
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;
@@ -41,7 +44,7 @@ pub fn change_active_editor_sprite(
     windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut cosmic_edit_query: Query<
-        (&mut Sprite, &GlobalTransform, &Visibility, Entity),
+        (CosmicWidgetSize, &GlobalTransform, &Visibility, Entity),
         (With<CosmicEditBuffer>, Without<ReadOnly>),
     >,
     camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
@@ -49,22 +52,25 @@ pub fn change_active_editor_sprite(
     let window = windows.single();
     let (camera, camera_transform) = camera_q.single();
     if buttons.just_pressed(MouseButton::Left) {
-        for (sprite, node_transform, visibility, entity) in &mut cosmic_edit_query.iter_mut() {
+        for (size, node_transform, visibility, entity) in &mut cosmic_edit_query.iter_mut() {
             if visibility == Visibility::Hidden {
                 continue;
             }
-            let size = sprite.custom_size.unwrap_or(Vec2::ONE);
-            let x_min = node_transform.affine().translation.x - size.x / 2.;
-            let y_min = node_transform.affine().translation.y - size.y / 2.;
-            let x_max = node_transform.affine().translation.x + size.x / 2.;
-            let y_max = node_transform.affine().translation.y + size.y / 2.;
-            if let Some(pos) = window.cursor_position() {
-                if let Ok(pos) = camera.viewport_to_world_2d(camera_transform, pos) {
-                    if x_min < pos.x && pos.x < x_max && y_min < pos.y && pos.y < y_max {
-                        commands.insert_resource(FocusedWidget(Some(entity)))
-                    };
-                }
+            let Ok(size) = size.logical_size() else {
+                continue;
             };
+            if get_node_cursor_pos(
+                window,
+                node_transform,
+                size,
+                SourceType::Sprite,
+                camera,
+                camera_transform,
+            )
+            .is_some()
+            {
+                commands.insert_resource(FocusedWidget(Some(entity)))
+            }
         }
     }
 }

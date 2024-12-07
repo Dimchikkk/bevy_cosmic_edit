@@ -86,11 +86,7 @@ mod primary;
 
 pub use buffer::CosmicEditBuffer;
 mod buffer;
-pub use cosmic_edit::{
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
-    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollEnabled,
-    SelectedTextColor, SelectionColor,
-};
+pub use cosmic_edit::*;
 mod cosmic_edit;
 pub use cursor::{CursorPluginDisabled, HoverCursor, TextHoverIn, TextHoverOut};
 mod cursor;
@@ -108,6 +104,5 @@ mod render;
 pub use user_select::UserSelectNone;
 mod user_select;
 pub mod utils;
-mod widget;
 pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize};
 pub mod render_targets;

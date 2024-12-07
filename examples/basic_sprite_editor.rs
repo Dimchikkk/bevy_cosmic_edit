@@ -13,6 +13,8 @@ fn setup(
     let primary_window = windows.single();
     let camera_bundle = (
         Camera2d,
+        IsDefaultUiCamera,
+        CosmicPrimaryCamera,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
@@ -22,47 +24,31 @@ fn setup(
 
     let mut attrs = Attrs::new();
     attrs = attrs.family(Family::Name("Victor Mono"));
-    attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
+    attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    commands.spawn((
+    let cosmic_edit = (
         TextEdit2d,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
-            "😀😀😀 x => y",
+            &"😀😀😀 x => y 1234576890\n".repeat(15),
             attrs,
         ),
-        CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
         Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height(),
-            }),
+            // You must specify custom size
+            // so the editor knows what size images to render to the sprite
+            custom_size: Some(Vec2::new(
+                primary_window.width() / 4.,
+                primary_window.height() / 4.,
+            )),
             ..default()
         },
-        Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
-    ));
+        CosmicBackgroundColor(bevy::color::palettes::css::MEDIUM_VIOLET_RED.into()),
+        Name::new("Main Editor"),
+    );
 
-    commands.spawn((
-        TextEdit2d,
-        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "Widget_2. Click on me",
-            attrs,
-        ),
-        CosmicBackgroundColor(bevy::color::palettes::basic::GRAY.with_alpha(0.5).into()),
-        Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height() / 2.,
-            }),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(
-            primary_window.width() / 4.,
-            -primary_window.height() / 4.,
-            1.,
-        )),
-    ));
+    let cosmic_edit = commands.spawn(cosmic_edit).id();
+
+    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {
@@ -76,7 +62,15 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
+        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, change_active_editor_sprite)
+        .add_systems(
+            Update,
+            (
+                print_editor_text,
+                change_active_editor_sprite,
+                deselect_editor_on_esc,
+            ),
+        )
         .run();
 }

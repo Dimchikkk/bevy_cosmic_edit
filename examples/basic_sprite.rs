@@ -12,7 +12,6 @@ fn setup(
     let primary_window = windows.single();
     let camera_bundle = (
         Camera2d,
-        CosmicPrimaryCamera,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()
@@ -54,7 +53,6 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(bevy_editor_pls::EditorPlugin::default())
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
         .add_systems(

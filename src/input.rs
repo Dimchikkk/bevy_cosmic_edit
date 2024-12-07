@@ -1,18 +1,18 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 use crate::{
-    buffer::{get_x_offset_center, get_y_offset_center},
-    cosmic_edit::{CosmicTextAlign, MaxChars, MaxLines, ReadOnly, ScrollEnabled, XOffset},
+    cosmic_edit::{MaxChars, MaxLines, ReadOnly, ScrollEnabled},
     events::CosmicTextChanged,
     prelude::*,
-    CosmicWidgetSize,
+    render::WidgetBufferCoordTransformation,
+    CosmicTextAlign, CosmicWidgetSize,
 };
 use bevy::{
+    ecs::{component::ComponentId, world::DeferredWorld},
     input::{
         keyboard::{Key, KeyboardInput},
-        mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
+        mouse::{MouseScrollUnit, MouseWheel},
     },
-    window::PrimaryWindow,
 };
 use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
@@ -28,18 +28,21 @@ use wasm_bindgen_futures::JsFuture;
 
 /// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InputSet;
+pub enum InputSet {
+    PreUpdate,
+    Update,
+}
 
 pub(crate) struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, input_mouse.in_set(InputSet))
+        app.add_systems(PreUpdate, scroll.in_set(InputSet::PreUpdate))
             .add_systems(
                 Update,
                 (kb_move_cursor, kb_input_text, kb_clipboard)
                     .chain()
-                    .in_set(InputSet),
+                    .in_set(InputSet::Update),
             )
             .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
 
@@ -72,164 +75,125 @@ pub(crate) struct WasmPasteAsyncChannel {
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
 
-pub(crate) fn input_mouse(
-    windows: Query<&Window, With<PrimaryWindow>>,
-    active_editor: Res<FocusedWidget>,
-    keys: Res<ButtonInput<KeyCode>>,
-    buttons: Res<ButtonInput<MouseButton>>,
-    mut editor_q: Query<(
+#[derive(Component, Default)]
+#[require(ScrollEnabled)]
+#[component(on_add = add_event_handlers)]
+pub struct InputState;
+
+fn add_event_handlers(
+    mut world: DeferredWorld,
+    targeted_entity: Entity,
+    _component_id: ComponentId,
+) {
+    let mut observers = [Observer::new(handle_click), Observer::new(handle_drag)];
+    for observer in &mut observers {
+        observer.watch_entity(targeted_entity);
+    }
+    world.commands().spawn_batch(observers);
+}
+
+fn handle_click(
+    mut trigger: Trigger<Pointer<Click>>,
+    mut editor: Query<(
+        &mut InputState,
         &mut CosmicEditor,
         &GlobalTransform,
         &CosmicTextAlign,
-        &XOffset,
-        &ScrollEnabled,
         CosmicWidgetSize,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
-    mut scroll_evr: EventReader<MouseWheel>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
-    mut click_timer: ResMut<ClickTimer>,
-    mut click_count: Local<usize>,
-    time: Res<Time>,
-    evr_mouse_motion: EventReader<MouseMotion>,
 ) {
-    // handle click timer and click_count
-    click_timer.0.tick(time.delta());
+    trigger.propagate(false);
+    let target = trigger.target;
+    let (input_state, mut editor, global_transform, text_align, size) =
+        editor.get_mut(target).unwrap();
+    let click = &trigger.event().event;
 
-    if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
-        *click_count = 0;
+    if click.hit.normal != Some(Vec3::Z) {
+        warn!(?click, "Normal is not out of screen, skipping");
+        return;
     }
 
-    if buttons.just_pressed(MouseButton::Left) {
-        click_timer.0.reset();
-        *click_count += 1;
-    }
-
-    if *click_count > 3 {
-        *click_count = 0;
-    }
-
-    // unwrap resources
-    let Some(active_editor_entity) = active_editor.0 else {
+    let Some(world_position) = click.hit.position else {
         return;
     };
 
-    let Ok(primary_window) = windows.get_single() else {
+    let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
+    let relative_position = position_transform.reparented_to(global_transform);
+
+    let Ok(render_target_size) = size.logical_size() else {
         return;
     };
-
-    let scale_factor = primary_window.scale_factor();
-    let Some((camera, camera_transform)) = camera_q.iter().find(|(c, _)| c.is_active) else {
+    let buffer_height = editor.with_buffer(|b| b.height());
+    let transformation = WidgetBufferCoordTransformation::new(
+        text_align.vertical,
+        render_target_size.y,
+        buffer_height,
+    );
+    // .xy swizzle depends on normal vector being perfectly out of screen
+    let buffer_coord = transformation.widget_to_buffer(relative_position.translation.xy());
+    let buffer_coord =
+        buffer_coord + editor.with_buffer(|b| b.logical_size()) / 2.0 * Vec2::new(1., 1.);
+    let Some(cursor_hit) = editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
+    else {
         return;
     };
+    debug!(?cursor_hit, ?buffer_coord);
 
-    // TODO: generalize this over UI and sprite
-    if let Ok((mut editor, transform, text_position, x_offset, scroll_disabled, target_size)) =
-        editor_q.get_mut(active_editor_entity)
-    {
+    editor.action(
+        &mut font_system.0,
+        Action::Click {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        },
+    );
+}
+
+fn handle_drag(trigger: Trigger<Pointer<Drag>>) {
+    // debug!(?trigger, "drag");
+}
+
+// let (padding_x, padding_y) = match text_position {
+//             CosmicTextAlign::Center { padding: _ } => (
+//                 get_x_offset_center(width * scale_factor, &buffer),
+//                 get_y_offset_center(height * scale_factor, &buffer),
+//             ),
+//             CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
+//             CosmicTextAlign::Left { padding } => (
+//                 *padding,
+//                 get_y_offset_center(height * scale_factor, &buffer),
+//             ),
+//         };
+//         // Converts a node-relative space coordinate to an i32 glyph position
+//         let glyph_coord = |node_cursor_pos: Vec2| {
+//             (
+//                 (node_cursor_pos.x * scale_factor) as i32 - padding_x + x_offset.left as i32,
+//                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
+//             )
+//         };
+
+//         if click_state == ClickState::Single {
+//             editor.cursor_visible = true;
+//             editor.cursor_timer.reset();
+
+//             if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
+//                 primary_window,
+//                 transform,
+//                 Vec2::new(width, height),
+//                 source_type,
+//                 camera,
+//                 camera_transform,
+//             ) {
+//                 let (x, y) = glyph_coord(node_cursor_pos);
+
+pub(crate) fn scroll(
+    mut editor: Query<(&mut CosmicEditor, &ScrollEnabled)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut scroll_evr: EventReader<MouseWheel>,
+) {
+    for (mut editor, scroll_enabled) in editor.iter_mut() {
         let buffer = editor.with_buffer(|b| b.clone());
-
-        // get size of render target
-        let Ok(source_type) = target_size.scan() else {
-            return;
-        };
-        let Ok(size) = target_size.logical_size() else {
-            return;
-        };
-        let (width, height) = (size.x, size.y);
-
-        let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-
-        // if shift key is pressed
-        let already_has_selection = editor.selection() != Selection::None;
-        if shift && !already_has_selection {
-            let cursor = editor.cursor();
-            editor.set_selection(Selection::Normal(cursor));
-        }
-
-        let (padding_x, padding_y) = match text_position {
-            CosmicTextAlign::Center { padding: _ } => (
-                get_x_offset_center(width * scale_factor, &buffer),
-                get_y_offset_center(height * scale_factor, &buffer),
-            ),
-            CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
-            CosmicTextAlign::Left { padding } => (
-                *padding,
-                get_y_offset_center(height * scale_factor, &buffer),
-            ),
-        };
-        // Converts a node-relative space coordinate to a screen space physical coord
-        let screen_physical = |node_cursor_pos: Vec2| {
-            (
-                (node_cursor_pos.x * scale_factor) as i32 - padding_x,
-                (node_cursor_pos.y * scale_factor) as i32 - padding_y,
-            )
-        };
-
-        if buttons.just_pressed(MouseButton::Left) {
-            editor.cursor_visible = true;
-            editor.cursor_timer.reset();
-
-            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
-                primary_window,
-                transform,
-                Vec2::new(width, height),
-                source_type,
-                camera,
-                camera_transform,
-            ) {
-                let (mut x, y) = screen_physical(node_cursor_pos);
-                x += x_offset.left as i32;
-                if shift {
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
-                } else {
-                    match *click_count {
-                        1 => {
-                            editor.action(&mut font_system.0, Action::Click { x, y });
-                        }
-                        2 => {
-                            // select word
-                            editor.action(&mut font_system.0, Action::Motion(Motion::LeftWord));
-                            let cursor = editor.cursor();
-                            editor.set_selection(Selection::Normal(cursor));
-                            editor.action(&mut font_system.0, Action::Motion(Motion::RightWord));
-                        }
-                        3 => {
-                            // select paragraph
-                            editor
-                                .action(&mut font_system.0, Action::Motion(Motion::ParagraphStart));
-                            let cursor = editor.cursor();
-                            editor.set_selection(Selection::Normal(cursor));
-                            editor.action(&mut font_system.0, Action::Motion(Motion::ParagraphEnd));
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            return;
-        }
-
-        if buttons.pressed(MouseButton::Left) && *click_count == 0 {
-            if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
-                primary_window,
-                transform,
-                Vec2::new(width, height),
-                source_type,
-                camera,
-                camera_transform,
-            ) {
-                let (mut x, y) = screen_physical(node_cursor_pos);
-                x += x_offset.left as i32;
-                if active_editor.is_changed() && !shift {
-                    editor.action(&mut font_system.0, Action::Click { x, y });
-                } else {
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
-                }
-            }
-            return;
-        }
-
-        if scroll_disabled.should_scroll() {
+        if scroll_enabled.should_scroll() {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {

@@ -15,7 +15,7 @@ impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (hide_password_text.before(crate::input::input_mouse),),
+            (hide_password_text.before(crate::input::InputSet::PreUpdate),),
         )
         .add_systems(
             Update,
