@@ -19,6 +19,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
         },
+        Name::new("Main camera"),
     );
     commands.spawn(camera_bundle);
 
@@ -41,10 +42,11 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 left: Val::Percent(30.),
                 ..default()
             },
+            Name::new("Main Editor"),
         ))
         .id();
 
-    commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
+    // commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
 }
 
 fn main() {

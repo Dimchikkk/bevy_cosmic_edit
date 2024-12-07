@@ -172,6 +172,7 @@ fn render_texture(
         };
 
         let draw_closure = |x, y, w, h, color| {
+            trace!("Drawing");
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     draw_pixel(
@@ -235,6 +236,10 @@ fn render_texture(
             for line in &mut buffer.lines {
                 line.set_align(Some(Align::Center));
             }
+
+            // Is there a better method here?
+            // When implementing scrolling this may become important
+            buffer.shape_until_scroll(&mut font_system.0, false);
 
             buffer.draw(
                 &mut font_system.0,

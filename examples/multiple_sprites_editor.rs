@@ -42,6 +42,7 @@ fn setup(
             ..default()
         },
         Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+        Name::new("Left editor"),
     ));
 
     commands.spawn((
@@ -64,6 +65,7 @@ fn setup(
             -primary_window.height() / 4.,
             1.,
         )),
+        Name::new("Right editor")
     ));
 }
 

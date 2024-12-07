@@ -72,3 +72,7 @@ required-features = ["multicam"]
 [[example]]
 name = "multiple_sprites_editor"
 required-features = ["multicam"]
+
+[[example]]
+name = "basic_sprite_editor"
+required-features = ["multicam"]
