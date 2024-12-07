@@ -43,6 +43,7 @@ fn setup(
     ));
 
     commands.spawn((
+        TextEdit2d,
         CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
             &mut font_system,
             "Widget_2. Click on me",

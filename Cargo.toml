@@ -38,6 +38,9 @@ crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"
 document-features = "0.2.8"
+num = "0.4.3"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = "3.2.0"
@@ -61,3 +64,7 @@ bevy_editor_pls = "0.11.0"
 bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.git" }
 # remove once https://github.com/urholaukkarinen/transform-gizmo/pull/85 lands and is published
 transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }
+
+[[example]]
+name = "bevy_editor_pls"
+required-features = ["multicam"]

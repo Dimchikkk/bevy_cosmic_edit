@@ -18,7 +18,7 @@ pub(crate) struct WidgetPlugin;
 
 impl Plugin for WidgetPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, reshape.in_set(WidgetSet).after(InputSet))
+        app.add_systems(Update, reshape.in_set(WidgetSet).after(InputSet::Update))
             .add_systems(
                 PostUpdate,
                 (

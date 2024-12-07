@@ -69,9 +69,9 @@ fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color:
 
     let out = premul + (bg.to_srgba() * (1.0 - fg.alpha));
 
-    buffer[offset + 2] = (out.blue * 255.0) as u8;
-    buffer[offset + 1] = (out.green * 255.0) as u8;
     buffer[offset] = (out.red * 255.0) as u8;
+    buffer[offset + 1] = (out.green * 255.0) as u8;
+    buffer[offset + 2] = (out.blue * 255.0) as u8;
     buffer[offset + 3] = (out.alpha * 255.0) as u8;
 }
 

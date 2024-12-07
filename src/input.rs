@@ -28,20 +28,28 @@ use wasm_bindgen_futures::JsFuture;
 
 /// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InputSet;
+pub enum InputSet {
+    PreUpdate,
+    Update,
+}
 
 pub(crate) struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, input_mouse.in_set(InputSet))
-            .add_systems(
-                Update,
-                (kb_move_cursor, kb_input_text, kb_clipboard)
-                    .chain()
-                    .in_set(InputSet),
-            )
-            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+        app.add_systems(
+            PreUpdate,
+            take_click_input
+                .pipe(input_mouse)
+                .in_set(InputSet::PreUpdate),
+        )
+        .add_systems(
+            Update,
+            (kb_move_cursor, kb_input_text, kb_clipboard)
+                .chain()
+                .in_set(InputSet::Update),
+        )
+        .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -72,11 +80,61 @@ pub(crate) struct WasmPasteAsyncChannel {
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
 
+#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
+pub(crate) enum ClickState {
+    #[default]
+    None,
+    Dragging,
+    Single,
+    Double,
+    Triple,
+}
+
+pub(crate) fn take_click_input(
+    // todo: convert to local, no need for resource
+    mut click_timer: ResMut<ClickTimer>,
+    mut click_count: Local<u8>,
+    time: Res<Time>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    evr_mouse_motion: EventReader<MouseMotion>,
+) -> ClickState {
+    // handle click timer and click_count
+    click_timer.0.tick(time.delta());
+    let mouse_has_moved = !evr_mouse_motion.is_empty();
+
+    if mouse_has_moved {
+        *click_count = 0;
+        return ClickState::Dragging;
+    }
+
+    if click_timer.0.finished() {
+        *click_count = 0;
+        return ClickState::None;
+    }
+
+    if buttons.just_pressed(MouseButton::Left) {
+        click_timer.0.reset();
+        *click_count += 1;
+        if *click_count > 3 {
+            *click_count = 0;
+        }
+
+        match *click_count {
+            1 => ClickState::Single,
+            2 => ClickState::Double,
+            3 => ClickState::Triple,
+            _ => ClickState::None,
+        }
+    } else {
+        ClickState::None
+    }
+}
+
 pub(crate) fn input_mouse(
+    In(click_state): In<ClickState>,
     windows: Query<&Window, With<PrimaryWindow>>,
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
-    buttons: Res<ButtonInput<MouseButton>>,
     mut editor_q: Query<(
         &mut CosmicEditor,
         &GlobalTransform,
@@ -88,25 +146,11 @@ pub(crate) fn input_mouse(
     mut font_system: ResMut<CosmicFontSystem>,
     mut scroll_evr: EventReader<MouseWheel>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    mut click_timer: ResMut<ClickTimer>,
-    mut click_count: Local<usize>,
-    time: Res<Time>,
-    evr_mouse_motion: EventReader<MouseMotion>,
+    mut previous_click_state: Local<ClickState>,
 ) {
-    // handle click timer and click_count
-    click_timer.0.tick(time.delta());
-
-    if click_timer.0.finished() || !evr_mouse_motion.is_empty() {
-        *click_count = 0;
-    }
-
-    if buttons.just_pressed(MouseButton::Left) {
-        click_timer.0.reset();
-        *click_count += 1;
-    }
-
-    if *click_count > 3 {
-        *click_count = 0;
+    if click_state != *previous_click_state {
+        trace!(?click_state);
+        *previous_click_state = click_state;
     }
 
     // unwrap resources
@@ -136,13 +180,14 @@ pub(crate) fn input_mouse(
         let Ok(size) = target_size.logical_size() else {
             return;
         };
+        // logical pixels
         let (width, height) = (size.x, size.y);
 
         let shift = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         // if shift key is pressed
-        let already_has_selection = editor.selection() != Selection::None;
-        if shift && !already_has_selection {
+        let doesnt_have_selection = editor.selection() == Selection::None;
+        if shift && doesnt_have_selection {
             let cursor = editor.cursor();
             editor.set_selection(Selection::Normal(cursor));
         }
@@ -158,15 +203,15 @@ pub(crate) fn input_mouse(
                 get_y_offset_center(height * scale_factor, &buffer),
             ),
         };
-        // Converts a node-relative space coordinate to a screen space physical coord
-        let screen_physical = |node_cursor_pos: Vec2| {
+        // Converts a node-relative space coordinate to an i32 glyph position
+        let glyph_coord = |node_cursor_pos: Vec2| {
             (
-                (node_cursor_pos.x * scale_factor) as i32 - padding_x,
+                (node_cursor_pos.x * scale_factor) as i32 - padding_x + x_offset.left as i32,
                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
             )
         };
 
-        if buttons.just_pressed(MouseButton::Left) {
+        if click_state == ClickState::Single {
             editor.cursor_visible = true;
             editor.cursor_timer.reset();
 
@@ -178,23 +223,22 @@ pub(crate) fn input_mouse(
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = screen_physical(node_cursor_pos);
-                x += x_offset.left as i32;
+                let (x, y) = glyph_coord(node_cursor_pos);
                 if shift {
                     editor.action(&mut font_system.0, Action::Drag { x, y });
                 } else {
-                    match *click_count {
-                        1 => {
+                    match click_state {
+                        ClickState::Single => {
                             editor.action(&mut font_system.0, Action::Click { x, y });
                         }
-                        2 => {
+                        ClickState::Double => {
                             // select word
                             editor.action(&mut font_system.0, Action::Motion(Motion::LeftWord));
                             let cursor = editor.cursor();
                             editor.set_selection(Selection::Normal(cursor));
                             editor.action(&mut font_system.0, Action::Motion(Motion::RightWord));
                         }
-                        3 => {
+                        ClickState::Triple => {
                             // select paragraph
                             editor
                                 .action(&mut font_system.0, Action::Motion(Motion::ParagraphStart));
@@ -209,7 +253,7 @@ pub(crate) fn input_mouse(
             return;
         }
 
-        if buttons.pressed(MouseButton::Left) && *click_count == 0 {
+        if click_state == ClickState::Dragging {
             if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
                 primary_window,
                 transform,
@@ -218,13 +262,9 @@ pub(crate) fn input_mouse(
                 camera,
                 camera_transform,
             ) {
-                let (mut x, y) = screen_physical(node_cursor_pos);
-                x += x_offset.left as i32;
-                if active_editor.is_changed() && !shift {
-                    editor.action(&mut font_system.0, Action::Click { x, y });
-                } else {
-                    editor.action(&mut font_system.0, Action::Drag { x, y });
-                }
+                let (x, y) = glyph_coord(node_cursor_pos);
+
+                editor.action(&mut font_system.0, Action::Drag { x, y });
             }
             return;
         }

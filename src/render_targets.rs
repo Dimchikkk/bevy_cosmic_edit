@@ -41,13 +41,13 @@ pub struct TextEdit2d;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
-pub(crate) enum SourceType {
+pub enum SourceType {
     Ui,
     Sprite,
 }
 
 #[derive(Debug)]
-pub(crate) enum RenderTargetError {
+pub enum RenderTargetError {
     /// When no recognized [`SourceType`] could be found
     NoTargetsAvailable,
 
@@ -70,7 +70,7 @@ pub(crate) enum RenderTargetError {
 type Result<T> = core::result::Result<T, RenderTargetError>;
 
 #[derive(QueryData)]
-pub(crate) struct RenderTypeScan {
+pub struct RenderTypeScan {
     is_sprite: Has<TextEdit2d>,
     is_ui: Has<TextEdit>,
 }
@@ -88,7 +88,7 @@ impl RenderTypeScanItem<'_> {
 
 /// Query the size of a widget using any [`SourceType`]
 #[derive(QueryData)]
-pub(crate) struct CosmicWidgetSize {
+pub struct CosmicWidgetSize {
     scan: RenderTypeScan,
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
