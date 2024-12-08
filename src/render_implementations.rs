@@ -7,6 +7,8 @@
 //! Requires [`ImageNode`] for rendering and [`Button`] for [`Interaction`]s
 // TODO: Remove `CosmicWidgetSize`?
 
+pub mod output;
+
 use bevy::{
     ecs::query::{QueryData, QueryFilter},
     window::SystemCursorIcon,
@@ -129,7 +131,7 @@ impl CosmicWidgetSizeItem<'_> {
         }
         ret
     }
-    
+
     fn _logical_size(&self) -> Result<Vec2> {
         let source_type = self.scan.scan()?;
         match source_type {
@@ -224,7 +226,7 @@ pub(crate) fn hover_sprites(
         }
 
         let size = sprite.custom_size.unwrap_or(Vec2::ONE);
-        if crate::render_targets::get_node_cursor_pos(
+        if crate::render_implementations::get_node_cursor_pos(
             window,
             node_transform,
             size,

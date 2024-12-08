@@ -19,7 +19,7 @@ impl Plugin for CursorPlugin {
         app.add_systems(
             Update,
             (
-                (crate::render_targets::hover_sprites, hover_ui),
+                (crate::render_implementations::hover_sprites, hover_ui),
                 change_cursor,
             )
                 .chain()

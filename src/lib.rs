@@ -67,7 +67,7 @@ pub mod prelude {
     pub use crate::cosmic_edit::{CosmicEditor, DefaultAttrs, ReadOnly};
     pub use crate::focus::FocusedWidget;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
-    pub use crate::render_targets::{TextEdit, TextEdit2d};
+    pub use crate::render_implementations::{TextEdit, TextEdit2d};
     pub use crate::utils::{
         change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
         print_editor_text, ColorExtras as _,
@@ -104,5 +104,5 @@ mod render;
 pub use user_select::UserSelectNone;
 mod user_select;
 pub mod utils;
-pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize};
-pub mod render_targets;
+pub(crate) use render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize};
+pub mod render_implementations;

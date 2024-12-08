@@ -213,6 +213,7 @@ fn render_texture(
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     let buffer_coord = IVec2::new(x + col, y + row);
+                    // compute padding_top
                     let widget_coord = transformation
                         .buffer_to_widget(buffer_coord.as_vec2())
                         .as_ivec2();
@@ -231,9 +232,9 @@ fn render_texture(
         let update_buffer_size = |buffer: &mut BorrowedWithFontSystem<'_, Buffer>| {
             buffer.set_size(
                 Some(match wrap {
-                    // todo: this panics atm
                     CosmicWrap::Wrap => render_target_size.x,
-                    CosmicWrap::InfiniteLine => f32::MAX,
+                    // todo: this panics atm
+                    CosmicWrap::InfiniteLine => f32::MAX / 2.,
                 }),
                 Some(render_target_size.y),
             );

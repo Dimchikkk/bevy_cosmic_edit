@@ -1,6 +1,7 @@
 use crate::{
-    prelude::*, CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap,
-    CursorColor, HoverCursor, MaxChars, MaxLines, SelectionColor,
+    prelude::*, render_implementations::output::OutputToEntity, CosmicBackgroundColor,
+    CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
+    MaxLines, SelectionColor,
 };
 use bevy::{
     ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
@@ -270,32 +271,12 @@ pub(crate) fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEdit
     }
 }
 
-/// Will attempt to find a place on the receiving entity to place
-/// a [`Handle<Image>`]
-#[derive(QueryData)]
-#[query_data(mutable)]
-pub(crate) struct OutputToEntity {
-    sprite_target: Option<&'static mut Sprite>,
-    image_node_target: Option<&'static mut ImageNode>,
-}
-
-impl OutputToEntityItem<'_> {
-    pub fn write_image_data(&mut self, image: &Handle<Image>) {
-        if let Some(sprite) = self.sprite_target.as_mut() {
-            sprite.image = image.clone_weak();
-        }
-        if let Some(image_node) = self.image_node_target.as_mut() {
-            image_node.image = image.clone_weak();
-        }
-    }
-}
-
 /// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
 /// on the same entity, e.g. [`Sprite`]
 pub(crate) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
 ) {
-    for (output_data, mut output_components) in buffers_q.iter_mut() {
-        output_components.write_image_data(&output_data.0);
+    for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
+        output_components.write_image_data(output_data);
     }
 }

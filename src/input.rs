@@ -14,7 +14,7 @@ use bevy::{
         mouse::{MouseScrollUnit, MouseWheel},
     },
 };
-use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
+use cosmic_text::{Action, BorrowedWithFontSystem, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;
@@ -85,67 +85,112 @@ fn add_event_handlers(
     targeted_entity: Entity,
     _component_id: ComponentId,
 ) {
-    let mut observers = [Observer::new(handle_click), Observer::new(handle_drag)];
+    let mut observers = [
+        picking_event_sprite(handle_click_sprite),
+        Observer::new(handle_drag),
+    ];
     for observer in &mut observers {
         observer.watch_entity(targeted_entity);
     }
     world.commands().spawn_batch(observers);
 }
 
-fn handle_click(
-    mut trigger: Trigger<Pointer<Click>>,
-    mut editor: Query<(
-        &mut InputState,
-        &mut CosmicEditor,
-        &GlobalTransform,
-        &CosmicTextAlign,
-        CosmicWidgetSize,
-    )>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    trigger.propagate(false);
-    let target = trigger.target;
-    let (input_state, mut editor, global_transform, text_align, size) =
-        editor.get_mut(target).unwrap();
-    let click = &trigger.event().event;
+struct SpritePickingEvent<'s, E>
+where
+    E: Reflect + std::fmt::Debug + Clone + HitDataEvent,
+{
+    event: &'s E,
+    buffer_coord: Vec2,
+    editor: BorrowedWithFontSystem<'s, cosmic_text::Editor<'static>>,
+}
 
-    if click.hit.normal != Some(Vec3::Z) {
-        warn!(?click, "Normal is not out of screen, skipping");
-        return;
+trait HitDataEvent {
+    fn hit(&self) -> &bevy::picking::backend::HitData;
+}
+
+impl HitDataEvent for bevy::picking::events::Click {
+    fn hit(&self) -> &bevy::picking::backend::HitData {
+        &self.hit
     }
+}
 
-    let Some(world_position) = click.hit.position else {
-        return;
-    };
+fn picking_event_sprite<E>(
+    mut callback: impl FnMut(SpritePickingEvent<E>) + Send + Sync + 'static,
+) -> Observer
+where
+    E: Reflect + std::fmt::Debug + Clone + HitDataEvent,
+{
+    Observer::new(
+        move |mut trigger: Trigger<Pointer<E>>,
+              mut editor: Query<(
+            &mut InputState,
+            &mut CosmicEditor,
+            &GlobalTransform,
+            &CosmicTextAlign,
+            CosmicWidgetSize,
+        )>,
+              mut font_system: ResMut<CosmicFontSystem>| {
+            trigger.propagate(false);
 
-    let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
-    let relative_transform = position_transform.reparented_to(global_transform);
-    let relative_position = relative_transform.translation.xy();
+            let font_system = &mut font_system.0;
+            let target = trigger.target;
+            let (input_state, mut editor, global_transform, text_align, size) =
+                editor.get_mut(target).unwrap();
+            let event = &trigger.event().event;
 
-    let Ok(render_target_size) = size.logical_size() else {
-        return;
-    };
-    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(&mut font_system.0).logical_size());
-    let transformation =
-        WidgetBufferCoordTransformation::new(text_align.vertical, render_target_size, buffer_size);
-    // .xy swizzle depends on normal vector being perfectly out of screen
-    let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
-    let buffer_coord = buffer_coord * Vec2::new(1., 1.);
-    let Some(cursor_hit) = editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
-    else {
-        return;
-    };
+            if event.hit().normal != Some(Vec3::Z) {
+                warn!(?event, "Normal is not out of screen, skipping");
+                return;
+            }
 
-    // transformation.debug_top_padding();
-    // debug!(?cursor_hit, ?buffer_coord, ?relative_position);
+            let Some(world_position) = event.hit().position else {
+                return;
+            };
 
-    editor.action(
-        &mut font_system.0,
-        Action::Click {
-            x: buffer_coord.x as i32,
-            y: buffer_coord.y as i32,
+            let position_transform =
+                GlobalTransform::from(Transform::from_translation(world_position));
+            let relative_transform = position_transform.reparented_to(global_transform);
+            let relative_position = relative_transform.translation.xy();
+
+            let Ok(render_target_size) = size.logical_size() else {
+                return;
+            };
+            let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
+            let transformation = WidgetBufferCoordTransformation::new(
+                text_align.vertical,
+                render_target_size,
+                buffer_size,
+            );
+            // .xy swizzle depends on normal vector being perfectly out of screen
+            let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
+            let Some(cursor_hit) =
+                editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
+            else {
+                return;
+            };
+
+            let data = SpritePickingEvent {
+                event,
+                buffer_coord,
+                editor: editor.borrow_with(font_system),
+            };
+
+            callback(data);
         },
-    );
+    )
+}
+
+fn handle_click_sprite(sprite_picking_event: SpritePickingEvent<'_, Click>) {
+    let SpritePickingEvent {
+        event: click,
+        mut editor,
+        buffer_coord,
+    } = sprite_picking_event;
+
+    editor.action(Action::Click {
+        x: buffer_coord.x as i32,
+        y: buffer_coord.y as i32,
+    });
 }
 
 fn handle_drag(trigger: Trigger<Pointer<Drag>>) {
