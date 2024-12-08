@@ -35,7 +35,7 @@ fn main() {
                 change_active_editor_sprite,
                 deselect_editor_on_esc,
                 // If you don't .after(InputSet) you'll just see the hashed-out safe text
-                print_editor_text.after(InputSet::Update),
+                print_editor_text.after(InputSet),
             ),
         )
         .run();

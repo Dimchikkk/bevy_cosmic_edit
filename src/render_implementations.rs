@@ -55,13 +55,9 @@ mod output;
 pub use widget_size::*;
 mod widget_size;
 
-use bevy::{
-    ecs::query::{QueryData, QueryFilter},
-    window::SystemCursorIcon,
-    winit::cursor::CursorIcon,
-};
+use bevy::ecs::query::QueryData;
 
-use crate::{prelude::*, primary::CameraFilter, HoverCursor, TextHoverIn, TextHoverOut};
+use crate::prelude::*;
 
 /// The top level UI text edit component
 ///

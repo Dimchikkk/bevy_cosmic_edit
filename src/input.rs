@@ -1,26 +1,22 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 use crate::{
-    cosmic_edit::{MaxChars, MaxLines, ReadOnly, ScrollEnabled},
+    cosmic_edit::ScrollEnabled,
     double_click::{ClickCount, ClickState},
-    events::CosmicTextChanged,
     prelude::*,
     render_implementations::RelativeQuery,
 };
 use bevy::{
     ecs::{component::ComponentId, world::DeferredWorld},
-    input::{
-        keyboard::{Key, KeyboardInput},
-        mouse::{MouseScrollUnit, MouseWheel},
-    },
+    input::mouse::{MouseScrollUnit, MouseWheel},
 };
-use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
+use cosmic_text::{Action, Edit, Motion, Selection};
 
 pub(crate) mod clipboard;
+pub(crate) mod hover;
 pub(crate) mod keyboard;
-// mod hover;
 // mod click;
-// mod drag;
+pub(crate) mod drag;
 
 /// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -54,9 +50,10 @@ impl Plugin for InputPlugin {
 #[derive(Component, Default, Debug)]
 #[require(ScrollEnabled)]
 #[component(on_add = add_event_handlers)]
-pub enum InputState {
+pub(crate) enum InputState {
     #[default]
     Idle,
+    Hovering,
     Dragging {
         initial_buffer_coord: Vec2,
     },
@@ -69,34 +66,15 @@ fn add_event_handlers(
 ) {
     let mut observers = [
         Observer::new(handle_click),
-        Observer::new(handle_dragstart),
-        Observer::new(handle_dragend),
-        Observer::new(handle_drag),
+        Observer::new(drag::handle_dragstart),
+        Observer::new(drag::handle_dragend),
+        Observer::new(drag::handle_drag),
     ];
     for observer in &mut observers {
         observer.watch_entity(targeted_entity);
     }
     world.commands().spawn_batch(observers);
 }
-
-trait HitDataEvent {
-    fn hit(&self) -> &bevy::picking::backend::HitData;
-}
-
-macro_rules! impl_hit_data_event {
-    ($ty:ty) => {
-        impl HitDataEvent for $ty {
-            fn hit(&self) -> &bevy::picking::backend::HitData {
-                &self.hit
-            }
-        }
-    };
-    ($($ty:ty),+) => {
-        $(impl_hit_data_event!($ty);)*
-    };
-}
-
-impl_hit_data_event!(Click, DragStart);
 
 fn warn_no_editor_on_picking_event() {
     warn!(
@@ -127,14 +105,14 @@ fn handle_click(
     };
     let mut editor = editor.borrow_with(font_system);
 
-    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(click.hit(), editor.logical_size())
+    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(&click.hit, editor.logical_size())
     else {
         return;
     };
 
     match *input_state {
         InputState::Idle => {}
-        InputState::Dragging { .. } => {
+        InputState::Hovering | InputState::Dragging { .. } => {
             warn!(
                 message = "Somehow, a `Click` event was received before a previous `DragEnd` event was received",
                 note = "Ignoring",
@@ -179,116 +157,6 @@ fn handle_click(
             let cursor = editor.cursor();
             editor.set_selection(Selection::Normal(cursor));
             editor.action(Action::Motion(Motion::BufferEnd));
-        }
-    }
-}
-
-fn handle_dragstart(
-    trigger: Trigger<Pointer<DragStart>>,
-    mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    let font_system = &mut font_system.0;
-    let event = trigger.event();
-    let Ok((mut input_state, mut editor, sprite_relative)) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
-        return;
-    };
-    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
-    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(event.hit(), buffer_size) else {
-        return;
-    };
-    let mut editor = editor.borrow_with(font_system);
-
-    if event.button != PointerButton::Primary {
-        return;
-    }
-
-    match *input_state {
-        InputState::Idle => {
-            *input_state = InputState::Dragging {
-                initial_buffer_coord: buffer_coord,
-            };
-            editor.action(Action::Click {
-                x: buffer_coord.x as i32,
-                y: buffer_coord.y as i32,
-            });
-            editor.action(Action::Drag {
-                x: buffer_coord.x as i32,
-                y: buffer_coord.y as i32,
-            });
-        }
-        InputState::Dragging { .. } => {
-            warn!(
-                message = "Somehow, a `DragStart` event was received before a previous `DragStart` event was ended with a `DragEnd`",
-                note = "Ignoring",
-            );
-        }
-    }
-}
-
-fn handle_drag(
-    trigger: Trigger<Pointer<Drag>>,
-    mut editor: Query<(&InputState, &mut CosmicEditor)>,
-    mut font_system: ResMut<CosmicFontSystem>,
-) {
-    let font_system = &mut font_system.0;
-    let event = &trigger.event;
-    let entity = trigger.target;
-
-    if event.button != PointerButton::Primary {
-        return;
-    }
-
-    let Ok((input_state, mut editor)) = editor.get_mut(entity) else {
-        warn_no_editor_on_picking_event();
-        return;
-    };
-    match *input_state {
-        InputState::Idle => {
-            warn!(
-                message = "Somehow, a `Drag` event was received before a previous `DragStart` event was received",
-                note = "Ignoring",
-            );
-        }
-        InputState::Dragging {
-            initial_buffer_coord,
-        } => {
-            let new_buffer_coord = initial_buffer_coord + event.distance;
-            editor.action(
-                font_system,
-                Action::Drag {
-                    x: new_buffer_coord.x as i32,
-                    y: new_buffer_coord.y as i32,
-                },
-            );
-        }
-    }
-}
-
-fn handle_dragend(trigger: Trigger<Pointer<DragEnd>>, mut editor: Query<&mut InputState>) {
-    let event = &trigger.event;
-    let entity = trigger.target;
-
-    if event.button != PointerButton::Primary {
-        return;
-    }
-
-    let Ok(entity_mut) = editor.get_mut(entity) else {
-        warn_no_editor_on_picking_event();
-        return;
-    };
-    let input_state = entity_mut.into_inner();
-
-    match *input_state {
-        InputState::Idle => {
-            warn!(
-                message = "Somehow, a `DragEnd` event was received before a previous `DragStart` event was received",
-                note = "Ignoring",
-            );
-        }
-        InputState::Dragging { .. } => {
-            *input_state = InputState::Idle;
         }
     }
 }
