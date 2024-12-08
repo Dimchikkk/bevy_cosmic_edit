@@ -3,8 +3,9 @@ use crate::{
     cosmic_edit::ReadOnly,
     prelude::*,
     primary::CameraFilter,
-    render_implementations::{get_node_cursor_pos, SourceType},
-    ChangedCosmicWidgetSize, CosmicWidgetSize,
+    render_implementations::{
+        get_node_cursor_pos, ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType,
+    },
 };
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;

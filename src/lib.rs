@@ -59,6 +59,7 @@ pub mod prelude {
     pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
     pub(crate) use crate::cosmic_text;
     pub(crate) use crate::primary::CosmicRenderOutput;
+    pub(crate) use crate::render_implementations;
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
@@ -80,32 +81,32 @@ pub mod prelude {
 
 pub use bevy::text::cosmic_text;
 
-pub use primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
+pub use primary::*;
 /// Contains the library global important types you probably want to explore first
 mod primary;
 
-pub use buffer::CosmicEditBuffer;
+pub use buffer::*;
 mod buffer;
 pub use cosmic_edit::*;
 mod cosmic_edit;
-pub use cursor::{CursorPluginDisabled, HoverCursor, TextHoverIn, TextHoverOut};
+pub use cursor::*;
 mod cursor;
-pub use events::CosmicTextChanged;
+pub use events::*;
 mod events;
-pub use focus::FocusedWidget;
+pub use focus::*;
 mod focus;
-pub use input::InputSet;
+pub use input::*;
 mod input;
-pub use password::Password;
+pub use password::*;
 mod password;
-pub use placeholder::Placeholder;
+pub use placeholder::*;
 mod placeholder;
 mod render;
-pub use user_select::UserSelectNone;
+mod double_click;
+pub mod render_implementations;
+pub use user_select::*;
 mod user_select;
 pub mod utils;
-pub(crate) use render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize};
+
 #[cfg(feature = "internal-debugging")]
 mod debug;
-pub mod render_implementations;
-mod double_click;

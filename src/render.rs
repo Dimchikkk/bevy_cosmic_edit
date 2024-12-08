@@ -1,8 +1,9 @@
+use crate::cosmic_edit::*;
 use crate::{cosmic_edit::ReadOnly, prelude::*};
-use crate::{cosmic_edit::*, CosmicWidgetSize};
 use bevy::render::render_resource::Extent3d;
 use cosmic_text::{BorrowedWithFontSystem, Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
+use render_implementations::CosmicWidgetSize;
 
 /// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

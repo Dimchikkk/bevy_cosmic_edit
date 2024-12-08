@@ -7,7 +7,10 @@
 //! Requires [`ImageNode`] for rendering and [`Button`] for [`Interaction`]s
 // TODO: Remove `CosmicWidgetSize`?
 
-pub mod output;
+pub use coords::*;
+mod coords;
+pub use output::*;
+mod output;
 
 use bevy::{
     ecs::query::{QueryData, QueryFilter},

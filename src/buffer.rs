@@ -1,14 +1,14 @@
 use crate::{
-    prelude::*, render_implementations::output::OutputToEntity, CosmicBackgroundColor,
+    prelude::*, render_implementations::OutputToEntity, CosmicBackgroundColor,
     CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
     MaxLines, SelectionColor,
 };
 use bevy::{
-    ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
+    ecs::{component::ComponentId, world::DeferredWorld},
     window::PrimaryWindow,
 };
 use cosmic_text::{
-    Attrs, AttrsOwned, BorrowedWithFontSystem, Buffer, Edit, Editor, FontSystem, Metrics, Shaping,
+    Attrs, AttrsOwned, BorrowedWithFontSystem, Buffer, Edit, FontSystem, Metrics, Shaping,
 };
 
 pub(crate) struct BufferPlugin;
