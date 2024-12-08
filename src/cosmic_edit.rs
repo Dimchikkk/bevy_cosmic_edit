@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::prelude::*;
 use cosmic_text::{Align, Attrs, AttrsOwned, Editor, FontSystem};
 
@@ -205,10 +207,17 @@ pub struct CosmicEditor {
 
 impl CosmicEditor {
     pub fn new(editor: Editor<'static>) -> Self {
+        // this makes sure when switching between editors,
+        // the cursor doesn't immediately blink at the start
+        // before its position has been updated
+        let duration = Duration::from_millis(530);
+        let mut cursor_timer = Timer::new(Duration::from_millis(530), TimerMode::Repeating);
+        cursor_timer.tick(duration - Duration::from_millis(80));
+
         Self {
             editor,
-            cursor_visible: true,
-            cursor_timer: Timer::new(std::time::Duration::from_millis(530), TimerMode::Repeating),
+            cursor_visible: false,
+            cursor_timer,
         }
     }
 }

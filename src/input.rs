@@ -8,11 +8,12 @@ use crate::{
     CosmicTextAlign, CosmicWidgetSize,
 };
 use bevy::{
-    ecs::{component::ComponentId, world::DeferredWorld},
+    ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
     input::{
         keyboard::{Key, KeyboardInput},
         mouse::{MouseScrollUnit, MouseWheel},
     },
+    picking::backend::HitData,
 };
 use cosmic_text::{Action, BorrowedWithFontSystem, Cursor, Edit, Motion, Selection};
 
@@ -75,10 +76,16 @@ pub(crate) struct WasmPasteAsyncChannel {
     pub rx: crossbeam_channel::Receiver<WasmPaste>,
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug)]
 #[require(ScrollEnabled)]
 #[component(on_add = add_event_handlers)]
-pub struct InputState;
+pub enum InputState {
+    #[default]
+    Idle,
+    Dragging {
+        initial_buffer_coord: Vec2,
+    },
+}
 
 fn add_event_handlers(
     mut world: DeferredWorld,
@@ -86,8 +93,10 @@ fn add_event_handlers(
     _component_id: ComponentId,
 ) {
     let mut observers = [
-        picking_event_sprite(handle_click_sprite),
-        Observer::new(handle_drag),
+        Observer::new(handle_click_sprite),
+        picking_event_sprite(handle_dragstart_sprite),
+        Observer::new(handle_dragend_sprite),
+        Observer::new(handle_drag_sprite),
     ];
     for observer in &mut observers {
         observer.watch_entity(targeted_entity);
@@ -100,6 +109,7 @@ where
     E: Reflect + std::fmt::Debug + Clone + HitDataEvent,
 {
     event: &'s E,
+    input_state: &'s mut InputState,
     buffer_coord: Vec2,
     editor: BorrowedWithFontSystem<'s, cosmic_text::Editor<'static>>,
 }
@@ -108,9 +118,65 @@ trait HitDataEvent {
     fn hit(&self) -> &bevy::picking::backend::HitData;
 }
 
-impl HitDataEvent for bevy::picking::events::Click {
-    fn hit(&self) -> &bevy::picking::backend::HitData {
-        &self.hit
+macro_rules! impl_hit_data_event {
+    ($ty:ty) => {
+        impl HitDataEvent for $ty {
+            fn hit(&self) -> &bevy::picking::backend::HitData {
+                &self.hit
+            }
+        }
+    };
+    ($($ty:ty),+) => {
+        $(impl_hit_data_event!($ty);)*
+    };
+}
+
+impl_hit_data_event!(Click, DragStart);
+
+fn warn_no_editor_on_picking_event() {
+    warn!(
+        message = "Failed to get editor from picking event",
+        note = "Please only use the `InputState` component on entities with a `CosmicEditor` component",
+        note = "`CosmicEditor` components should be automatically added to `CosmicEditBuffer` entities"
+    );
+}
+
+/// Responsible for translating a world coordinate to a buffer coordinate
+#[derive(QueryData)]
+struct SpriteRelativeQuery {
+    global_transform: &'static GlobalTransform,
+    text_align: &'static CosmicTextAlign,
+    size: CosmicWidgetSize,
+}
+
+impl SpriteRelativeQueryItem<'_> {
+    fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Option<Vec2> {
+        if hit_data.normal != Some(Vec3::Z) {
+            warn!(?hit_data, "Normal is not out of screen, skipping");
+            return None;
+        }
+
+        let world_position = hit_data.position?;
+        let SpriteRelativeQueryItem {
+            global_transform,
+            text_align,
+            size,
+        } = self;
+
+        let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
+        let relative_transform = position_transform.reparented_to(global_transform);
+        let relative_position = relative_transform.translation.xy();
+
+        let render_target_size = size.logical_size().ok()?;
+        let transformation = WidgetBufferCoordTransformation::new(
+            text_align.vertical,
+            render_target_size,
+            buffer_size,
+        );
+        // .xy swizzle depends on normal vector being perfectly out of screen
+        let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
+
+        Some(buffer_coord)
     }
 }
 
@@ -122,62 +188,28 @@ where
 {
     Observer::new(
         move |mut trigger: Trigger<Pointer<E>>,
-              mut editor: Query<(
-            &mut InputState,
-            &mut CosmicEditor,
-            &GlobalTransform,
-            &CosmicTextAlign,
-            CosmicWidgetSize,
-        )>,
+              mut editor: Query<(&mut InputState, &mut CosmicEditor, SpriteRelativeQuery)>,
               mut font_system: ResMut<CosmicFontSystem>| {
             trigger.propagate(false);
 
             let font_system = &mut font_system.0;
             let target = trigger.target;
-            let Ok((input_state, mut editor, global_transform, text_align, size)) =
-                editor.get_mut(target)
-            else {
-                warn_once!(
-                    message = "Failed to get editor from picking event",
-                    note = "This may be just an edge case"
-                );
+            let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
+                warn_no_editor_on_picking_event();
                 return;
             };
+
             let event = &trigger.event().event;
 
-            if event.hit().normal != Some(Vec3::Z) {
-                warn!(?event, "Normal is not out of screen, skipping");
-                return;
-            }
-
-            let Some(world_position) = event.hit().position else {
-                return;
-            };
-
-            let position_transform =
-                GlobalTransform::from(Transform::from_translation(world_position));
-            let relative_transform = position_transform.reparented_to(global_transform);
-            let relative_position = relative_transform.translation.xy();
-
-            let Ok(render_target_size) = size.logical_size() else {
-                return;
-            };
             let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
-            let transformation = WidgetBufferCoordTransformation::new(
-                text_align.vertical,
-                render_target_size,
-                buffer_size,
-            );
-            // .xy swizzle depends on normal vector being perfectly out of screen
-            let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
-            let Some(cursor_hit) =
-                editor.with_buffer(|buffer| buffer.hit(buffer_coord.x, buffer_coord.y))
+            let Some(buffer_coord) = sprite_relative.compute_buffer_coord(event.hit(), buffer_size)
             else {
                 return;
             };
 
             let data = SpritePickingEvent {
                 event,
+                input_state: input_state.into_inner(),
                 buffer_coord,
                 editor: editor.borrow_with(font_system),
             };
@@ -187,21 +219,145 @@ where
     )
 }
 
-fn handle_click_sprite(sprite_picking_event: SpritePickingEvent<'_, Click>) {
-    let SpritePickingEvent {
-        event: click,
-        mut editor,
-        buffer_coord,
-    } = sprite_picking_event;
+fn handle_click_sprite(
+    trigger: Trigger<Pointer<Click>>,
+    mut editor: Query<(&mut CosmicEditor, SpriteRelativeQuery)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+    buttons: Res<ButtonInput<KeyCode>>,
+) {
+    let font_system = &mut font_system.0;
+    let target = trigger.target;
+    let click = trigger.event();
 
-    editor.action(Action::Click {
-        x: buffer_coord.x as i32,
-        y: buffer_coord.y as i32,
-    });
+    if click.button != PointerButton::Primary {
+        return;
+    }
+
+    let Ok((mut editor, sprite_relative)) = editor.get_mut(target) else {
+        warn_no_editor_on_picking_event();
+        return;
+    };
+    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
+    let mut editor = editor.borrow_with(font_system);
+
+    let Some(buffer_coord) = sprite_relative.compute_buffer_coord(click.hit(), buffer_size) else {
+        return;
+    };
+
+    let shift_pressed = buttons.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+
+    if shift_pressed {
+        editor.action(Action::Drag {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        });
+    } else {
+        editor.action(Action::Click {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        });
+    }
 }
 
-fn handle_drag(trigger: Trigger<Pointer<Drag>>) {
-    // debug!(?trigger, "drag");
+fn handle_dragstart_sprite(sprite_picking_event: SpritePickingEvent<'_, DragStart>) {
+    let SpritePickingEvent {
+        event,
+        input_state,
+        buffer_coord,
+        mut editor,
+    } = sprite_picking_event;
+
+    if event.button != PointerButton::Primary {
+        return;
+    }
+
+    match *input_state {
+        InputState::Idle => {
+            *input_state = InputState::Dragging {
+                initial_buffer_coord: sprite_picking_event.buffer_coord,
+            };
+            editor.action(Action::Click {
+                x: buffer_coord.x as i32,
+                y: buffer_coord.y as i32,
+            });
+            editor.action(Action::Drag {
+                x: buffer_coord.x as i32,
+                y: buffer_coord.y as i32,
+            });
+        }
+        InputState::Dragging { .. } => {
+            warn!(
+                message = "Somehow, a `DragStart` event was received before a previous `DragStart` event was ended with a `DragEnd`",
+                note = "Ignoring",
+            );
+        }
+    }
+}
+
+fn handle_drag_sprite(
+    trigger: Trigger<Pointer<Drag>>,
+    mut editor: Query<(&InputState, &mut CosmicEditor)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    let font_system = &mut font_system.0;
+    let event = &trigger.event;
+    let entity = trigger.target;
+
+    if event.button != PointerButton::Primary {
+        return;
+    }
+
+    let Ok((input_state, mut editor)) = editor.get_mut(entity) else {
+        warn_no_editor_on_picking_event();
+        return;
+    };
+    match *input_state {
+        InputState::Idle => {
+            warn!(
+                message = "Somehow, a `Drag` event was received before a previous `DragStart` event was received",
+                note = "Ignoring",
+            );
+        }
+        InputState::Dragging {
+            initial_buffer_coord,
+        } => {
+            let new_buffer_coord = initial_buffer_coord + event.distance;
+            editor.action(
+                font_system,
+                Action::Drag {
+                    x: new_buffer_coord.x as i32,
+                    y: new_buffer_coord.y as i32,
+                },
+            );
+        }
+    }
+}
+
+fn handle_dragend_sprite(trigger: Trigger<Pointer<DragEnd>>, mut editor: Query<&mut InputState>) {
+    let event = &trigger.event;
+    let entity = trigger.target;
+
+    if event.button != PointerButton::Primary {
+        return;
+    }
+
+    let Ok(entity_mut) = editor.get_mut(entity) else {
+        warn_no_editor_on_picking_event();
+        return;
+    };
+    let input_state = entity_mut.into_inner();
+
+    match *input_state {
+        InputState::Idle => {
+            warn!(
+                message = "Somehow, a `DragEnd` event was received before a previous `DragStart` event was received",
+                note = "Ignoring",
+            );
+        }
+        InputState::Dragging { .. } => {
+            *input_state = InputState::Idle;
+        }
+    }
 }
 
 // let (padding_x, padding_y) = match text_position {
