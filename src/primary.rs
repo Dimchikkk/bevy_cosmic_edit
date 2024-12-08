@@ -29,6 +29,9 @@ impl Plugin for CosmicEditPlugin {
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));
 
         app.register_type::<CosmicRenderOutput>();
+
+        #[cfg(feature = "internal-debugging")]
+        app.add_plugins(crate::debug::plugin);
     }
 }
 

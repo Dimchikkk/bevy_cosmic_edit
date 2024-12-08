@@ -40,7 +40,7 @@ pub(crate) fn add_editor_to_focused(
         };
         let mut editor = Editor::new(b.clone());
         editor.set_redraw(true);
-        // trace!("Adding editor to focused widget: {:#?}", editor);
+        trace!("Adding editor to focused widget");
         commands.entity(e).insert(CosmicEditor::new(editor));
     }
 }
@@ -55,10 +55,7 @@ pub(crate) fn drop_editor_unfocused(
         for (e, mut b, editor) in q.iter_mut() {
             b.lines = editor.with_buffer(|buf| buf.lines.clone());
             b.set_redraw(true);
-            // trace!(
-            //     "Removing editor from all entities as there is no focussed widget: {:#?}",
-            //     editor.editor
-            // );
+            trace!("Removing editor from all entities as there is no focussed widget",);
             commands.entity(e).remove::<CosmicEditor>();
         }
     } else if let Some(focused) = active_editor.0 {
@@ -66,10 +63,7 @@ pub(crate) fn drop_editor_unfocused(
             if e != focused {
                 b.lines = editor.with_buffer(|buf| buf.lines.clone());
                 b.set_redraw(true);
-                // trace!(
-                //     "Removing editor from entity as its not focussed anymore: {:#?}",
-                //     editor.editor
-                // );
+                trace!("Removing editor from entity as its not focussed anymore",);
                 commands.entity(e).remove::<CosmicEditor>();
             }
         }

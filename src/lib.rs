@@ -105,4 +105,6 @@ pub use user_select::UserSelectNone;
 mod user_select;
 pub mod utils;
 pub(crate) use render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize};
+#[cfg(feature = "internal-debugging")]
+mod debug;
 pub mod render_implementations;

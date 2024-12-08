@@ -134,8 +134,15 @@ where
 
             let font_system = &mut font_system.0;
             let target = trigger.target;
-            let (input_state, mut editor, global_transform, text_align, size) =
-                editor.get_mut(target).unwrap();
+            let Ok((input_state, mut editor, global_transform, text_align, size)) =
+                editor.get_mut(target)
+            else {
+                warn_once!(
+                    message = "Failed to get editor from picking event",
+                    note = "This may be just an edge case"
+                );
+                return;
+            };
             let event = &trigger.event().event;
 
             if event.hit().normal != Some(Vec3::Z) {
