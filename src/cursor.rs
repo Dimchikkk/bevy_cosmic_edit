@@ -1,7 +1,7 @@
 // This will all be rewritten soon, looking toward per-widget cursor control
 // Rewrite should address issue #93 too
 
-use crate::prelude::*;
+use crate::{prelude::*, CameraFilter};
 use bevy::{
     input::mouse::MouseMotion,
     window::{PrimaryWindow, SystemCursorIcon},
@@ -18,10 +18,7 @@ impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (
-                (crate::render_implementations::hover_sprites, hover_ui),
-                change_cursor,
-            )
+            ((hover_sprites, hover_ui), change_cursor)
                 .chain()
                 .run_if(not(resource_exists::<CursorPluginDisabled>)),
         )
@@ -104,4 +101,57 @@ pub(crate) fn hover_ui(
             _ => {}
         }
     }
+}
+
+pub(crate) fn hover_sprites(
+    windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
+    mut cosmic_edit_query: Query<
+        (&mut Sprite, &Visibility, &GlobalTransform, &HoverCursor),
+        With<CosmicEditBuffer>,
+    >,
+    camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
+    mut hovered: Local<bool>,
+    mut last_hovered: Local<bool>,
+    mut evw_hover_in: EventWriter<TextHoverIn>,
+    mut evw_hover_out: EventWriter<TextHoverOut>,
+) {
+    *hovered = false;
+    if windows.iter().len() == 0 {
+        return;
+    }
+    let window = windows.single();
+    let (camera, camera_transform) = camera_q.single();
+
+    let mut icon = CursorIcon::System(SystemCursorIcon::Default);
+
+    for (sprite, visibility, node_transform, hover) in &mut cosmic_edit_query.iter_mut() {
+        if visibility == Visibility::Hidden {
+            continue;
+        }
+
+        let size = sprite.custom_size.unwrap_or(Vec2::ONE);
+        if crate::render_implementations::get_node_cursor_pos(
+            window,
+            node_transform,
+            size,
+            crate::render_implementations::SourceType::Sprite,
+            camera,
+            camera_transform,
+        )
+        .is_some()
+        {
+            *hovered = true;
+            icon = hover.0.clone();
+        }
+    }
+
+    if *last_hovered != *hovered {
+        if *hovered {
+            evw_hover_in.send(TextHoverIn(icon));
+        } else {
+            evw_hover_out.send(TextHoverOut);
+        }
+    }
+
+    *last_hovered = *hovered;
 }

@@ -15,13 +15,13 @@ impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (hide_password_text.before(crate::input::InputSet::PreUpdate),),
+            (hide_password_text.before(crate::input::InputSet),),
         )
         .add_systems(
             Update,
             (restore_password_text
-                .before(crate::input::kb_input_text)
-                .after(crate::input::kb_move_cursor),),
+                .before(crate::input::keyboard::kb_input_text)
+                .after(crate::input::keyboard::kb_move_cursor),),
         )
         .add_systems(
             PostUpdate,

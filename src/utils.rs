@@ -3,9 +3,7 @@ use crate::{
     cosmic_edit::ReadOnly,
     prelude::*,
     primary::CameraFilter,
-    render_implementations::{
-        get_node_cursor_pos, ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType,
-    },
+    render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType},
 };
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};
 use cosmic_text::Edit;
@@ -60,7 +58,7 @@ pub fn change_active_editor_sprite(
             let Ok(size) = size.logical_size() else {
                 continue;
             };
-            if get_node_cursor_pos(
+            if crate::render_implementations::get_node_cursor_pos(
                 window,
                 node_transform,
                 size,

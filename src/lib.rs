@@ -43,6 +43,10 @@
 //! ## Feature flags
 #![doc = document_features::document_features!()]
 //!
+//! ## Implementation details
+//!
+//! See [render_implementations](crate::render_implementations)
+//!
 //! ## License
 //!
 //! MIT or Apache-2.0
@@ -54,6 +58,7 @@ pub mod prelude {
     pub(crate) use bevy::text::SwashCache;
     #[cfg_attr(not(doc), allow(unused_imports))]
     pub(crate) use cosmic_text::Buffer;
+    pub(crate) use cosmic_text::Edit as _;
 
     // internal re-exports
     pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
@@ -100,9 +105,9 @@ mod input;
 pub use password::*;
 mod password;
 pub use placeholder::*;
+mod double_click;
 mod placeholder;
 mod render;
-mod double_click;
 pub mod render_implementations;
 pub use user_select::*;
 mod user_select;
