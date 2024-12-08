@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use bevy::ecs::world::DeferredWorld;
+
 use crate::prelude::*;
 
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
@@ -95,8 +97,24 @@ impl Default for CosmicFontConfig {
 }
 
 /// Used to ferry data from a [`CosmicEditBuffer`]
-#[derive(Component, Reflect, Default, Debug, Deref)]
+#[derive(Component, Default, Reflect, Debug, Deref)]
+#[component(on_add = new_image_from_default)]
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
+
+/// Without this, multiple buffers will show the same image
+/// as the focussed editor. IDK why
+fn new_image_from_default(
+    mut world: DeferredWorld,
+    entity: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    let mut images = world.resource_mut::<Assets<Image>>();
+    let default_image = images.add(Image::default());
+    *world
+        .entity_mut(entity)
+        .get_mut::<CosmicRenderOutput>()
+        .unwrap() = CosmicRenderOutput(default_image);
+}
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
