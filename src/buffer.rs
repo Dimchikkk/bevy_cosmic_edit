@@ -1,7 +1,7 @@
 use crate::{
     prelude::*, render_implementations::OutputToEntity, CosmicBackgroundColor,
-    CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, HoverCursor, MaxChars,
-    MaxLines, SelectionColor,
+    CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor, MaxChars, MaxLines,
+    SelectionColor,
 };
 use bevy::{
     ecs::{component::ComponentId, world::DeferredWorld},
@@ -114,7 +114,7 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
     MaxChars,
     CosmicWrap,
     CosmicTextAlign,
-    HoverCursor,
+    crate::input::hover::HoverCursor,
     crate::input::InputState
 )]
 pub struct CosmicEditBuffer(pub Buffer);

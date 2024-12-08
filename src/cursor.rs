@@ -21,12 +21,7 @@ impl Plugin for CursorPlugin {
             ((hover_sprites, hover_ui), change_cursor)
                 .chain()
                 .run_if(not(resource_exists::<CursorPluginDisabled>)),
-        )
-        .add_event::<TextHoverIn>()
-        .register_type::<TextHoverIn>()
-        .add_event::<TextHoverOut>()
-        .register_type::<TextHoverOut>()
-        .register_type::<HoverCursor>();
+        );
     }
 }
 
@@ -34,7 +29,7 @@ impl Plugin for CursorPlugin {
 ///
 /// By default is [`CursorIcon::System(SystemCursorIcon::Text)`]
 #[derive(Component, Reflect, Deref)]
-pub struct HoverCursor(pub CursorIcon);
+struct HoverCursor(pub CursorIcon);
 
 impl Default for HoverCursor {
     fn default() -> Self {
@@ -47,12 +42,12 @@ impl Default for HoverCursor {
 /// Event is emitted when cursor enters a text widget.
 /// Event contains the cursor from the buffer's [`HoverCursor`]
 #[derive(Event, Reflect, Deref, Debug)]
-pub struct TextHoverIn(pub CursorIcon);
+struct TextHoverIn(pub CursorIcon);
 
 /// For use with custom cursor control
 /// Event is emitted when cursor leaves a text widget
 #[derive(Event, Reflect, Debug)]
-pub struct TextHoverOut;
+struct TextHoverOut;
 
 pub(crate) fn change_cursor(
     mut evr_hover_in: EventReader<TextHoverIn>,

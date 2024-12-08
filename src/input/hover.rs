@@ -1,3 +1,9 @@
+use bevy::{
+    ecs::system::SystemParam,
+    window::{PrimaryWindow, SystemCursorIcon},
+    winit::cursor::CursorIcon,
+};
+
 use crate::prelude::*;
 
 use super::{warn_no_editor_on_picking_event, InputState};
@@ -10,16 +16,29 @@ pub struct TextHoverIn;
 #[derive(Event, Debug, Reflect)]
 pub struct TextHoverOut;
 
+/// What cursor icon to show when hovering over a widget
+///
+/// By default is [`CursorIcon::System(SystemCursorIcon::Text)`]
+#[derive(Component, Reflect, Deref)]
+pub struct HoverCursor(pub CursorIcon);
+
+impl Default for HoverCursor {
+    fn default() -> Self {
+        Self(CursorIcon::System(SystemCursorIcon::Text))
+    }
+}
+
 impl InputState {
     /// `Over` event handler
     pub fn start_hovering(&mut self) {
+        trace!("Starting hover");
         match self {
             InputState::Idle => *self = InputState::Hovering,
             InputState::Hovering | InputState::Dragging { .. } => {
-                warn!(
-                    message = "Somehow, a `Over` event was received before a previous `Over` event was ended with a `Out`",
-                    note = "Ignoring",
-                );
+                // warn!(
+                //     message = "Started hovering while not idle",
+                //     state = ?self,
+                // );
             }
         }
     }
@@ -28,15 +47,29 @@ impl InputState {
         matches!(self, InputState::Hovering)
     }
 
+    /// Handler for [`Move`] event
+    pub fn continue_hovering(&mut self) {
+        match self {
+            InputState::Hovering => {}
+            InputState::Idle | InputState::Dragging { .. } => {
+                // warn!(
+                //     message = "Continued hovering while not in hovering state",
+                //     state = ?self,
+                // );
+            }
+        }
+    }
+
     /// `Out` event handler
     pub fn end_hovering(&mut self) {
+        trace!("Ending hoverr");
         match self {
             InputState::Hovering => *self = InputState::Idle,
             InputState::Idle | InputState::Dragging { .. } => {
-                warn!(
-                    message = "Somehow, a `Out` event was received before a previous `Over` event was received",
-                    note = "Ignoring",
-                );
+                // warn!(
+                //     message = "Stopped hovering while not in hovering state",
+                //     state = ?self,
+                // );
             }
         }
     }
@@ -45,7 +78,7 @@ impl InputState {
 pub(super) fn handle_hover_start(
     trigger: Trigger<Pointer<Over>>,
     mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
-    hover_in_evw: EventWriter<TextHoverIn>,
+    mut hover_in_evw: EventWriter<TextHoverIn>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
         warn_no_editor_on_picking_event();
@@ -55,18 +88,35 @@ pub(super) fn handle_hover_start(
     input_state.start_hovering();
 
     if input_state.is_hovering() {
-
-        // change cursor
+        hover_in_evw.send(TextHoverIn);
     }
 }
 
-pub(super) fn handle_hover_end(
-    trigger: Trigger<Pointer<Out>>,
+pub(super) fn handle_hover_continue(
+    trigger: Trigger<Pointer<Move>>,
     mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
         warn_no_editor_on_picking_event();
         return;
     };
+
+    input_state.start_hovering();
+}
+
+pub(super) fn handle_hover_end(
+    trigger: Trigger<Pointer<Out>>,
+    mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
+    mut hover_out_evw: EventWriter<TextHoverOut>,
+) {
+    let Ok(mut input_state) = editor.get_mut(trigger.target) else {
+        warn_no_editor_on_picking_event();
+        return;
+    };
+
     input_state.end_hovering();
+
+    if !input_state.is_hovering() {
+        hover_out_evw.send(TextHoverOut);
+    }
 }

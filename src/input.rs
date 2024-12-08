@@ -12,13 +12,14 @@ use bevy::{
 };
 use cosmic_text::{Action, Edit, Motion, Selection};
 
-pub(crate) mod clipboard;
-pub(crate) mod hover;
-pub(crate) mod keyboard;
+pub mod clipboard;
+pub mod hover;
+pub mod keyboard;
 // mod click;
-pub(crate) mod click;
-pub(crate) mod drag;
-pub(crate) mod scroll;
+pub mod click;
+pub mod cursor_icon;
+pub mod drag;
+pub mod scroll;
 
 /// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -35,10 +36,15 @@ impl Plugin for InputPlugin {
                     keyboard::kb_move_cursor,
                     keyboard::kb_input_text,
                     clipboard::kb_clipboard,
+                    cursor_icon::update_cursor_hover_state,
                 )
                     .chain()
                     .in_set(InputSet),
-            );
+            )
+            .add_event::<hover::TextHoverIn>()
+            .register_type::<hover::TextHoverIn>()
+            .add_event::<hover::TextHoverOut>()
+            .add_event::<hover::TextHoverOut>();
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -72,6 +78,7 @@ fn add_event_handlers(
         Observer::new(drag::handle_dragend),
         Observer::new(drag::handle_drag),
         Observer::new(hover::handle_hover_start),
+        Observer::new(hover::handle_hover_continue),
         Observer::new(hover::handle_hover_end),
         Observer::new(cancel),
     ];

@@ -81,7 +81,7 @@ impl ClickState<'_> {
 
         if self.res.timer_since_last_click.just_finished() {
             self.res.click_state = None;
-            debug!("Resetting click timer");
+            // debug!("Resetting click timer");
         }
     }
 }

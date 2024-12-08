@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    cosmic_text::Attrs, prelude::*, CosmicWrap, InputSet, MaxLines, Password, Placeholder,
+    cosmic_text::Attrs, prelude::*, CosmicWrap, MaxLines, Password, Placeholder,
 };
 
 fn setup(mut commands: Commands) {
@@ -35,7 +35,7 @@ fn main() {
                 change_active_editor_sprite,
                 deselect_editor_on_esc,
                 // If you don't .after(InputSet) you'll just see the hashed-out safe text
-                print_editor_text.after(InputSet),
+                print_editor_text.after(bevy_cosmic_edit::input::InputSet),
             ),
         )
         .run();

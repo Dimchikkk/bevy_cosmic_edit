@@ -7,6 +7,22 @@ use super::{warn_no_editor_on_picking_event, InputState};
 use cosmic_text::{Action, Motion, Selection};
 use render_implementations::RelativeQuery;
 
+impl InputState {
+    /// Handler for [`Click`] event
+    pub fn handle_click(&self) {
+        trace!("Clicked");
+        match self {
+            InputState::Idle | InputState::Hovering => {}
+            InputState::Dragging { .. } => {
+                // warn!(
+                //     message = "Click event received while dragging",
+                //     state = ?self,
+                // )
+            }
+        }
+    }
+}
+
 pub(super) fn handle_click(
     trigger: Trigger<Pointer<Click>>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
@@ -33,16 +49,7 @@ pub(super) fn handle_click(
         return;
     };
 
-    match *input_state {
-        InputState::Idle => {}
-        InputState::Hovering | InputState::Dragging { .. } => {
-            warn!(
-                message = "Somehow, a `Click` event was received before a previous `DragEnd` event was received",
-                note = "Ignoring",
-            );
-            return;
-        }
-    }
+    input_state.handle_click();
 
     match click_state.feed_click() {
         ClickCount::Single => {

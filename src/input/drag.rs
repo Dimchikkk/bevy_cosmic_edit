@@ -4,6 +4,59 @@ use super::{warn_no_editor_on_picking_event, InputState};
 use cosmic_text::Action;
 use render_implementations::RelativeQuery;
 
+impl InputState {
+    pub fn is_dragging(&self) -> bool {
+        matches!(self, InputState::Dragging { .. })
+    }
+
+    /// Handler for [`DragStart`] event
+    pub fn start_dragging(&mut self, initial_buffer_coord: Vec2) {
+        trace!("Starting a drag");
+        match self {
+            InputState::Idle | InputState::Hovering => {
+                *self = InputState::Dragging {
+                    initial_buffer_coord,
+                };
+            }
+            InputState::Dragging { .. } => {
+                // warn!(
+                //     message = "Somehow, a `DragStart` event was received before a previous `DragStart` event was ended with a `DragEnd`",
+                //     note = "Ignoring",
+                // );
+            }
+        }
+    }
+
+    /// Handler for [`Move`]
+    pub fn continue_dragging(&self) {
+        match self {
+            InputState::Dragging { .. } => {}
+            InputState::Idle | InputState::Hovering => {
+                // warn!(
+                //     message = "Somehow, a `Move` event was received before a previous `DragStart` event was received",
+                //     note = "Ignoring",
+                // );
+            }
+        }
+    }
+
+    /// Handler for [`Out`] event
+    pub fn end_dragging(&mut self) {
+        trace!("Ending drag");
+        match self {
+            InputState::Dragging { .. } => {
+                *self = InputState::Idle;
+            }
+            InputState::Idle | InputState::Hovering => {
+                // warn!(
+                //     message = "Somehow, a `DragEnd` event was received before a previous `DragStart` event was received",
+                //     note = "Ignoring",
+                // );
+            }
+        }
+    }
+}
+
 pub(super) fn handle_dragstart(
     trigger: Trigger<Pointer<DragStart>>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery), With<CosmicEditBuffer>>,
@@ -25,26 +78,17 @@ pub(super) fn handle_dragstart(
         return;
     }
 
-    match *input_state {
-        InputState::Idle => {
-            *input_state = InputState::Dragging {
-                initial_buffer_coord: buffer_coord,
-            };
-            editor.action(Action::Click {
-                x: buffer_coord.x as i32,
-                y: buffer_coord.y as i32,
-            });
-            editor.action(Action::Drag {
-                x: buffer_coord.x as i32,
-                y: buffer_coord.y as i32,
-            });
-        }
-        InputState::Hovering | InputState::Dragging { .. } => {
-            warn!(
-                message = "Somehow, a `DragStart` event was received before a previous `DragStart` event was ended with a `DragEnd`",
-                note = "Ignoring",
-            );
-        }
+    input_state.start_dragging(buffer_coord);
+
+    if input_state.is_dragging() {
+        editor.action(Action::Click {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        });
+        editor.action(Action::Drag {
+            x: buffer_coord.x as i32,
+            y: buffer_coord.y as i32,
+        });
     }
 }
 
@@ -65,25 +109,21 @@ pub(super) fn handle_drag(
         warn_no_editor_on_picking_event();
         return;
     };
-    match *input_state {
-        InputState::Hovering | InputState::Idle => {
-            warn!(
-                message = "Somehow, a `Drag` event was received before a previous `DragStart` event was received",
-                note = "Ignoring",
-            );
-        }
-        InputState::Dragging {
-            initial_buffer_coord,
-        } => {
-            let new_buffer_coord = initial_buffer_coord + event.distance;
-            editor.action(
-                font_system,
-                Action::Drag {
-                    x: new_buffer_coord.x as i32,
-                    y: new_buffer_coord.y as i32,
-                },
-            );
-        }
+
+    input_state.continue_dragging();
+
+    if let InputState::Dragging {
+        initial_buffer_coord,
+    } = *input_state
+    {
+        let new_buffer_coord = initial_buffer_coord + event.distance;
+        editor.action(
+            font_system,
+            Action::Drag {
+                x: new_buffer_coord.x as i32,
+                y: new_buffer_coord.y as i32,
+            },
+        );
     }
 }
 
@@ -104,15 +144,5 @@ pub(super) fn handle_dragend(
     };
     let input_state = entity_mut.into_inner();
 
-    match *input_state {
-        InputState::Hovering | InputState::Idle => {
-            warn!(
-                message = "Somehow, a `DragEnd` event was received before a previous `DragStart` event was received",
-                note = "Ignoring",
-            );
-        }
-        InputState::Dragging { .. } => {
-            *input_state = InputState::Idle;
-        }
-    }
+    input_state.end_dragging();
 }
