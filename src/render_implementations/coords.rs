@@ -11,7 +11,7 @@ use crate::{prelude::*, CosmicTextAlign};
 #[derive(QueryData)]
 pub(crate) struct RelativeQuery {
     /// Widget size
-    size: CosmicWidgetSize,
+    widget_size: CosmicWidgetSize,
     text_align: &'static CosmicTextAlign,
     sprite_global_transform: &'static GlobalTransform,
     ui_cursor_position: Option<&'static RelativeCursorPosition>,
@@ -21,7 +21,7 @@ impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
     type Target = render_implementations::RenderTypeScanItem<'s>;
 
     fn deref(&self) -> &Self::Target {
-        self.size.deref()
+        self.widget_size.deref()
     }
 }
 
@@ -44,7 +44,7 @@ impl RelativeQueryItem<'_> {
                 let RelativeQueryItem {
                     sprite_global_transform,
                     text_align,
-                    size,
+                    widget_size,
                     ..
                 } = self;
 
@@ -53,7 +53,7 @@ impl RelativeQueryItem<'_> {
                 let relative_transform = position_transform.reparented_to(sprite_global_transform);
                 let relative_position = relative_transform.translation.xy();
 
-                let render_target_size = size.logical_size()?;
+                let render_target_size = widget_size.logical_size()?;
                 let transformation = WidgetBufferCoordTransformation::new(
                     text_align.vertical,
                     render_target_size,
@@ -67,7 +67,7 @@ impl RelativeQueryItem<'_> {
             }
             SourceType::Ui => {
                 let RelativeQueryItem {
-                    size,
+                    widget_size,
                     text_align,
                     ui_cursor_position,
                     ..
@@ -77,7 +77,7 @@ impl RelativeQueryItem<'_> {
                     .normalized
                     .ok_or(RenderTargetError::UiExpectedCursorPosition)?;
 
-                let widget_size = size.logical_size()?;
+                let widget_size = widget_size.logical_size()?;
                 let relative_position = cursor_position_normalized * widget_size;
 
                 let transformation = WidgetBufferCoordTransformation::new(

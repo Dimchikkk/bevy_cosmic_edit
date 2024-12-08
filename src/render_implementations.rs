@@ -7,10 +7,50 @@
 //! Requires [`ImageNode`] for rendering and [`Button`] for [`Interaction`]s
 // TODO: Remove `CosmicWidgetSize`?
 
+mod prelude {
+    pub(super) use super::error::Result;
+    pub(super) use super::{RenderTargetError, SourceType};
+}
+
+pub use error::*;
+mod error {
+    pub type Error = crate::render_implementations::RenderTargetError;
+    pub type Result<T> = core::result::Result<T, RenderTargetError>;
+
+    #[derive(Debug)]
+    pub enum RenderTargetError {
+        /// When no recognized [`SourceType`] could be found
+        NoTargetsAvailable,
+
+        /// When more than one [`SourceType`] was detected.
+        ///
+        /// This will always be thrown if more than one target type is available,
+        /// there is no propritisation procedure as this should be considered a
+        /// logic error.
+        MoreThanOneTargetAvailable,
+
+        /// When a [`RenderTypeScan`] was successfully conducted yet the expected
+        /// [required component/s](https://docs.rs/bevy/latest/bevy/ecs/prelude/trait.Component.html#required-components)
+        /// were not found
+        RequiredComponentNotAvailable,
+
+        /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
+        SpriteCustomSizeNotSet,
+
+        SpriteUnexpectedNormal,
+
+        SpriteExpectedHitdataPosition,
+
+        UiExpectedCursorPosition,
+    }
+}
+
 pub use coords::*;
 mod coords;
 pub use output::*;
 mod output;
+pub use widget_size::*;
+mod widget_size;
 
 use bevy::{
     ecs::query::{QueryData, QueryFilter},
@@ -51,35 +91,6 @@ pub enum SourceType {
     Sprite,
 }
 
-#[derive(Debug)]
-pub enum RenderTargetError {
-    /// When no recognized [`SourceType`] could be found
-    NoTargetsAvailable,
-
-    /// When more than one [`SourceType`] was detected.
-    ///
-    /// This will always be thrown if more than one target type is available,
-    /// there is no propritisation procedure as this should be considered a
-    /// logic error.
-    MoreThanOneTargetAvailable,
-
-    /// When a [`RenderTypeScan`] was successfully conducted yet the expected
-    /// [required component/s](https://docs.rs/bevy/latest/bevy/ecs/prelude/trait.Component.html#required-components)
-    /// were not found
-    RequiredComponentNotAvailable,
-
-    /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
-    SpriteCustomSizeNotSet,
-
-    SpriteUnexpectedNormal,
-
-    SpriteExpectedHitdataPosition,
-
-    UiExpectedCursorPosition,
-}
-
-type Result<T> = core::result::Result<T, RenderTargetError>;
-
 #[derive(QueryData)]
 pub struct RenderTypeScan {
     is_sprite: Has<TextEdit2d>,
@@ -93,71 +104,6 @@ impl RenderTypeScanItem<'_> {
             (false, true) => Ok(SourceType::Ui),
             (true, true) => Err(RenderTargetError::MoreThanOneTargetAvailable),
             (false, false) => Err(RenderTargetError::NoTargetsAvailable),
-        }
-    }
-}
-
-/// Query the size of a widget using any [`SourceType`]
-#[derive(QueryData)]
-pub struct CosmicWidgetSize {
-    scan: RenderTypeScan,
-    sprite: Option<&'static Sprite>,
-    ui: Option<&'static ComputedNode>,
-}
-
-/// Allows `.scan()` to be called on a [`CosmicWidgetSize`] through deref
-impl<'s> std::ops::Deref for CosmicWidgetSizeItem<'s> {
-    type Target = RenderTypeScanItem<'s>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.scan
-    }
-}
-
-/// An optimization [`QueryFilter`](bevy::ecs::query::QueryFilter)
-#[derive(QueryFilter)]
-pub(crate) struct ChangedCosmicWidgetSize {
-    sprite: Changed<Sprite>,
-    ui: Changed<ComputedNode>,
-}
-
-pub(crate) trait NodeSizeExt {
-    fn logical_size(&self) -> Vec2;
-}
-
-impl NodeSizeExt for ComputedNode {
-    fn logical_size(&self) -> Vec2 {
-        self.size() * self.inverse_scale_factor()
-    }
-}
-
-impl CosmicWidgetSizeItem<'_> {
-    /// Automatically logs any errors
-    pub fn logical_size(&self) -> Result<Vec2> {
-        let ret = self._logical_size();
-        if let Err(err) = &ret {
-            debug!(message = "Finding the size of a widget failed", ?err);
-        }
-        ret
-    }
-
-    fn _logical_size(&self) -> Result<Vec2> {
-        let source_type = self.scan.scan()?;
-        match source_type {
-            SourceType::Ui => {
-                let ui = self
-                    .ui
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
-                Ok(ui.logical_size())
-            }
-            SourceType::Sprite => {
-                let sprite = self
-                    .sprite
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
-                Ok(sprite
-                    .custom_size
-                    .ok_or(RenderTargetError::SpriteCustomSizeNotSet)?)
-            }
         }
     }
 }
