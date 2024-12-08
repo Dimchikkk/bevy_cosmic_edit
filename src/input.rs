@@ -88,12 +88,13 @@ fn add_event_handlers(
     world.commands().spawn_batch(observers);
 }
 
+// todo: avoid these warnings on ReadOnly
 fn warn_no_editor_on_picking_event() {
-    warn!(
-        message = "Fai
-            led to get editor from picking event",
+    debug!(
+        message = "Failed to get editor from picking event",
+        note = "This is a false alarm for ReadOnly buffers",
         note = "Please only use the `InputState` component on entities with a `CosmicEditor` component",
-        note = "`CosmicEditor` components should be automatically added to focussed `CosmicEditBuffer` entities"
+        note = "`CosmicEditor` components should be automatically added to focussed `CosmicEditBuffer` entities",
     );
 }
 

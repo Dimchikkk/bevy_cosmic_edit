@@ -34,12 +34,7 @@ impl InputState {
         trace!("Starting hover");
         match self {
             InputState::Idle => *self = InputState::Hovering,
-            InputState::Hovering | InputState::Dragging { .. } => {
-                // warn!(
-                //     message = "Started hovering while not idle",
-                //     state = ?self,
-                // );
-            }
+            InputState::Hovering | InputState::Dragging { .. } => {}
         }
     }
 
@@ -50,12 +45,10 @@ impl InputState {
     /// Handler for [`Move`] event
     pub fn continue_hovering(&mut self) {
         match self {
-            InputState::Hovering => {}
-            InputState::Idle | InputState::Dragging { .. } => {
-                // warn!(
-                //     message = "Continued hovering while not in hovering state",
-                //     state = ?self,
-                // );
+            InputState::Hovering | InputState::Dragging { .. } => {}
+            InputState::Idle => {
+                // handles that case that a drag is finished
+                *self = InputState::Hovering;
             }
         }
     }
@@ -65,12 +58,7 @@ impl InputState {
         trace!("Ending hoverr");
         match self {
             InputState::Hovering => *self = InputState::Idle,
-            InputState::Idle | InputState::Dragging { .. } => {
-                // warn!(
-                //     message = "Stopped hovering while not in hovering state",
-                //     state = ?self,
-                // );
-            }
+            InputState::Idle | InputState::Dragging { .. } => {}
         }
     }
 }
@@ -101,7 +89,7 @@ pub(super) fn handle_hover_continue(
         return;
     };
 
-    input_state.start_hovering();
+    input_state.continue_hovering();
 }
 
 pub(super) fn handle_hover_end(

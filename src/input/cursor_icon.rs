@@ -28,18 +28,69 @@ impl CursorUpdate<'_, '_> {
     }
 }
 
-pub(super) fn update_cursor_hover_state(
-    editors: Query<(&InputState, &HoverCursor), With<CosmicEditBuffer>>,
-    mut cursor_icon: CursorUpdate,
-) {
-    for (input_state, hover_cursor) in editors.iter() {
-        match input_state {
-            InputState::Hovering | InputState::Dragging { .. } => {
-                cursor_icon.set_cursor(hover_cursor.0.clone());
+enum GlobalCursorState {
+    Nothing,
+    BufferHovered(CursorIcon),
+    FocussedEditorDragging,
+}
+
+impl GlobalCursorState {
+    pub fn account_for_hovered_buffer(&mut self, hover_cursor: CursorIcon) {
+        match self {
+            GlobalCursorState::Nothing => *self = GlobalCursorState::BufferHovered(hover_cursor),
+            GlobalCursorState::BufferHovered(_) => {
+                warn_once!(
+                    message = "Multiple buffers hovered at the same time",
+                    note = "What to do in this case is not yet implemented"
+                );
             }
-            InputState::Idle => {
-                cursor_icon.reset_cursor();
+            GlobalCursorState::FocussedEditorDragging => {}
+        }
+    }
+
+    pub fn account_for_dragging_focussed_editor(&mut self) {
+        *self = GlobalCursorState::FocussedEditorDragging;
+    }
+
+    /// `None` indicates use the default icon
+    pub fn decide_on_icon(self) -> Option<CursorIcon> {
+        match self {
+            GlobalCursorState::Nothing => None,
+            GlobalCursorState::BufferHovered(icon) => Some(icon),
+            GlobalCursorState::FocussedEditorDragging => {
+                Some(CursorIcon::System(SystemCursorIcon::Text))
             }
         }
+    }
+}
+
+/// Doesn't take into account [`crate::UserSelectNone`] or [`crate::ReadOnly`]
+pub(super) fn update_cursor_hover_state(
+    editors: Query<(&InputState, &HoverCursor, Entity, Has<CosmicEditor>), With<CosmicEditBuffer>>,
+    focused_widget: Res<FocusedWidget>,
+    mut cursor_icon: CursorUpdate,
+) {
+    // if an editor is being hovered, prioritize its hover cursor
+    // else, reset to default
+    let mut cursor_state = GlobalCursorState::Nothing;
+    for (input_state, hover_cursor, buffer_entity, is_editor) in editors.iter() {
+        match *input_state {
+            InputState::Hovering => {
+                cursor_state.account_for_hovered_buffer(hover_cursor.0.clone());
+            }
+            InputState::Idle => {}
+            InputState::Dragging { .. } => {
+                if is_editor && focused_widget.0 == Some(buffer_entity) {
+                    cursor_state.account_for_dragging_focussed_editor();
+                }
+                // only a readonly non-editor buffer could be dragged,
+                // this ignores such a case
+            }
+        }
+    }
+
+    match cursor_state.decide_on_icon() {
+        Some(icon) => cursor_icon.set_cursor(icon),
+        None => cursor_icon.reset_cursor(),
     }
 }
