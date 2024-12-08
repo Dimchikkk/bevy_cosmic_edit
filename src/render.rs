@@ -109,6 +109,10 @@ impl WidgetBufferCoordTransformation {
         )
     }
 
+    pub fn widget_topleft_to_buffer_topleft(&self, widget: Vec2) -> Vec2 {
+        Vec2::new(widget.x, widget.y - self.top_padding)
+    }
+
     #[allow(dead_code)]
     pub(crate) fn debug_top_padding(&self) {
         debug!(?self.top_padding);

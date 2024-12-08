@@ -8,7 +8,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use cosmic_text::{
-    Attrs, AttrsOwned, BorrowedWithFontSystem, Buffer, Edit, FontSystem, Metrics, Shaping,
+    Attrs, AttrsOwned, BorrowedWithFontSystem, Buffer, Edit, Editor, FontSystem, Metrics, Shaping,
 };
 
 pub(crate) struct BufferPlugin;
@@ -36,6 +36,9 @@ pub trait BufferRefExtras {
 pub trait BufferMutExtras {
     fn compute(&mut self);
 
+    /// Height that buffer text would take up if rendered
+    ///
+    /// Used for [`VerticalAlign`](crate::VerticalAlign)
     fn height(&mut self) -> f32;
 
     fn width(&mut self) -> f32;
@@ -64,9 +67,6 @@ impl BufferRefExtras for Buffer {
 }
 
 impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
-    /// Height that buffer text would take up if rendered
-    ///
-    /// Used for [`VerticalAlign`](crate::VerticalAlign)
     fn height(&mut self) -> f32 {
         self.compute();
         // TODO: which implementation is correct?
@@ -83,6 +83,20 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
 
     fn compute(&mut self) {
         self.shape_until_scroll(false);
+    }
+}
+
+impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
+    fn height(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.height())
+    }
+
+    fn width(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.width())
+    }
+
+    fn compute(&mut self) {
+        self.with_buffer_mut(|b| b.compute());
     }
 }
 

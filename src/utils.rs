@@ -45,7 +45,7 @@ pub fn change_active_editor_sprite(
     buttons: Res<ButtonInput<MouseButton>>,
     mut cosmic_edit_query: Query<
         (CosmicWidgetSize, &GlobalTransform, &Visibility, Entity),
-        (With<CosmicEditBuffer>, Without<ReadOnly>),
+        (With<TextEdit2d>, Without<ReadOnly>),
     >,
     camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
 ) {
@@ -69,6 +69,7 @@ pub fn change_active_editor_sprite(
             )
             .is_some()
             {
+                debug!("Chaning focus to a new (sprite) widget");
                 commands.insert_resource(FocusedWidget(Some(entity)))
             }
         }
@@ -79,16 +80,13 @@ pub fn change_active_editor_sprite(
 pub fn change_active_editor_ui(
     mut interaction_query: Query<
         (&Interaction, Entity),
-        (
-            Changed<Interaction>,
-            Without<ReadOnly>,
-            With<CosmicEditBuffer>,
-        ),
+        (Changed<Interaction>, Without<ReadOnly>, With<TextEdit>),
     >,
     mut focussed_widget: ResMut<FocusedWidget>,
 ) {
     for (interaction, entity) in interaction_query.iter_mut() {
         if let Interaction::Pressed = interaction {
+            debug!("Changing focus to a new (ui) widget");
             *focussed_widget = FocusedWidget(Some(entity));
         }
     }

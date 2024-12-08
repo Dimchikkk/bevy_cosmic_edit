@@ -67,6 +67,12 @@ pub enum RenderTargetError {
 
     /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
     SpriteCustomSizeNotSet,
+
+    SpriteUnexpectedNormal,
+
+    SpriteExpectedHitdataPosition,
+
+    UiExpectedCursorPosition,
 }
 
 type Result<T> = core::result::Result<T, RenderTargetError>;

@@ -30,9 +30,9 @@ fn setup(mut commands: Commands) {
 
     // Sprite editor
     commands.spawn((
-        CosmicEditBuffer::default(),
+        TextEdit2d,
         MaxLines(1),
-        CosmicWrap::InfiniteLine,
+        // CosmicWrap::InfiniteLine, // panics atm
         // Sets size of text box
         Sprite {
             custom_size: Some(Vec2::new(300., 100.)),

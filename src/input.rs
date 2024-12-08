@@ -6,6 +6,7 @@ use crate::{
     events::CosmicTextChanged,
     prelude::*,
     render::WidgetBufferCoordTransformation,
+    render_implementations::{self, RenderTargetError, SourceType},
     CosmicTextAlign, CosmicWidgetSize,
 };
 use bevy::{
@@ -15,8 +16,9 @@ use bevy::{
         mouse::{MouseScrollUnit, MouseWheel},
     },
     picking::backend::HitData,
+    ui::RelativeCursorPosition,
 };
-use cosmic_text::{Action, BorrowedWithFontSystem, Cursor, Edit, Motion, Selection};
+use cosmic_text::{Action, Cursor, Edit, Motion, Selection};
 
 #[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;
@@ -90,7 +92,7 @@ fn add_event_handlers(
 ) {
     let mut observers = [
         Observer::new(handle_click_sprite),
-        picking_event_sprite(handle_dragstart_sprite),
+        Observer::new(handle_dragstart_sprite),
         Observer::new(handle_dragend_sprite),
         Observer::new(handle_drag_sprite),
     ];
@@ -98,16 +100,6 @@ fn add_event_handlers(
         observer.watch_entity(targeted_entity);
     }
     world.commands().spawn_batch(observers);
-}
-
-struct SpritePickingEvent<'s, E>
-where
-    E: Reflect + std::fmt::Debug + Clone + HitDataEvent,
-{
-    event: &'s E,
-    input_state: &'s mut InputState,
-    buffer_coord: Vec2,
-    editor: BorrowedWithFontSystem<'s, cosmic_text::Editor<'static>>,
 }
 
 trait HitDataEvent {
@@ -133,91 +125,101 @@ fn warn_no_editor_on_picking_event() {
     warn!(
         message = "Failed to get editor from picking event",
         note = "Please only use the `InputState` component on entities with a `CosmicEditor` component",
-        note = "`CosmicEditor` components should be automatically added to `CosmicEditBuffer` entities"
+        note = "`CosmicEditor` components should be automatically added to focussed `CosmicEditBuffer` entities"
     );
 }
 
 /// Responsible for translating a world coordinate to a buffer coordinate
 #[derive(QueryData)]
-struct SpriteRelativeQuery {
-    global_transform: &'static GlobalTransform,
-    text_align: &'static CosmicTextAlign,
+struct RelativeQuery {
+    /// Widget size
     size: CosmicWidgetSize,
+    text_align: &'static CosmicTextAlign,
+    sprite_global_transform: &'static GlobalTransform,
+    ui_cursor_position: Option<&'static RelativeCursorPosition>,
 }
 
-impl SpriteRelativeQueryItem<'_> {
-    fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Option<Vec2> {
-        if hit_data.normal != Some(Vec3::Z) {
-            warn!(?hit_data, "Normal is not out of screen, skipping");
-            return None;
-        }
+impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
+    type Target = render_implementations::RenderTypeScanItem<'s>;
 
-        let world_position = hit_data.position?;
-        let SpriteRelativeQueryItem {
-            global_transform,
-            text_align,
-            size,
-        } = self;
-
-        let position_transform = GlobalTransform::from(Transform::from_translation(world_position));
-        let relative_transform = position_transform.reparented_to(global_transform);
-        let relative_position = relative_transform.translation.xy();
-
-        let render_target_size = size.logical_size().ok()?;
-        let transformation = WidgetBufferCoordTransformation::new(
-            text_align.vertical,
-            render_target_size,
-            buffer_size,
-        );
-        // .xy swizzle depends on normal vector being perfectly out of screen
-        let buffer_coord = transformation.widget_origined_to_buffer_topleft(relative_position);
-
-        Some(buffer_coord)
+    fn deref(&self) -> &Self::Target {
+        self.size.deref()
     }
 }
 
-fn picking_event_sprite<E>(
-    mut callback: impl FnMut(SpritePickingEvent<E>) + Send + Sync + 'static,
-) -> Observer
-where
-    E: Reflect + std::fmt::Debug + Clone + HitDataEvent,
-{
-    Observer::new(
-        move |mut trigger: Trigger<Pointer<E>>,
-              mut editor: Query<(&mut InputState, &mut CosmicEditor, SpriteRelativeQuery)>,
-              mut font_system: ResMut<CosmicFontSystem>| {
-            trigger.propagate(false);
+impl RelativeQueryItem<'_> {
+    fn compute_buffer_coord(
+        &self,
+        hit_data: &HitData,
+        buffer_size: Vec2,
+    ) -> Result<Vec2, render_implementations::RenderTargetError> {
+        match self.scan()? {
+            SourceType::Sprite => {
+                if hit_data.normal != Some(Vec3::Z) {
+                    warn!(?hit_data, "Normal is not out of screen, skipping");
+                    return Err(RenderTargetError::SpriteUnexpectedNormal);
+                }
 
-            let font_system = &mut font_system.0;
-            let target = trigger.target;
-            let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
-                warn_no_editor_on_picking_event();
-                return;
-            };
+                let world_position = hit_data
+                    .position
+                    .ok_or(RenderTargetError::SpriteExpectedHitdataPosition)?;
+                let RelativeQueryItem {
+                    sprite_global_transform,
+                    text_align,
+                    size,
+                    ..
+                } = self;
 
-            let event = &trigger.event().event;
+                let position_transform =
+                    GlobalTransform::from(Transform::from_translation(world_position));
+                let relative_transform = position_transform.reparented_to(sprite_global_transform);
+                let relative_position = relative_transform.translation.xy();
 
-            let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
-            let Some(buffer_coord) = sprite_relative.compute_buffer_coord(event.hit(), buffer_size)
-            else {
-                return;
-            };
+                let render_target_size = size.logical_size()?;
+                let transformation = WidgetBufferCoordTransformation::new(
+                    text_align.vertical,
+                    render_target_size,
+                    buffer_size,
+                );
+                // .xy swizzle depends on normal vector being perfectly out of screen
+                let buffer_coord =
+                    transformation.widget_origined_to_buffer_topleft(relative_position);
 
-            let data = SpritePickingEvent {
-                event,
-                input_state: input_state.into_inner(),
-                buffer_coord,
-                editor: editor.borrow_with(font_system),
-            };
+                Ok(buffer_coord)
+            }
+            SourceType::Ui => {
+                let RelativeQueryItem {
+                    size,
+                    text_align,
+                    ui_cursor_position,
+                    ..
+                } = self;
+                let cursor_position_normalized = ui_cursor_position
+                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?
+                    .normalized
+                    .ok_or(RenderTargetError::UiExpectedCursorPosition)?;
 
-            callback(data);
-        },
-    )
+                let widget_size = size.logical_size()?;
+                let relative_position = cursor_position_normalized * widget_size;
+
+                let transformation = WidgetBufferCoordTransformation::new(
+                    text_align.vertical,
+                    widget_size,
+                    buffer_size,
+                );
+
+                let buffer_coord =
+                    transformation.widget_topleft_to_buffer_topleft(relative_position);
+
+                Ok(buffer_coord)
+            }
+        }
+    }
 }
 
 fn handle_click_sprite(
     trigger: Trigger<Pointer<Click>>,
-    mut editor: Query<(&mut InputState, &mut CosmicEditor, SpriteRelativeQuery)>,
+    mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
     mut font_system: ResMut<CosmicFontSystem>,
     buttons: Res<ButtonInput<KeyCode>>,
     mut click_state: ClickState,
@@ -234,10 +236,10 @@ fn handle_click_sprite(
         warn_no_editor_on_picking_event();
         return;
     };
-    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
     let mut editor = editor.borrow_with(font_system);
 
-    let Some(buffer_coord) = sprite_relative.compute_buffer_coord(click.hit(), buffer_size) else {
+    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(click.hit(), editor.logical_size())
+    else {
         return;
     };
 
@@ -292,13 +294,22 @@ fn handle_click_sprite(
     }
 }
 
-fn handle_dragstart_sprite(sprite_picking_event: SpritePickingEvent<'_, DragStart>) {
-    let SpritePickingEvent {
-        event,
-        input_state,
-        buffer_coord,
-        mut editor,
-    } = sprite_picking_event;
+fn handle_dragstart_sprite(
+    trigger: Trigger<Pointer<DragStart>>,
+    mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    let font_system = &mut font_system.0;
+    let event = trigger.event();
+    let Ok((mut input_state, mut editor, sprite_relative)) = editor.get_mut(trigger.target) else {
+        warn_no_editor_on_picking_event();
+        return;
+    };
+    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
+    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(event.hit(), buffer_size) else {
+        return;
+    };
+    let mut editor = editor.borrow_with(font_system);
 
     if event.button != PointerButton::Primary {
         return;
@@ -307,7 +318,7 @@ fn handle_dragstart_sprite(sprite_picking_event: SpritePickingEvent<'_, DragStar
     match *input_state {
         InputState::Idle => {
             *input_state = InputState::Dragging {
-                initial_buffer_coord: sprite_picking_event.buffer_coord,
+                initial_buffer_coord: buffer_coord,
             };
             editor.action(Action::Click {
                 x: buffer_coord.x as i32,
@@ -392,39 +403,6 @@ fn handle_dragend_sprite(trigger: Trigger<Pointer<DragEnd>>, mut editor: Query<&
         }
     }
 }
-
-// let (padding_x, padding_y) = match text_position {
-//             CosmicTextAlign::Center { padding: _ } => (
-//                 get_x_offset_center(width * scale_factor, &buffer),
-//                 get_y_offset_center(height * scale_factor, &buffer),
-//             ),
-//             CosmicTextAlign::TopLeft { padding } => (*padding, *padding),
-//             CosmicTextAlign::Left { padding } => (
-//                 *padding,
-//                 get_y_offset_center(height * scale_factor, &buffer),
-//             ),
-//         };
-//         // Converts a node-relative space coordinate to an i32 glyph position
-//         let glyph_coord = |node_cursor_pos: Vec2| {
-//             (
-//                 (node_cursor_pos.x * scale_factor) as i32 - padding_x + x_offset.left as i32,
-//                 (node_cursor_pos.y * scale_factor) as i32 - padding_y,
-//             )
-//         };
-
-//         if click_state == ClickState::Single {
-//             editor.cursor_visible = true;
-//             editor.cursor_timer.reset();
-
-//             if let Some(node_cursor_pos) = crate::render_targets::get_node_cursor_pos(
-//                 primary_window,
-//                 transform,
-//                 Vec2::new(width, height),
-//                 source_type,
-//                 camera,
-//                 camera_transform,
-//             ) {
-//                 let (x, y) = glyph_coord(node_cursor_pos);
 
 pub(crate) fn scroll(
     mut editor: Query<(&mut CosmicEditor, &ScrollEnabled)>,
