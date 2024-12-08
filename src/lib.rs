@@ -108,3 +108,4 @@ pub(crate) use render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSiz
 #[cfg(feature = "internal-debugging")]
 mod debug;
 pub mod render_implementations;
+mod double_click;

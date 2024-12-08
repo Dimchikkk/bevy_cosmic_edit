@@ -26,6 +26,7 @@ impl Plugin for CosmicEditPlugin {
             crate::password::PasswordPlugin,
             crate::events::EventsPlugin,
             crate::user_select::UserSelectPlugin,
+            crate::double_click::plugin,
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));

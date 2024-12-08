@@ -2,6 +2,7 @@
 
 use crate::{
     cosmic_edit::{MaxChars, MaxLines, ReadOnly, ScrollEnabled},
+    double_click::{ClickCount, ClickState},
     events::CosmicTextChanged,
     prelude::*,
     render::WidgetBufferCoordTransformation,
@@ -44,8 +45,7 @@ impl Plugin for InputPlugin {
                 (kb_move_cursor, kb_input_text, kb_clipboard)
                     .chain()
                     .in_set(InputSet::Update),
-            )
-            .insert_resource(ClickTimer(Timer::from_seconds(0.5, TimerMode::Once)));
+            );
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -55,10 +55,6 @@ impl Plugin for InputPlugin {
         }
     }
 }
-
-/// Timer for double / triple clicks
-#[derive(Resource)]
-pub(crate) struct ClickTimer(pub(crate) Timer);
 
 // TODO: hide this behind #cfg wasm, depends on wasm having own copy/paste fn
 /// Crossbeam channel struct for Wasm clipboard data
@@ -221,9 +217,10 @@ where
 
 fn handle_click_sprite(
     trigger: Trigger<Pointer<Click>>,
-    mut editor: Query<(&mut CosmicEditor, SpriteRelativeQuery)>,
+    mut editor: Query<(&mut InputState, &mut CosmicEditor, SpriteRelativeQuery)>,
     mut font_system: ResMut<CosmicFontSystem>,
     buttons: Res<ButtonInput<KeyCode>>,
+    mut click_state: ClickState,
 ) {
     let font_system = &mut font_system.0;
     let target = trigger.target;
@@ -233,7 +230,7 @@ fn handle_click_sprite(
         return;
     }
 
-    let Ok((mut editor, sprite_relative)) = editor.get_mut(target) else {
+    let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
         warn_no_editor_on_picking_event();
         return;
     };
@@ -244,18 +241,54 @@ fn handle_click_sprite(
         return;
     };
 
-    let shift_pressed = buttons.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+    match *input_state {
+        InputState::Idle => {}
+        InputState::Dragging { .. } => {
+            warn!(
+                message = "Somehow, a `Click` event was received before a previous `DragEnd` event was received",
+                note = "Ignoring",
+            );
+            return;
+        }
+    }
 
-    if shift_pressed {
-        editor.action(Action::Drag {
-            x: buffer_coord.x as i32,
-            y: buffer_coord.y as i32,
-        });
-    } else {
-        editor.action(Action::Click {
-            x: buffer_coord.x as i32,
-            y: buffer_coord.y as i32,
-        });
+    match click_state.feed_click() {
+        ClickCount::Single => {
+            let shift_pressed = buttons.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+
+            if shift_pressed {
+                editor.action(Action::Drag {
+                    x: buffer_coord.x as i32,
+                    y: buffer_coord.y as i32,
+                });
+            } else {
+                editor.action(Action::Click {
+                    x: buffer_coord.x as i32,
+                    y: buffer_coord.y as i32,
+                });
+            }
+        }
+        ClickCount::Double => {
+            // select word
+            editor.action(Action::Motion(Motion::LeftWord));
+            let cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(cursor));
+            editor.action(Action::Motion(Motion::RightWord));
+        }
+        ClickCount::Triple => {
+            // select paragraph
+            editor.action(Action::Motion(Motion::ParagraphStart));
+            let cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(cursor));
+            editor.action(Action::Motion(Motion::ParagraphEnd));
+        }
+        ClickCount::MoreThanTriple => {
+            // select all
+            editor.action(Action::Motion(Motion::BufferStart));
+            let cursor = editor.cursor();
+            editor.set_selection(Selection::Normal(cursor));
+            editor.action(Action::Motion(Motion::BufferEnd));
+        }
     }
 }
 
