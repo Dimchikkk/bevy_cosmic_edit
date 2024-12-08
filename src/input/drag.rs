@@ -6,7 +6,7 @@ use render_implementations::RelativeQuery;
 
 pub(super) fn handle_dragstart(
     trigger: Trigger<Pointer<DragStart>>,
-    mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
+    mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery), With<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     let font_system = &mut font_system.0;
@@ -89,7 +89,7 @@ pub(super) fn handle_drag(
 
 pub(super) fn handle_dragend(
     trigger: Trigger<Pointer<DragEnd>>,
-    mut editor: Query<&mut InputState>,
+    mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
 ) {
     let event = &trigger.event;
     let entity = trigger.target;
