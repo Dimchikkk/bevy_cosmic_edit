@@ -49,7 +49,8 @@ pub fn focus_on_click(
             warn!("Please use a high-level driver component from `bevy_cosmic_edit::render_implementations` to add the `CosmicEditBuffer` component, e.g. `TextEdit` or `TextEdit2d`");
         }
         Err(err) => {
-            render_implementations::debug_error::<()>(In(Err(err)));
+            warn!(message = "For some reason, the entity that `focus_on_click` was triggered for isn't a valid `CosmicEditor`", ?err);
+            // render_implementations::debug_error::<()>(In(Err(err)));
         }
     }
 }
@@ -77,7 +78,7 @@ pub(super) fn handle_focussed_click(
     }
 
     let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling focussed cursor `Click` event");
         return Ok(());
     };
     let mut editor = editor.borrow_with(font_system);

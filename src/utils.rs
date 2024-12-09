@@ -2,7 +2,6 @@
 use crate::{
     cosmic_edit::ReadOnly,
     prelude::*,
-    primary::CameraFilter,
     render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType},
 };
 use bevy::{ecs::query::QueryData, window::PrimaryWindow};

@@ -11,9 +11,6 @@ keywords = ["bevy"]
 exclude = ["assets/*"]
 
 [features]
-## Enable to avoid panicing when multiple cameras are used in the same world.
-## Requires you to add `CosmicPrimaryCamera` marker component to the primary camera
-multicam = []
 ## For internal use only
 internal-debugging = ["bevy/track_change_detection"]
 

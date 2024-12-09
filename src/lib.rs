@@ -78,7 +78,7 @@ pub mod prelude {
     pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
     pub use crate::focus::FocusedWidget;
     pub use crate::input::click::focus_on_click;
-    pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
+    pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig};
     pub use crate::render_implementations::{TextEdit, TextEdit2d};
     pub use crate::utils::{deselect_editor_on_esc, print_editor_text, ColorExtras as _};
 }

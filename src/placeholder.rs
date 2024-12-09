@@ -9,7 +9,8 @@ use cosmic_text::{Attrs, Edit};
 /// ```
 /// # use bevy::prelude::*;
 /// # use bevy_cosmic_edit::prelude::*;
-/// use bevy_cosmic_edit::Placeholder;
+/// # use bevy_cosmic_edit::cosmic_text::Attrs;
+/// use bevy_cosmic_edit::placeholder::Placeholder;
 ///
 /// # fn setup(mut commands: Commands) {
 /// commands.spawn((

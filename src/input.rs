@@ -93,12 +93,12 @@ fn add_event_handlers(
 }
 
 // todo: avoid these warnings on ReadOnly
-fn warn_no_editor_on_picking_event() {
+fn warn_no_editor_on_picking_event(job: &'static str) {
     debug!(
-        message = "Failed to get editor from picking event",
         note = "This is a false alarm for ReadOnly buffers",
         note = "Please only use the `InputState` component on entities with a `CosmicEditor` component",
         note = "`CosmicEditor` components should be automatically added to focussed `CosmicEditBuffer` entities",
+        "Failed to get editor from picking event while {job}"
     );
 }
 
@@ -115,7 +115,7 @@ fn cancel(
     mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `Cancel` event");
         return;
     };
 

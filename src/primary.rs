@@ -36,44 +36,6 @@ impl Plugin for CosmicEditPlugin {
     }
 }
 
-/// Attach to primary camera, and enable the `multicam` feature to use multiple cameras.
-/// Will panic if no Camera's without this component exist and the `multicam` feature is enabled.
-///
-/// A very basic example which doesn't panic:
-/// ```rust,no_run
-/// use bevy::prelude::*;
-/// use bevy_cosmic_edit::prelude::*;
-///
-/// fn main() {
-///     App::new()
-///         .add_plugins((
-///             DefaultPlugins,
-///             CosmicEditPlugin::default(),
-///         ))
-///     .add_systems(Startup, setup)
-///     .run();
-/// }
-///
-/// fn setup(mut commands: Commands) {
-///     commands.spawn((Camera3d::default(), CosmicPrimaryCamera));
-///     commands.spawn((
-///         Camera3d::default(),
-///         Camera {
-///             order: 2,
-///             ..default()
-///         },
-///     ));
-/// }
-/// ```
-#[derive(Component, Debug, Default)]
-pub struct CosmicPrimaryCamera;
-
-#[cfg(feature = "multicam")]
-pub(crate) type CameraFilter = With<CosmicPrimaryCamera>;
-
-#[cfg(not(feature = "multicam"))]
-pub(crate) type CameraFilter = ();
-
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
 pub struct CosmicFontConfig {

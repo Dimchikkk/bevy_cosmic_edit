@@ -65,7 +65,7 @@ pub(super) fn handle_dragstart(
     let font_system = &mut font_system.0;
     let event = trigger.event();
     let Ok((mut input_state, mut editor, sprite_relative)) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `DragStart` event");
         return;
     };
     let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
@@ -106,7 +106,7 @@ pub(super) fn handle_drag(
     }
 
     let Ok((input_state, mut editor)) = editor.get_mut(entity) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `Drag` event");
         return;
     };
 
@@ -139,7 +139,7 @@ pub(super) fn handle_dragend(
     }
 
     let Ok(entity_mut) = editor.get_mut(entity) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `DragEnd` event");
         return;
     };
     let input_state = entity_mut.into_inner();

@@ -14,7 +14,6 @@ fn setup(
     let camera_bundle = (
         Camera2d,
         IsDefaultUiCamera,
-        CosmicPrimaryCamera,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
             ..default()

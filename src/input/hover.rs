@@ -1,7 +1,4 @@
-use bevy::{
-    window::SystemCursorIcon,
-    winit::cursor::CursorIcon,
-};
+use bevy::{window::SystemCursorIcon, winit::cursor::CursorIcon};
 
 use crate::prelude::*;
 
@@ -68,7 +65,7 @@ pub(super) fn handle_hover_start(
     mut hover_in_evw: EventWriter<TextHoverIn>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `Over` event");
         return;
     };
 
@@ -84,7 +81,7 @@ pub(super) fn handle_hover_continue(
     mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `Move` event");
         return;
     };
 
@@ -97,7 +94,7 @@ pub(super) fn handle_hover_end(
     mut hover_out_evw: EventWriter<TextHoverOut>,
 ) {
     let Ok(mut input_state) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event();
+        warn_no_editor_on_picking_event("handling cursor `Out` event");
         return;
     };
 

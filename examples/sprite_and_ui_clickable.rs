@@ -19,7 +19,7 @@ fn setup(mut commands: Commands) {
                 Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
             )),
             MaxLines(1),
-            CosmicWrap::InfiniteLine,
+            // CosmicWrap::InfiniteLine,
             CosmicTextAlign::left(),
             Node {
                 // Size and position of text box
