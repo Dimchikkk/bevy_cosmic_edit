@@ -21,6 +21,11 @@ impl InputState {
             }
         }
     }
+
+    /// Should only click when not already dragging
+    pub fn should_click(&self) -> bool {
+        !matches!(self, InputState::Dragging { .. })
+    }
 }
 
 pub(super) fn handle_click(
@@ -50,6 +55,10 @@ pub(super) fn handle_click(
     };
 
     input_state.handle_click();
+
+    if !input_state.should_click() {
+        return;
+    }
 
     match click_state.feed_click() {
         ClickCount::Single => {

@@ -55,6 +55,7 @@ impl Plugin for InputPlugin {
     }
 }
 
+/// First variant is least important, last is most important
 #[derive(Component, Default, Debug)]
 #[require(ScrollEnabled)]
 #[component(on_add = add_event_handlers)]
