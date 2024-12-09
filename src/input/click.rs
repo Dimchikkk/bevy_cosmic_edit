@@ -22,7 +22,7 @@ impl InputState {
         }
     }
 
-    /// Should only click when not already dragging
+    /// Should only [`Action::Click`] when not already dragging
     pub fn should_click(&self) -> bool {
         !matches!(self, InputState::Dragging { .. })
     }
@@ -77,15 +77,14 @@ pub(super) fn handle_focussed_click(
         return Ok(());
     }
 
-    let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
+    let Ok((input_state, mut editor, buffer_relative)) = editor.get_mut(target) else {
         warn_no_editor_on_picking_event("handling focussed cursor `Click` event");
         return Ok(());
     };
     let mut editor = editor.borrow_with(font_system);
-
-    let buffer_coord = sprite_relative.compute_buffer_coord(&click.hit, editor.logical_size())?;
-
     input_state.handle_click();
+
+    let buffer_coord = buffer_relative.compute_buffer_coord(&click.hit, editor.logical_size())?;
 
     if !input_state.should_click() {
         return Ok(());

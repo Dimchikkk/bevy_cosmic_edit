@@ -69,7 +69,9 @@ impl RelativeQueryItem<'_> {
                     ..
                 } = self;
                 let cursor_position_normalized = ui_cursor_position
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?
+                    .ok_or(RenderTargetError::required_component_missing::<
+                        RelativeCursorPosition,
+                    >())?
                     .normalized
                     .ok_or(RenderTargetError::UiExpectedCursorPosition)?;
 

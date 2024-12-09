@@ -29,7 +29,7 @@ impl OutputToEntityItem<'_> {
                 let sprite = self
                     .sprite_target
                     .as_mut()
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
+                    .ok_or(RenderTargetError::required_component_missing::<Sprite>())?;
                 sprite.image = image.clone_weak();
                 Ok(())
             }
@@ -37,7 +37,7 @@ impl OutputToEntityItem<'_> {
                 let image_node = self
                     .image_node_target
                     .as_mut()
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
+                    .ok_or(RenderTargetError::required_component_missing::<ImageNode>())?;
                 image_node.image = image.clone_weak();
                 Ok(())
             }

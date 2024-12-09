@@ -55,13 +55,13 @@ impl CosmicWidgetSizeItem<'_> {
             SourceType::Ui => {
                 let ui = self
                     .ui
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
+                    .ok_or(RenderTargetError::required_component_missing::<ComputedNode>())?;
                 Ok(ui.logical_size())
             }
             SourceType::Sprite => {
                 let sprite = self
                     .sprite
-                    .ok_or(RenderTargetError::RequiredComponentNotAvailable)?;
+                    .ok_or(RenderTargetError::required_component_missing::<Sprite>())?;
                 Ok(sprite
                     .custom_size
                     .ok_or(RenderTargetError::SpriteCustomSizeNotSet)?)

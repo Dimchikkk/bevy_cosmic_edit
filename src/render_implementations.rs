@@ -38,7 +38,9 @@ mod error {
         /// When a [`RenderTypeScan`] was successfully conducted yet the expected
         /// [required component/s](https://docs.rs/bevy/latest/bevy/ecs/prelude/trait.Component.html#required-components)
         /// were not found
-        RequiredComponentNotAvailable,
+        RequiredComponentNotAvailable {
+            debug_name: String,
+        },
 
         /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
         SpriteCustomSizeNotSet,
@@ -48,6 +50,14 @@ mod error {
         SpriteExpectedHitdataPosition,
 
         UiExpectedCursorPosition,
+    }
+
+    impl RenderTargetError {
+        pub fn required_component_missing<C: bevy::prelude::Component>() -> Self {
+            Self::RequiredComponentNotAvailable {
+                debug_name: format!("{:?}", core::any::type_name::<C>()),
+            }
+        }
     }
 }
 
@@ -70,7 +80,7 @@ use crate::prelude::*;
 /// Hopefully this API will eventually mirror [`bevy::prelude::Text`].
 /// See [`CosmicEditBuffer`] for more information.
 #[derive(Component)]
-#[require(ImageNode, Button, CosmicEditBuffer)]
+#[require(ImageNode, Button, bevy::ui::RelativeCursorPosition, CosmicEditBuffer)]
 pub struct TextEdit;
 
 /// The top-level 2D text edit component
