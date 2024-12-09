@@ -8,7 +8,7 @@ use render_implementations::prelude::*;
 #[derive(QueryData)]
 pub struct CosmicWidgetSize {
     scan: RenderTypeScan,
-    
+
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
 }
