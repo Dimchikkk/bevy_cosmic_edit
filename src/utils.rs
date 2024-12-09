@@ -37,60 +37,6 @@ pub fn deselect_editor_on_esc(i: Res<ButtonInput<KeyCode>>, mut focus: ResMut<Fo
     }
 }
 
-/// System to allow focus on click for sprite widgets
-pub fn change_active_editor_sprite(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    buttons: Res<ButtonInput<MouseButton>>,
-    mut cosmic_edit_query: Query<
-        (CosmicWidgetSize, &GlobalTransform, &Visibility, Entity),
-        (With<TextEdit2d>, Without<ReadOnly>),
-    >,
-    camera_q: Query<(&Camera, &GlobalTransform), CameraFilter>,
-) {
-    let window = windows.single();
-    let (camera, camera_transform) = camera_q.single();
-    if buttons.just_pressed(MouseButton::Left) {
-        for (size, node_transform, visibility, entity) in &mut cosmic_edit_query.iter_mut() {
-            if visibility == Visibility::Hidden {
-                continue;
-            }
-            let Ok(size) = size.logical_size() else {
-                continue;
-            };
-            if crate::render_implementations::get_node_cursor_pos(
-                window,
-                node_transform,
-                size,
-                SourceType::Sprite,
-                camera,
-                camera_transform,
-            )
-            .is_some()
-            {
-                debug!("Chaning focus to a new (sprite) widget");
-                commands.insert_resource(FocusedWidget(Some(entity)))
-            }
-        }
-    }
-}
-
-/// System to allow focus on click for UI widgets
-pub fn change_active_editor_ui(
-    mut interaction_query: Query<
-        (&Interaction, Entity),
-        (Changed<Interaction>, Without<ReadOnly>, With<TextEdit>),
-    >,
-    mut focussed_widget: ResMut<FocusedWidget>,
-) {
-    for (interaction, entity) in interaction_query.iter_mut() {
-        if let Interaction::Pressed = interaction {
-            debug!("Changing focus to a new (ui) widget");
-            *focussed_widget = FocusedWidget(Some(entity));
-        }
-    }
-}
-
 /// System to print editor text content on change
 pub fn print_editor_text(
     text_inputs_q: Query<&CosmicEditor>,

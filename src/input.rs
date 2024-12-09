@@ -1,16 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use crate::{
-    cosmic_edit::ScrollEnabled,
-    double_click::{ClickCount, ClickState},
-    prelude::*,
-    render_implementations::RelativeQuery,
-};
-use bevy::{
-    ecs::{component::ComponentId, world::DeferredWorld},
-    input::mouse::{MouseScrollUnit, MouseWheel},
-};
-use cosmic_text::{Action, Edit, Motion, Selection};
+use crate::{cosmic_edit::ScrollEnabled, prelude::*};
+use bevy::ecs::{component::ComponentId, world::DeferredWorld};
 
 pub mod click;
 pub mod clipboard;
@@ -86,7 +77,7 @@ fn add_event_handlers(
     _component_id: ComponentId,
 ) {
     let mut observers = [
-        Observer::new(click::handle_click),
+        Observer::new(click::handle_focussed_click.pipe(render_implementations::debug_error)),
         Observer::new(drag::handle_dragstart),
         Observer::new(drag::handle_dragend),
         Observer::new(drag::handle_drag),

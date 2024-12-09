@@ -32,6 +32,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 ..default()
             },
         ))
+        .observe(focus_on_click)
         .id();
 
     commands.insert_resource(FocusedWidget(Some(cosmic_edit)));
@@ -49,13 +50,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                print_editor_text,
-                change_active_editor_ui,
-                deselect_editor_on_esc,
-            ),
-        )
+        .add_systems(Update, (print_editor_text, deselect_editor_on_esc))
         .run();
 }

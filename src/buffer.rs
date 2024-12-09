@@ -22,7 +22,7 @@ impl Plugin for BufferPlugin {
                 set_initial_scale,
                 set_redraw,
                 set_editor_redraw,
-                update_internal_target_handles,
+                update_internal_target_handles.pipe(render_implementations::debug_error),
             )
                 .chain(),
         );
@@ -289,8 +289,10 @@ pub(crate) fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEdit
 /// on the same entity, e.g. [`Sprite`]
 pub(crate) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
-) {
+) -> render_implementations::Result<()> {
     for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
-        output_components.write_image_data(output_data);
+        output_components.write_image_data(output_data)?;
     }
+
+    Ok(())
 }

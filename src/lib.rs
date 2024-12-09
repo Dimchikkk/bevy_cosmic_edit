@@ -58,14 +58,13 @@ pub use primary::*;
 mod primary;
 
 pub mod prelude {
-    // external re-exports
+    // non-pub external re-exports
     pub(crate) use bevy::prelude::*;
     pub(crate) use bevy::text::SwashCache;
-    #[cfg_attr(not(doc), allow(unused_imports))]
     pub(crate) use cosmic_text::Buffer;
     pub(crate) use cosmic_text::Edit as _;
 
-    // internal re-exports
+    // non-pub internal re-exports
     pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
     pub(crate) use crate::cosmic_text;
     pub(crate) use crate::primary::CosmicRenderOutput;
@@ -76,15 +75,12 @@ pub mod prelude {
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
     pub use crate::cosmic_edit::{CosmicEditor, DefaultAttrs, ReadOnly};
-    #[doc(no_inline)]
     pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
     pub use crate::focus::FocusedWidget;
+    pub use crate::input::click::focus_on_click;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
     pub use crate::render_implementations::{TextEdit, TextEdit2d};
-    pub use crate::utils::{
-        change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
-        print_editor_text, ColorExtras as _,
-    };
+    pub use crate::utils::{deselect_editor_on_esc, print_editor_text, ColorExtras as _};
 }
 
 // required modules

@@ -1,6 +1,5 @@
 use bevy::{
-    ecs::system::SystemParam,
-    window::{PrimaryWindow, SystemCursorIcon},
+    window::SystemCursorIcon,
     winit::cursor::CursorIcon,
 };
 

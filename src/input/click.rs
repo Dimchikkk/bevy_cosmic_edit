@@ -5,7 +5,7 @@ use crate::{
 
 use super::{warn_no_editor_on_picking_event, InputState};
 use cosmic_text::{Action, Motion, Selection};
-use render_implementations::RelativeQuery;
+use render_implementations::{RelativeQuery, RenderTargetError, RenderTypeScan};
 
 impl InputState {
     /// Handler for [`Click`] event
@@ -28,36 +28,66 @@ impl InputState {
     }
 }
 
-pub(super) fn handle_click(
+/// An [`Observer`] that focuses on the desired editor when clicked
+pub fn focus_on_click(
     trigger: Trigger<Pointer<Click>>,
+    mut focused: ResMut<FocusedWidget>,
+    editor_confirmation: Query<RenderTypeScan, With<CosmicEditBuffer>>,
+) {
+    let Ok(scan) = editor_confirmation.get(trigger.target) else {
+        warn!(
+            "An entity with the `focus_on_click` observer added was clicked, but didn't have a `CosmicEditBuffer` component",
+        );
+        return;
+    };
+
+    match scan.scan() {
+        Ok(_) => {
+            focused.0 = Some(trigger.target);
+        }
+        Err(RenderTargetError::NoTargetsAvailable) => {
+            warn!("Please use a high-level driver component from `bevy_cosmic_edit::render_implementations` to add the `CosmicEditBuffer` component, e.g. `TextEdit` or `TextEdit2d`");
+        }
+        Err(err) => {
+            render_implementations::debug_error::<()>(In(Err(err)));
+        }
+    }
+}
+
+/// Handles [`CosmicEditor`] widgets that are already focussed
+pub(super) fn handle_focussed_click(
+    trigger: Trigger<Pointer<Click>>,
+    focused: Res<FocusedWidget>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
     mut font_system: ResMut<CosmicFontSystem>,
     buttons: Res<ButtonInput<KeyCode>>,
     mut click_state: ClickState,
-) {
+) -> render_implementations::Result<()> {
     let font_system = &mut font_system.0;
     let target = trigger.target;
     let click = trigger.event();
 
+    // must be focused
+    if focused.0 != Some(target) {
+        return Ok(());
+    }
+
     if click.button != PointerButton::Primary {
-        return;
+        return Ok(());
     }
 
     let Ok((input_state, mut editor, sprite_relative)) = editor.get_mut(target) else {
         warn_no_editor_on_picking_event();
-        return;
+        return Ok(());
     };
     let mut editor = editor.borrow_with(font_system);
 
-    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(&click.hit, editor.logical_size())
-    else {
-        return;
-    };
+    let buffer_coord = sprite_relative.compute_buffer_coord(&click.hit, editor.logical_size())?;
 
     input_state.handle_click();
 
     if !input_state.should_click() {
-        return;
+        return Ok(());
     }
 
     match click_state.feed_click() {
@@ -108,4 +138,6 @@ pub(super) fn handle_click(
             editor.action(Action::Motion(Motion::BufferEnd));
         }
     }
+
+    Ok(())
 }

@@ -86,6 +86,7 @@ pub struct TextEdit2d;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
+#[non_exhaustive]
 pub enum SourceType {
     Ui,
     Sprite,
@@ -108,10 +109,17 @@ impl RenderTypeScanItem<'_> {
     }
 }
 
+pub(crate) fn debug_error<T>(In(result): In<Result<T>>) {
+    match result {
+        Ok(_) => {}
+        Err(err) => debug!(message = "Error in render target", ?err),
+    }
+}
+
 /// Function to find the location of the mouse cursor in a cosmic widget.
 /// Returns in logical pixels
 // TODO: Change this to use builtin `bevy::picking` instead
-pub(crate) fn get_node_cursor_pos(
+fn get_node_cursor_pos(
     window: &Window,
     node_transform: &GlobalTransform,
     size: Vec2,

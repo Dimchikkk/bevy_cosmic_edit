@@ -15,50 +15,52 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
 
     let attrs = Attrs::new().color(Color::srgb(0.27, 0.27, 0.27).to_cosmic());
 
-    commands.spawn((
-        (
-            // cosmic edit components
-            CosmicEditBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
-                &mut font_system,
-                "Begin counting.",
-                attrs,
+    commands
+        .spawn((
+            (
+                // cosmic edit components
+                CosmicEditBuffer::new(&mut font_system, Metrics::new(16., 16.)).with_text(
+                    &mut font_system,
+                    "Begin counting.",
+                    attrs,
+                ),
+                CursorColor(bevy::color::palettes::css::LIME.into()),
+                SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
+                CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
+                CosmicTextAlign {
+                    horizontal: Some(HorizontalAlign::Center),
+                    vertical: VerticalAlign::Center,
+                },
+                CosmicBackgroundImage(None),
+                DefaultAttrs(AttrsOwned::new(attrs)),
+                MaxChars(15),
+                MaxLines(1),
+                CosmicWrap::Wrap,
+                HoverCursor(CursorIcon::System(SystemCursorIcon::Pointer)),
+                SelectedTextColor(Color::WHITE),
             ),
-            CursorColor(bevy::color::palettes::css::LIME.into()),
-            SelectionColor(bevy::color::palettes::css::DEEP_PINK.into()),
-            CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
-            CosmicTextAlign {
-                horizontal: Some(HorizontalAlign::Center),
-                vertical: VerticalAlign::Center,
-            },
-            CosmicBackgroundImage(None),
-            DefaultAttrs(AttrsOwned::new(attrs)),
-            MaxChars(15),
-            MaxLines(1),
-            CosmicWrap::Wrap,
-            HoverCursor(CursorIcon::System(SystemCursorIcon::Pointer)),
-            SelectedTextColor(Color::WHITE),
-        ),
-        (
-            TextEdit,
-            // the image mode is optional, but due to bevy 0.15 mechanics is required to
-            // render the border within the `ImageNode`
-            // See bevy issue https://github.com/bevyengine/bevy/issues/16643#issuecomment-2518163688
-            ImageNode::default().with_mode(bevy::ui::widget::NodeImageMode::Stretch),
-            Node {
-                // Size and position of text box
-                border: UiRect::all(Val::Px(4.)),
-                width: Val::Percent(20.),
-                height: Val::Px(50.),
-                left: Val::Percent(40.),
-                top: Val::Px(100.),
-                ..default()
-            },
-            BorderColor(bevy::color::palettes::css::LIMEGREEN.into()),
-            BorderRadius::all(Val::Px(10.)),
-            // This is overriden by setting `CosmicBackgroundColor` so you don't see any white
-            BackgroundColor(Color::WHITE),
-        ),
-    ));
+            (
+                TextEdit,
+                // the image mode is optional, but due to bevy 0.15 mechanics is required to
+                // render the border within the `ImageNode`
+                // See bevy issue https://github.com/bevyengine/bevy/issues/16643#issuecomment-2518163688
+                ImageNode::default().with_mode(bevy::ui::widget::NodeImageMode::Stretch),
+                Node {
+                    // Size and position of text box
+                    border: UiRect::all(Val::Px(4.)),
+                    width: Val::Percent(20.),
+                    height: Val::Px(50.),
+                    left: Val::Percent(40.),
+                    top: Val::Px(100.),
+                    ..default()
+                },
+                BorderColor(bevy::color::palettes::css::LIMEGREEN.into()),
+                BorderRadius::all(Val::Px(10.)),
+                // This is overriden by setting `CosmicBackgroundColor` so you don't see any white
+                BackgroundColor(Color::WHITE),
+            ),
+        ))
+        .observe(focus_on_click);
 
     commands.insert_resource(TextChangeTimer(Timer::from_seconds(
         1.,
@@ -95,6 +97,6 @@ fn main() {
         .add_plugins(CosmicEditPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, text_swapper)
-        .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
+        .add_systems(Update, deselect_editor_on_esc)
         .run();
 }
