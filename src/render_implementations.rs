@@ -1,4 +1,6 @@
-//! Generalizes over render target implementations.
+//! Generalizes over render target implementations. All code that
+//! depends on the specific render target implementation should
+//! live in this module.
 //!
 //! All implementations should use [`bevy::picking`] for interactions,
 //! even [`SourceType::Ui`], for consistency.
@@ -55,8 +57,8 @@ pub(crate) use output::*;
 mod output;
 pub(crate) use widget_size::*;
 mod widget_size;
-
-use bevy::ecs::query::QueryData;
+pub(crate) use scan::*;
+mod scan;
 
 use crate::prelude::*;
 
@@ -83,81 +85,3 @@ pub struct TextEdit;
 #[derive(Component)]
 #[require(Sprite, CosmicEditBuffer)]
 pub struct TextEdit2d;
-
-/// TODO: Generalize implementations depending on this
-/// and add 3D
-#[non_exhaustive]
-pub enum SourceType {
-    Ui,
-    Sprite,
-}
-
-#[derive(QueryData)]
-pub struct RenderTypeScan {
-    is_sprite: Has<TextEdit2d>,
-    is_ui: Has<TextEdit>,
-}
-
-impl RenderTypeScanItem<'_> {
-    pub fn scan(&self) -> Result<SourceType> {
-        match (self.is_sprite, self.is_ui) {
-            (true, false) => Ok(SourceType::Sprite),
-            (false, true) => Ok(SourceType::Ui),
-            (true, true) => Err(RenderTargetError::MoreThanOneTargetAvailable),
-            (false, false) => Err(RenderTargetError::NoTargetsAvailable),
-        }
-    }
-}
-
-pub(crate) fn debug_error<T>(In(result): In<Result<T>>) {
-    match result {
-        Ok(_) => {}
-        Err(err) => debug!(message = "Error in render target", ?err),
-    }
-}
-
-/// Function to find the location of the mouse cursor in a cosmic widget.
-/// Returns in logical pixels
-// TODO: Change this to use builtin `bevy::picking` instead
-fn get_node_cursor_pos(
-    window: &Window,
-    node_transform: &GlobalTransform,
-    size: Vec2,
-    source_type: SourceType,
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-) -> Option<Vec2> {
-    let node_translation = node_transform.affine().translation;
-    let node_bounds = Rect::new(
-        node_translation.x - size.x / 2.,
-        node_translation.y - size.y / 2.,
-        node_translation.x + size.x / 2.,
-        node_translation.y + size.y / 2.,
-    );
-
-    window.cursor_position().and_then(|pos| match source_type {
-        SourceType::Ui => {
-            if node_bounds.contains(pos) {
-                Some(Vec2::new(
-                    pos.x - node_bounds.min.x,
-                    pos.y - node_bounds.min.y,
-                ))
-            } else {
-                None
-            }
-        }
-        SourceType::Sprite => camera
-            .viewport_to_world_2d(camera_transform, pos)
-            .ok()
-            .and_then(|pos| {
-                if node_bounds.contains(pos) {
-                    Some(Vec2::new(
-                        pos.x - node_bounds.min.x,
-                        node_bounds.max.y - pos.y,
-                    ))
-                } else {
-                    None
-                }
-            }),
-    })
-}

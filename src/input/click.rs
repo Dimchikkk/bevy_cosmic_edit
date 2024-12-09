@@ -41,7 +41,7 @@ pub fn focus_on_click(
         return;
     };
 
-    match scan.scan() {
+    match scan.confirm_conformance() {
         Ok(_) => {
             focused.0 = Some(trigger.target);
         }

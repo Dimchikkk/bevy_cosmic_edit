@@ -63,15 +63,3 @@ bevy_editor_pls = "0.11.0"
 bevy_editor_pls = { git = "https://github.com/ActuallyHappening/bevy_editor_pls.git" }
 # remove once https://github.com/urholaukkarinen/transform-gizmo/pull/85 lands and is published
 transform-gizmo-bevy = { git = "https://github.com/ActuallyHappening/transform-gizmo.git" }
-
-[[example]]
-name = "basic_ui_editor"
-required-features = ["multicam"]
-
-[[example]]
-name = "multiple_sprites_editor"
-required-features = ["multicam"]
-
-[[example]]
-name = "basic_sprite_editor"
-required-features = ["multicam"]

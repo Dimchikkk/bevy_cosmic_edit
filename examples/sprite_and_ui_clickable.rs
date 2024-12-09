@@ -4,7 +4,7 @@ use bevy_cosmic_edit::{
     input::hover::{TextHoverIn, TextHoverOut},
     input::CosmicTextChanged,
     prelude::*,
-    CosmicTextAlign, CosmicWrap, MaxLines,
+    CosmicTextAlign, MaxLines,
 };
 
 fn setup(mut commands: Commands) {

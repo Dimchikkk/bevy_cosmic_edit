@@ -1,10 +1,9 @@
 // Common functions for examples
 use crate::{
-    cosmic_edit::ReadOnly,
     prelude::*,
-    render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize, SourceType},
+    render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize},
 };
-use bevy::{ecs::query::QueryData, window::PrimaryWindow};
+use bevy::ecs::query::QueryData;
 use cosmic_text::Edit;
 
 /// Trait for adding color conversion from [`bevy::prelude::Color`] to [`cosmic_text::Color`]
