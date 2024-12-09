@@ -31,7 +31,7 @@ pub(crate) fn kb_clipboard(
     active_editor: Res<FocusedWidget>,
     keys: Res<ButtonInput<KeyCode>>,
     mut evw_changed: EventWriter<CosmicTextChanged>,
-    mut font_system: ResMut<CosmicFontSystem>,
+    #[allow(unused_variables, unused_mut)] mut font_system: ResMut<CosmicFontSystem>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
         &mut CosmicEditBuffer,
@@ -46,6 +46,7 @@ pub(crate) fn kb_clipboard(
         return;
     };
 
+    #[allow(unused_variables)]
     if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
         cosmic_edit_query.get_mut(active_editor_entity)
     {

@@ -84,6 +84,7 @@ pub fn print_editor_sizes(
 }
 
 /// Calls javascript to get the current timestamp
+#[allow(dead_code)] // idk why this isn't used
 #[cfg(target_arch = "wasm32")]
 pub(crate) fn get_timestamp() -> f64 {
     js_sys::Date::now()

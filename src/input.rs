@@ -44,9 +44,9 @@ impl Plugin for InputPlugin {
 
         #[cfg(target_arch = "wasm32")]
         {
-            let (tx, rx) = crossbeam_channel::bounded::<WasmPaste>(1);
-            app.insert_resource(WasmPasteAsyncChannel { tx, rx })
-                .add_systems(Update, poll_wasm_paste);
+            let (tx, rx) = crossbeam_channel::bounded::<clipboard::WasmPaste>(1);
+            app.insert_resource(clipboard::WasmPasteAsyncChannel { tx, rx })
+                .add_systems(Update, clipboard::poll_wasm_paste);
         }
     }
 }
