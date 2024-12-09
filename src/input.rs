@@ -12,13 +12,13 @@ use bevy::{
 };
 use cosmic_text::{Action, Edit, Motion, Selection};
 
+pub mod click;
 pub mod clipboard;
+pub mod cursor_icon;
+pub mod cursor_visibility;
+pub mod drag;
 pub mod hover;
 pub mod keyboard;
-// mod click;
-pub mod click;
-pub mod cursor_icon;
-pub mod drag;
 pub mod scroll;
 
 /// System set for mouse and keyboard input events. Runs in [`PreUpdate`] and [`Update`]
@@ -36,15 +36,20 @@ impl Plugin for InputPlugin {
                     keyboard::kb_move_cursor,
                     keyboard::kb_input_text,
                     clipboard::kb_clipboard,
-                    cursor_icon::update_cursor_hover_state,
+                    (
+                        cursor_icon::update_cursor_icon,
+                        cursor_visibility::update_cursor_visibility,
+                    ),
                 )
                     .chain()
                     .in_set(InputSet),
             )
             .add_event::<hover::TextHoverIn>()
-            .register_type::<hover::TextHoverIn>()
             .add_event::<hover::TextHoverOut>()
-            .add_event::<hover::TextHoverOut>();
+            .add_event::<CosmicTextChanged>()
+            .register_type::<hover::TextHoverIn>()
+            .register_type::<hover::TextHoverOut>()
+            .register_type::<CosmicTextChanged>();
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -54,6 +59,13 @@ impl Plugin for InputPlugin {
         }
     }
 }
+
+/// Text change events
+///
+/// Sent when text is changed in a cosmic buffer
+/// Contains the entity on which the text was changed, and the new text as a [`String`]
+#[derive(Event, Reflect, Debug)]
+pub struct CosmicTextChanged(pub (Entity, String));
 
 /// First variant is least important, last is most important
 #[derive(Component, Default, Debug)]

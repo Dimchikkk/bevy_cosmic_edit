@@ -9,12 +9,12 @@ use crate::prelude::*;
 use super::{hover::HoverCursor, InputState};
 
 #[derive(SystemParam)]
-pub struct CursorUpdate<'w, 's> {
+pub struct CursorIconUpdate<'w, 's> {
     window: Single<'w, Entity, With<PrimaryWindow>>,
     commands: Commands<'w, 's>,
 }
 
-impl CursorUpdate<'_, '_> {
+impl CursorIconUpdate<'_, '_> {
     pub fn set_cursor(&mut self, icon: CursorIcon) {
         // trace!(message = "Setting window icon", ?icon);
         self.commands.entity(*self.window).insert(icon);
@@ -65,10 +65,10 @@ impl GlobalCursorState {
 }
 
 /// Doesn't take into account [`crate::UserSelectNone`] or [`crate::ReadOnly`]
-pub(super) fn update_cursor_hover_state(
+pub(super) fn update_cursor_icon(
     editors: Query<(&InputState, &HoverCursor, Entity, Has<CosmicEditor>), With<CosmicEditBuffer>>,
     focused_widget: Res<FocusedWidget>,
-    mut cursor_icon: CursorUpdate,
+    mut cursor_icon: CursorIconUpdate,
 ) {
     // if an editor is being hovered, prioritize its hover cursor
     // else, reset to default

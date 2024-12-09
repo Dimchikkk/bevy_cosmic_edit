@@ -1,4 +1,4 @@
-use crate::{prelude::*, CosmicTextChanged, MaxChars, MaxLines};
+use crate::{input::CosmicTextChanged, prelude::*, MaxChars, MaxLines};
 
 #[cfg(target_arch = "wasm32")]
 use bevy::tasks::AsyncComputeTaskPool;

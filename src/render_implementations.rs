@@ -13,6 +13,7 @@
 mod prelude {
     pub(super) use super::error::Result;
     pub(super) use super::{RenderTargetError, SourceType};
+    pub(super) use super::{RenderTypeScan, RenderTypeScanItem};
 }
 
 pub use error::*;
@@ -48,11 +49,11 @@ mod error {
     }
 }
 
-pub use coords::*;
+pub(crate) use coords::*;
 mod coords;
-pub use output::*;
+pub(crate) use output::*;
 mod output;
-pub use widget_size::*;
+pub(crate) use widget_size::*;
 mod widget_size;
 
 use bevy::ecs::query::QueryData;

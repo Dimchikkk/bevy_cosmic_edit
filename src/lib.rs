@@ -52,6 +52,11 @@
 //! MIT or Apache-2.0
 #![allow(clippy::type_complexity)]
 
+pub use bevy::text::cosmic_text;
+pub use primary::*;
+/// Contains the library global important types you probably want to explore first
+mod primary;
+
 pub mod prelude {
     // external re-exports
     pub(crate) use bevy::prelude::*;
@@ -71,6 +76,8 @@ pub mod prelude {
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
     pub use crate::cosmic_edit::{CosmicEditor, DefaultAttrs, ReadOnly};
+    #[doc(no_inline)]
+    pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
     pub use crate::focus::FocusedWidget;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
     pub use crate::render_implementations::{TextEdit, TextEdit2d};
@@ -78,40 +85,29 @@ pub mod prelude {
         change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
         print_editor_text, ColorExtras as _,
     };
-    #[doc(no_inline)]
-    pub use bevy::text::cosmic_text::{
-        Color as CosmicColor, Style as FontStyle, Weight as FontWeight,
-    };
 }
 
-pub use bevy::text::cosmic_text;
-
-pub use primary::*;
-/// Contains the library global important types you probably want to explore first
-mod primary;
-
+// required modules
+// non-pub required
 pub use buffer::*;
-mod buffer;
 pub use cosmic_edit::*;
-mod cosmic_edit;
-pub use cursor::*;
-mod cursor;
-pub use events::*;
-mod events;
 pub use focus::*;
+mod buffer;
+mod cosmic_edit;
+mod double_click;
 mod focus;
+mod render;
+
+// pub required
 pub use input::hover::HoverCursor;
 pub mod input;
-pub use password::*;
-mod password;
-pub use placeholder::*;
-mod double_click;
-mod placeholder;
-mod render;
 pub mod render_implementations;
-pub use user_select::*;
-mod user_select;
 pub mod utils;
+
+// extra modules
+pub mod password;
+pub mod placeholder;
+pub mod user_select;
 
 #[cfg(feature = "internal-debugging")]
 mod debug;

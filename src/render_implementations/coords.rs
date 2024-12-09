@@ -1,7 +1,7 @@
 use bevy::ecs::query::QueryData;
 use bevy::picking::backend::HitData;
 use bevy::ui::RelativeCursorPosition;
-use render_implementations::{RenderTargetError, SourceType};
+use render_implementations::prelude::*;
 
 use crate::render::WidgetBufferCoordTransformation;
 use crate::render_implementations::CosmicWidgetSize;
@@ -10,9 +10,9 @@ use crate::{prelude::*, CosmicTextAlign};
 /// Responsible for translating a world coordinate to a buffer coordinate
 #[derive(QueryData)]
 pub(crate) struct RelativeQuery {
-    /// Widget size
     widget_size: CosmicWidgetSize,
     text_align: &'static CosmicTextAlign,
+
     sprite_global_transform: &'static GlobalTransform,
     ui_cursor_position: Option<&'static RelativeCursorPosition>,
 }
@@ -26,11 +26,7 @@ impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
 }
 
 impl RelativeQueryItem<'_> {
-    pub fn compute_buffer_coord(
-        &self,
-        hit_data: &HitData,
-        buffer_size: Vec2,
-    ) -> Result<Vec2, render_implementations::RenderTargetError> {
+    pub fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Result<Vec2> {
         match self.scan()? {
             SourceType::Sprite => {
                 if hit_data.normal != Some(Vec3::Z) {

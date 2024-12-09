@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    cosmic_text::Attrs, prelude::*, CosmicWrap, MaxLines, Password, Placeholder,
+    cosmic_text::Attrs, password::Password, placeholder::Placeholder, prelude::*, CosmicWrap,
+    MaxLines,
 };
 
 fn setup(mut commands: Commands) {

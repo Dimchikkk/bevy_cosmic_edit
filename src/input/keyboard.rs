@@ -1,7 +1,7 @@
 use bevy::input::keyboard::{Key, KeyboardInput};
 use cosmic_text::{Action, Cursor, Motion, Selection};
 
-use crate::{prelude::*, CosmicTextChanged, MaxChars, MaxLines};
+use crate::{input::CosmicTextChanged, prelude::*, MaxChars, MaxLines};
 
 pub(super) fn keypress_command(keys: &ButtonInput<KeyCode>) -> bool {
     #[cfg(target_os = "macos")]

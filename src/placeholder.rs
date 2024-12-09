@@ -1,5 +1,5 @@
 use crate::{
-    cosmic_edit::DefaultAttrs, events::CosmicTextChanged, input::InputSet, prelude::*,
+    cosmic_edit::DefaultAttrs, input::CosmicTextChanged, input::InputSet, prelude::*,
     render::RenderSet,
 };
 use cosmic_text::{Attrs, Edit};

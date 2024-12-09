@@ -21,10 +21,8 @@ impl Plugin for CosmicEditPlugin {
             crate::render::RenderPlugin,
             crate::input::InputPlugin,
             crate::focus::FocusPlugin,
-            // crate::cursor::CursorPlugin,
             crate::placeholder::PlaceholderPlugin,
             crate::password::PasswordPlugin,
-            crate::events::EventsPlugin,
             crate::user_select::UserSelectPlugin,
             crate::double_click::plugin,
         ))
