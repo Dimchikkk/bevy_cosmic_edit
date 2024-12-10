@@ -15,13 +15,13 @@ impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (hide_password_text.before(crate::input::input_mouse),),
+            (hide_password_text.before(crate::input::InputSet),),
         )
         .add_systems(
             Update,
             (restore_password_text
-                .before(crate::input::kb_input_text)
-                .after(crate::input::kb_move_cursor),),
+                .before(crate::input::keyboard::kb_input_text)
+                .after(crate::input::keyboard::kb_move_cursor),),
         )
         .add_systems(
             PostUpdate,
@@ -39,6 +39,8 @@ impl Plugin for PasswordPlugin {
 /// ```
 /// # use bevy::prelude::*;
 /// # use bevy_cosmic_edit::*;
+/// use bevy_cosmic_edit::password::Password;
+///
 /// #
 /// # fn setup(mut commands: Commands) {
 /// // Create a new cosmic bundle
@@ -84,7 +86,7 @@ impl Password {
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
-        &mut CosmicEditBuffer,
+        &mut CosmicEditor,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
         Option<&Placeholder>,

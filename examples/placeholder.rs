@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
+    placeholder::Placeholder,
     prelude::*,
-    Placeholder,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
@@ -19,23 +19,25 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(CosmicColor::rgb(0x94, 0x00, 0xD3));
 
-    commands.spawn((
-        TextEdit,
-        CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
-            &mut font_system,
-            vec![("", attrs)],
-            attrs,
-        ),
-        Placeholder::new(
-            "Placeholder",
-            attrs.color(bevy::color::palettes::basic::GRAY.to_cosmic()),
-        ),
-        Node {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            ..default()
-        },
-    ));
+    commands
+        .spawn((
+            TextEdit,
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+                &mut font_system,
+                vec![("", attrs)],
+                attrs,
+            ),
+            Placeholder::new(
+                "Placeholder",
+                attrs.color(bevy::color::palettes::basic::GRAY.to_cosmic()),
+            ),
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+        ))
+        .observe(focus_on_click);
 }
 
 fn main() {
@@ -50,13 +52,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                print_editor_text,
-                change_active_editor_ui,
-                deselect_editor_on_esc,
-            ),
-        )
+        .add_systems(Update, (print_editor_text, deselect_editor_on_esc))
         .run();
 }

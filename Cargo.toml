@@ -11,9 +11,8 @@ keywords = ["bevy"]
 exclude = ["assets/*"]
 
 [features]
-## Enable to avoid panicing when multiple cameras are used in the same world.
-## Requires you to add `CosmicPrimaryCamera` marker component to the primary camera
-multicam = []
+## For internal use only
+internal-debugging = ["bevy/track_change_detection"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -38,6 +37,9 @@ crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"
 document-features = "0.2.8"
+num = "0.4.3"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = "3.2.0"
