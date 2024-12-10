@@ -19,7 +19,7 @@ use crate::input::CosmicTextChanged;
 //
 
 #[derive(SystemParam)]
-pub struct CursorVisibility<'w> {
+pub(crate) struct CursorVisibility<'w> {
     window: Single<'w, &'static mut Window, With<PrimaryWindow>>,
 }
 

@@ -38,7 +38,7 @@ impl Plugin for PasswordPlugin {
 ///
 /// ```
 /// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
+/// # use bevy_cosmic_edit::prelude::*;
 /// use bevy_cosmic_edit::password::Password;
 ///
 /// #

@@ -9,7 +9,7 @@ use crate::prelude::*;
 use super::{hover::HoverCursor, InputState};
 
 #[derive(SystemParam)]
-pub struct CursorIconUpdate<'w, 's> {
+pub(crate) struct CursorIconUpdate<'w, 's> {
     window: Single<'w, Entity, With<PrimaryWindow>>,
     commands: Commands<'w, 's>,
 }
