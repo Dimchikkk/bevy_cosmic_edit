@@ -10,12 +10,12 @@ use crate::prelude::*;
 /// This component shouldn't be manually added or constructed, and is automatically
 /// managed by the [`crate::focus`]
 #[derive(Component, Deref, DerefMut)]
+#[non_exhaustive]
 pub struct CosmicEditor {
     #[deref]
     pub editor: Editor<'static>,
     pub cursor_visible: bool,
     pub cursor_timer: Timer,
-    _not_manually_constructable: (),
 }
 
 impl CosmicEditor {
@@ -40,7 +40,12 @@ impl CosmicEditor {
             editor,
             cursor_visible: false,
             cursor_timer,
-            _not_manually_constructable: (),
         }
+    }
+}
+
+impl super::buffer::BufferRefExtras for CosmicEditor {
+    fn get_text(&self) -> String {
+        self.with_buffer(|b| b.get_text())
     }
 }

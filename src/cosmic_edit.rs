@@ -1,7 +1,5 @@
-use std::time::Duration;
-
 use crate::prelude::*;
-use cosmic_text::{Align, Attrs, AttrsOwned, Editor, FontSystem};
+use cosmic_text::{Align, Attrs, AttrsOwned, FontSystem};
 
 pub(crate) fn plugin(app: &mut App) {
     app.register_type::<CosmicWrap>()

@@ -179,7 +179,6 @@ pub(crate) fn kb_input_text(
     mut char_evr: EventReader<KeyboardInput>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicEditBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -193,7 +192,7 @@ pub(crate) fn kb_input_text(
         return;
     };
 
-    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
+    if let Ok((mut editor, max_lines, max_chars, entity, readonly_opt)) =
         cosmic_edit_query.get_mut(active_editor_entity)
     {
         let command = keypress_command(&keys);
@@ -247,8 +246,8 @@ pub(crate) fn kb_input_text(
         let mut is_return = false;
         if keys.just_pressed(KeyCode::Enter) {
             is_return = true;
-            if (max_lines.0 == 0 || buffer.lines.len() < max_lines.0)
-                && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
+            if (max_lines.0 == 0 || editor.with_buffer(|b| b.lines.len()) < max_lines.0)
+                && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
             {
                 // to have new line on wasm rather than E
                 is_edit = true;
@@ -262,7 +261,7 @@ pub(crate) fn kb_input_text(
                 if *is_deleting {
                     editor.action(&mut font_system.0, Action::Backspace);
                 } else if !command
-                    && (max_chars.0 == 0 || buffer.get_text().len() < max_chars.0)
+                    && (max_chars.0 == 0 || editor.get_text().len() < max_chars.0)
                     && matches!(char_ev.state, bevy::input::ButtonState::Pressed)
                 {
                     match &char_ev.logical_key {

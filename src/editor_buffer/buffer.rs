@@ -91,7 +91,7 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
 /// To access the underlying [`Buffer`], use [`EditorBuffer`](crate::editor_buffer:EditorBuffer).
 ///
 #[derive(Component, Debug)]
-#[component(on_add = initial_set_redraw, on_remove = crate::focus::remove_focus_from_entity)]
+#[component(on_add = on_buffer_add, on_remove = crate::focus::remove_focus_from_entity)]
 #[require(
     CosmicBackgroundColor,
     CursorColor,
@@ -114,11 +114,12 @@ impl Default for CosmicEditBuffer {
     }
 }
 
-fn initial_set_redraw(
+fn on_buffer_add(
     mut world: bevy::ecs::world::DeferredWorld,
     target: Entity,
     _: bevy::ecs::component::ComponentId,
 ) {
+    // set redraw
     world
         .get_mut::<CosmicEditBuffer>(target)
         .unwrap()
@@ -126,12 +127,18 @@ fn initial_set_redraw(
         .set_redraw(true);
 }
 
+/// Should be partly mirrored on [`EditorBuffer`]
 impl<'s, 'r> CosmicEditBuffer {
     /// Create a new buffer with a font system
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
         let mut buffer = Buffer::new(font_system, metrics);
         buffer.set_redraw(true);
         Self(buffer)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn inner(&self) -> &Buffer {
+        &self.0
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
@@ -243,5 +250,35 @@ impl<'s, 'r> CosmicEditBuffer {
         // maybe clone only lines?
         let buffer = removed_editor.with_buffer(|buf| buf.clone());
         CosmicEditBuffer::from_raw_buffer(buffer)
+    }
+}
+
+// /// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
+// fn add_font_system(
+//     mut font_system: ResMut<CosmicFontSystem>,
+//     mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
+// ) {
+//     for mut b in q.iter_mut() {
+//         if !b.lines.is_empty() {
+//             continue;
+//         }
+//         b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
+//         b.set_redraw(true);
+//     }
+// }
+
+/// Initialises [`CosmicEditBuffer`] scale factor
+pub(in crate::editor_buffer) fn set_initial_scale(
+    window_q: Query<&Window, With<bevy::window::PrimaryWindow>>,
+    mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
+    mut font_system: ResMut<CosmicFontSystem>,
+) {
+    if let Ok(window) = window_q.get_single() {
+        let w_scale = window.scale_factor();
+
+        for mut b in &mut cosmic_query.iter_mut() {
+            let m = b.0.metrics().scale(w_scale);
+            b.0.set_metrics(&mut font_system, m);
+        }
     }
 }

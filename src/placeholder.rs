@@ -72,7 +72,7 @@ impl Plugin for PlaceholderPlugin {
 }
 
 fn add_placeholder_to_buffer(
-    mut q: Query<(&mut CosmicEditBuffer, &mut Placeholder)>,
+    mut q: Query<(EditorBuffer, &mut Placeholder)>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mut placeholder) in q.iter_mut() {

@@ -4,7 +4,6 @@
 //! if its focused
 
 use crate::prelude::*;
-use cosmic_text::{Edit, Editor};
 
 /// System set for focus systems. Runs in `PostUpdate`
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,7 +59,7 @@ pub(crate) fn drop_editor_unfocused(
             for (e, mut buffer, editor) in q.iter_mut() {
                 // buffer.lines = editor.with_buffer(|buf| buf.lines.clone());
                 // buffer.set_redraw(true);
-                *buffer = CosmicEditBuffer::from_downgrading_editor(&editor);
+                *buffer = CosmicEditBuffer::from_downgrading_editor(editor);
                 trace!("Removing editor from all entities as there is no focussed widget",);
                 commands.entity(e).remove::<CosmicEditor>();
             }
@@ -68,7 +67,7 @@ pub(crate) fn drop_editor_unfocused(
         Some(focused) => {
             for (e, mut b, editor) in q.iter_mut() {
                 if e != focused {
-                    *b = CosmicEditBuffer::from_downgrading_editor(&editor);
+                    *b = CosmicEditBuffer::from_downgrading_editor(editor);
                     trace!("Removing editor from entity as its not focussed anymore",);
                     commands.entity(e).remove::<CosmicEditor>();
                 }

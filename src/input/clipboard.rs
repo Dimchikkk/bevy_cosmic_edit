@@ -34,7 +34,7 @@ pub(crate) fn kb_clipboard(
     #[allow(unused_variables, unused_mut)] mut font_system: ResMut<CosmicFontSystem>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        &mut CosmicEditBuffer,
+        EditorBuffer,
         &MaxLines,
         &MaxChars,
         Entity,

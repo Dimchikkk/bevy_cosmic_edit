@@ -17,7 +17,8 @@ impl Plugin for CosmicEditPlugin {
 
         app.add_plugins((
             crate::cosmic_edit::plugin,
-            crate::buffer::BufferPlugin,
+            // crate::buffer::BufferPlugin,
+            crate::editor_buffer::EditorBufferPlugin,
             crate::render::RenderPlugin,
             crate::input::InputPlugin,
             crate::focus::FocusPlugin,
@@ -136,6 +137,7 @@ mod tests {
         let mut text_nodes_query = app.world_mut().query::<&CosmicEditBuffer>();
         for cosmic_editor in text_nodes_query.iter(app.world()) {
             insta::assert_debug_snapshot!(cosmic_editor
+                .inner()
                 .lines
                 .iter()
                 .map(|line| line.text())

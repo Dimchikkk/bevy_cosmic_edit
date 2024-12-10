@@ -4,6 +4,7 @@
 //! of [`CosmicEditor`], which is the primary interface for mutating [`Buffer`].
 
 use bevy::ecs::query::QueryData;
+use cosmic_text::{Attrs, BufferRef, FontSystem, Shaping};
 
 use crate::prelude::*;
 
@@ -11,7 +12,7 @@ pub(crate) struct EditorBufferPlugin;
 
 impl Plugin for EditorBufferPlugin {
     fn build(&self, app: &mut App) {
-        app;
+        app.add_systems(First, buffer::set_initial_scale);
     }
 }
 
@@ -25,9 +26,9 @@ pub mod editor;
 /// which is always what you want.
 ///
 /// This is the required alternative to manually querying [`&mut CosmicEditBuffer`]
-/// (or [`&mut CosmicEditor`]), to uphold the invariant that [`CosmicEditBuffer`] is basically immutable
-/// and the source of truth without a [`CosmicEditor`], but [`CosmicEditor`] is
-/// the source of truth when present (to allow mutation).
+/// to uphold the invariant that [`CosmicEditBuffer`] is basically immutable
+/// and the source of truth without a [`CosmicEditor`], **but [`CosmicEditor`] is
+/// the source of truth when present** (to allow mutation).
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct EditorBuffer {
@@ -35,7 +36,56 @@ pub struct EditorBuffer {
     buffer: &'static mut CosmicEditBuffer,
 }
 
-impl EditorBufferItem<'_> {
+impl std::ops::Deref for EditorBufferItem<'_> {
+    type Target = Buffer;
+
+    fn deref(&self) -> &Self::Target {
+        self.get_raw_buffer()
+    }
+}
+
+impl std::ops::DerefMut for EditorBufferItem<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.get_raw_buffer_mut()
+    }
+}
+
+impl<'r, 's> EditorBufferItem<'_> {
+    pub fn editor(&mut self) -> Option<&mut CosmicEditor> {
+        self.editor.as_deref_mut()
+    }
+
+    /// Replace buffer text
+    pub fn set_text(
+        &mut self,
+        font_system: &mut FontSystem,
+        text: &'s str,
+        attrs: Attrs<'r>,
+    ) -> &mut Self {
+        self.get_raw_buffer_mut()
+            .set_text(font_system, text, attrs, Shaping::Advanced);
+        self.set_redraw(true);
+        self
+    }
+
+    /// Replace buffer text with rich text
+    ///
+    /// Rich text is an iterable of `(&'s str, Attrs<'r>)`
+    pub fn set_rich_text<I>(
+        &mut self,
+        font_system: &mut FontSystem,
+        spans: I,
+        attrs: Attrs<'r>,
+    ) -> &mut Self
+    where
+        I: IntoIterator<Item = (&'s str, Attrs<'r>)>,
+    {
+        self.get_raw_buffer_mut()
+            .set_rich_text(font_system, spans, attrs, Shaping::Advanced);
+        self.set_redraw(true);
+        self
+    }
+
     pub fn with_buffer_mut<F: FnOnce(&mut Buffer) -> T, T>(&mut self, f: F) -> T {
         match self.editor.as_mut() {
             Some(editor) => editor.with_buffer_mut(f),
@@ -47,6 +97,28 @@ impl EditorBufferItem<'_> {
         match self.editor.as_ref() {
             Some(editor) => editor.with_buffer(f),
             None => f(&self.buffer.0),
+        }
+    }
+
+    pub fn get_raw_buffer(&self) -> &Buffer {
+        match self.editor.as_ref() {
+            Some(editor) => match editor.editor.buffer_ref() {
+                BufferRef::Owned(buffer) => buffer,
+                BufferRef::Borrowed(buffer) => buffer,
+                BufferRef::Arc(arc) => arc,
+            },
+            None => &self.buffer.0,
+        }
+    }
+
+    pub fn get_raw_buffer_mut(&mut self) -> &mut Buffer {
+        match self.editor.as_mut() {
+            Some(editor) => match editor.editor.buffer_ref_mut() {
+                BufferRef::Owned(buffer) => buffer,
+                BufferRef::Borrowed(buffer) => buffer,
+                BufferRef::Arc(arc) => std::sync::Arc::make_mut(arc),
+            },
+            None => &mut self.buffer.0,
         }
     }
 

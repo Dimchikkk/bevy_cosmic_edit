@@ -1,11 +1,6 @@
-use std::borrow::BorrowMut;
-use std::i32;
-
 use crate::{cosmic_edit::ReadOnly, prelude::*};
 use crate::{cosmic_edit::*, BufferMutExtras};
-use bevy::ecs::query::QueryData;
 use bevy::render::render_resource::Extent3d;
-use cosmic_text::{BorrowedWithFontSystem, BufferRef, Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 use render_implementations::CosmicWidgetSize;
 
@@ -24,8 +19,12 @@ impl Plugin for RenderPlugin {
                 "Skipping inserting `SwashCache` resource as bevy has already inserted it for us"
             );
         }
-        app.add_systems(Update, blink_cursor)
-            .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
+        app.add_systems(
+            First,
+            update_internal_target_handles.pipe(render_implementations::debug_error),
+        )
+        .add_systems(Update, blink_cursor)
+        .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
     }
 }
 
@@ -39,7 +38,29 @@ pub(crate) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, t
     }
 }
 
-fn draw_pixel(buffer: &mut [u8], width: i32, height: i32, x: i32, y: i32, color: Color) {
+/// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
+/// on the same entity, e.g. [`Sprite`]
+fn update_internal_target_handles(
+    mut buffers_q: Query<
+        (&CosmicRenderOutput, render_implementations::OutputToEntity),
+        With<CosmicEditBuffer>,
+    >,
+) -> render_implementations::Result<()> {
+    for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
+        output_components.write_image_data(output_data)?;
+    }
+
+    Ok(())
+}
+
+fn draw_pixel(
+    buffer: &mut [u8],
+    width: i32,
+    height: i32,
+    x: i32,
+    y: i32,
+    color: cosmic_text::Color,
+) {
     let a_a = color.a() as u32;
     if a_a == 0 {
         // Do not draw if alpha is zero
@@ -129,8 +150,7 @@ impl WidgetBufferCoordTransformation {
 /// Renders to the [CosmicRenderOutput]
 fn render_texture(
     mut query: Query<(
-        Option<&mut CosmicEditor>,
-        &mut CosmicEditBuffer,
+        EditorBuffer,
         &DefaultAttrs,
         &CosmicBackgroundImage,
         &CosmicBackgroundColor,
@@ -148,8 +168,7 @@ fn render_texture(
     mut swash_cache_state: ResMut<SwashCache>,
 ) {
     for (
-        editor,
-        mut buffer,
+        mut editor,
         attrs,
         background_image,
         fill_color,
@@ -214,7 +233,7 @@ fn render_texture(
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
         // compute y-offset
-        let buffer_size = buffer.borrow_with(font_system).expected_size();
+        let buffer_size = editor.borrow_with(font_system).expected_size();
         let transformation = WidgetBufferCoordTransformation::new(
             text_align.vertical,
             render_target_size,
@@ -248,26 +267,23 @@ fn render_texture(
             }
         };
 
-        let update_buffer_size = |buffer: &mut BorrowedWithFontSystem<'_, Buffer>| {
-            buffer.set_size(
-                Some(match wrap {
-                    CosmicWrap::Wrap => render_target_size.x,
-                    // todo: this panics atm
-                    CosmicWrap::InfiniteLine => f32::MAX / 2.,
-                }),
-                Some(render_target_size.y),
-            );
-        };
-        let update_buffer_horizontal_alignment = |buffer: &mut Buffer| {
-            if let Some(alignment) = text_align.horizontal {
-                for line in &mut buffer.lines {
-                    line.set_align(Some(alignment.into()));
-                }
+        editor.set_size(
+            font_system,
+            Some(match wrap {
+                CosmicWrap::Wrap => render_target_size.x,
+                // todo: this panics atm
+                CosmicWrap::InfiniteLine => f32::MAX / 2.,
+            }),
+            Some(render_target_size.y),
+        );
+        if let Some(alignment) = text_align.horizontal {
+            for line in &mut editor.lines {
+                line.set_align(Some(alignment.into()));
             }
-        };
+        }
 
         // Draw glyphs
-        if let Some(mut editor) = editor {
+        if let Some(editor) = editor.editor() {
             // todo: optimizations (see below comments)
             editor.set_redraw(true);
             if !editor.redraw() {
@@ -288,9 +304,6 @@ fn render_texture(
             let selected_text_color = selected_text_color_option
                 .map(|selected_text_color| selected_text_color.0.to_cosmic())
                 .unwrap_or(font_color);
-
-            editor.with_buffer_mut(|b| update_buffer_size(&mut b.borrow_with(font_system)));
-            editor.with_buffer_mut(update_buffer_horizontal_alignment);
 
             let mut editor = editor.borrow_with(font_system);
             editor.compute();
@@ -319,19 +332,18 @@ fn render_texture(
             // editor.set_redraw(false);
         } else {
             // todo: performance optimizations (see comments above/below)
-            buffer.set_redraw(true);
-            if !buffer.redraw() {
+            editor.set_redraw(true);
+            if !editor.redraw() {
                 continue;
             }
 
-            let mut buffer = buffer.borrow_with(font_system);
-
-            update_buffer_size(&mut buffer);
-            update_buffer_horizontal_alignment(&mut buffer);
-
-            buffer.compute();
-
-            buffer.draw(&mut swash_cache_state.0, font_color, draw_closure);
+            editor.borrow_with(font_system).compute();
+            editor.draw(
+                font_system,
+                &mut swash_cache_state.0,
+                font_color,
+                draw_closure,
+            );
 
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
