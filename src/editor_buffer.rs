@@ -12,7 +12,7 @@ pub(crate) struct EditorBufferPlugin;
 
 impl Plugin for EditorBufferPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(First, buffer::set_initial_scale)
+        app.add_systems(First, (buffer::set_initial_scale, buffer::add_font_system))
             .add_systems(Update, editor::blink_cursor);
     }
 }

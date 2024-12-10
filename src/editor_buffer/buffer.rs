@@ -253,19 +253,21 @@ impl<'s, 'r> CosmicEditBuffer {
     }
 }
 
-// /// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
-// fn add_font_system(
-//     mut font_system: ResMut<CosmicFontSystem>,
-//     mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
-// ) {
-//     for mut b in q.iter_mut() {
-//         if !b.lines.is_empty() {
-//             continue;
-//         }
-//         b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
-//         b.set_redraw(true);
-//     }
-// }
+/// Sets a default text value of "".
+/// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
+/// 
+/// This fixes the bug where an empty buffer won't show a blinking cursor when focused
+pub(in crate::editor_buffer) fn add_font_system(
+    mut font_system: ResMut<CosmicFontSystem>,
+    mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
+) {
+    for mut b in q.iter_mut() {
+        if b.0.lines.is_empty() {
+            b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
+            b.0.set_redraw(true);
+        }
+    }
+}
 
 /// Initialises [`CosmicEditBuffer`] scale factor
 pub(in crate::editor_buffer) fn set_initial_scale(
