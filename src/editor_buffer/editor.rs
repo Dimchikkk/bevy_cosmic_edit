@@ -18,6 +18,17 @@ pub struct CosmicEditor {
     pub cursor_timer: Timer,
 }
 
+pub(super) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
+    for mut e in q.iter_mut() {
+        e.cursor_timer.tick(time.delta());
+        if e.cursor_timer.just_finished() {
+            e.cursor_visible = !e.cursor_visible;
+            trace!("Toggling cursor");
+            e.set_redraw(true);
+        }
+    }
+}
+
 impl CosmicEditor {
     /// The only way to create a new [`CosmicEditor`] outside of `crate::editor_buffer::editor`
     pub(crate) fn clone_from_buffer(old_buffer: &CosmicEditBuffer) -> Self {

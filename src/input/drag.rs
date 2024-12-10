@@ -61,21 +61,19 @@ pub(super) fn handle_dragstart(
     trigger: Trigger<Pointer<DragStart>>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery), With<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
-) {
+) -> render_implementations::Result<()> {
     let font_system = &mut font_system.0;
     let event = trigger.event();
     let Ok((mut input_state, mut editor, sprite_relative)) = editor.get_mut(trigger.target) else {
         warn_no_editor_on_picking_event("handling cursor `DragStart` event");
-        return;
+        return Ok(());
     };
     let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).expected_size());
-    let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(&event.hit, buffer_size) else {
-        return;
-    };
+    let buffer_coord = sprite_relative.compute_buffer_coord(&event.hit, buffer_size)?;
     let mut editor = editor.borrow_with(font_system);
 
     if event.button != PointerButton::Primary {
-        return;
+        return Ok(());
     }
 
     input_state.start_dragging(buffer_coord);
@@ -90,9 +88,11 @@ pub(super) fn handle_dragstart(
             y: buffer_coord.y as i32,
         });
     }
+
+    Ok(())
 }
 
-pub(super) fn handle_drag(
+pub(super) fn handle_drag_continue(
     trigger: Trigger<Pointer<Drag>>,
     mut editor: Query<(&InputState, &mut CosmicEditor)>,
     mut font_system: ResMut<CosmicFontSystem>,

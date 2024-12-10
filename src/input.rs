@@ -78,13 +78,13 @@ fn add_event_handlers(
 ) {
     let mut observers = [
         Observer::new(click::handle_focussed_click.pipe(render_implementations::debug_error)),
-        Observer::new(drag::handle_dragstart),
+        Observer::new(drag::handle_dragstart.pipe(render_implementations::debug_error)),
+        Observer::new(drag::handle_drag_continue),
         Observer::new(drag::handle_dragend),
-        Observer::new(drag::handle_drag),
         Observer::new(hover::handle_hover_start),
         Observer::new(hover::handle_hover_continue),
         Observer::new(hover::handle_hover_end),
-        Observer::new(cancel),
+        Observer::new(cancel::handle_cancel),
     ];
     for observer in &mut observers {
         observer.watch_entity(targeted_entity);
@@ -102,22 +102,28 @@ fn warn_no_editor_on_picking_event(job: &'static str) {
     );
 }
 
-impl InputState {
-    /// `Cancel` event handler
-    pub fn cancel(&mut self) {
-        trace!("Cancelling a pointer");
-        *self = InputState::Idle;
+pub mod cancel {
+    use crate::prelude::*;
+
+    use super::{warn_no_editor_on_picking_event, InputState};
+
+    impl InputState {
+        /// `Cancel` event handler
+        pub fn cancel(&mut self) {
+            trace!("Cancelling a pointer");
+            *self = InputState::Idle;
+        }
     }
-}
 
-fn cancel(
-    trigger: Trigger<Pointer<Cancel>>,
-    mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
-) {
-    let Ok(mut input_state) = editor.get_mut(trigger.target) else {
-        warn_no_editor_on_picking_event("handling cursor `Cancel` event");
-        return;
-    };
+    pub(super) fn handle_cancel(
+        trigger: Trigger<Pointer<Cancel>>,
+        mut editor: Query<&mut InputState, With<CosmicEditBuffer>>,
+    ) {
+        let Ok(mut input_state) = editor.get_mut(trigger.target) else {
+            warn_no_editor_on_picking_event("handling cursor `Cancel` event");
+            return;
+        };
 
-    input_state.cancel();
+        input_state.cancel();
+    }
 }

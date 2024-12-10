@@ -1,3 +1,5 @@
+//! Manages the OS-level cursor aka mouse pointer visibility
+
 use bevy::input::mouse::MouseMotion;
 use bevy::{ecs::system::SystemParam, window::PrimaryWindow};
 

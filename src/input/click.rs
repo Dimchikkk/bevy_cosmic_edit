@@ -3,7 +3,7 @@ use crate::{
     prelude::*,
 };
 
-use super::{warn_no_editor_on_picking_event, InputState};
+use super::InputState;
 use cosmic_text::{Action, Motion, Selection};
 use render_implementations::{RelativeQuery, RenderTargetError, RenderTypeScan};
 
@@ -78,7 +78,8 @@ pub(super) fn handle_focussed_click(
     }
 
     let Ok((input_state, mut editor, buffer_relative)) = editor.get_mut(target) else {
-        warn_no_editor_on_picking_event("handling focussed cursor `Click` event");
+        // this is expected on first click, idk order of observers
+        // warn_no_editor_on_picking_event("handling focussed cursor `Click` event");
         return Ok(());
     };
     let mut editor = editor.borrow_with(font_system);

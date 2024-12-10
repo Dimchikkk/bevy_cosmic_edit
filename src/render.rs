@@ -23,18 +23,7 @@ impl Plugin for RenderPlugin {
             First,
             update_internal_target_handles.pipe(render_implementations::debug_error),
         )
-        .add_systems(Update, blink_cursor)
         .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
-    }
-}
-
-pub(crate) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, time: Res<Time>) {
-    for mut e in q.iter_mut() {
-        e.cursor_timer.tick(time.delta());
-        if e.cursor_timer.just_finished() {
-            e.cursor_visible = !e.cursor_visible;
-            e.set_redraw(true);
-        }
     }
 }
 
@@ -240,14 +229,14 @@ fn render_texture(
             buffer_size,
         );
 
-        let mut actually_rendered_max = IVec2::ZERO;
-        let mut actually_rendered_min = IVec2::new(i32::MAX, i32::MAX);
+        // let mut actually_rendered_max = IVec2::ZERO;
+        // let mut actually_rendered_min = IVec2::new(i32::MAX, i32::MAX);
         let draw_closure = |x, y, w, h, color| {
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     let buffer_coord = IVec2::new(x + col, y + row);
-                    actually_rendered_max = actually_rendered_max.max(buffer_coord);
-                    actually_rendered_min = actually_rendered_min.min(buffer_coord);
+                    // actually_rendered_max = actually_rendered_max.max(buffer_coord);
+                    // actually_rendered_min = actually_rendered_min.min(buffer_coord);
 
                     // compute padding_top
                     let widget_coord = transformation
@@ -308,7 +297,7 @@ fn render_texture(
             let mut editor = editor.borrow_with(font_system);
             editor.compute();
 
-            let new_buffer_size = editor.expected_size();
+            // let new_buffer_size = editor.expected_size();
 
             editor.draw(
                 &mut swash_cache_state.0,
@@ -319,13 +308,25 @@ fn render_texture(
                 draw_closure,
             );
 
-            let actually_rendered_buffer_size = actually_rendered_max - actually_rendered_min;
-            trace!(
-                ?buffer_size,
-                ?new_buffer_size,
-                ?actually_rendered_buffer_size
-            );
-            transformation.debug_top_padding();
+            // if coord calculations seem to be buggy, this code may help you to debug
+            // let actually_rendered_buffer_size = actually_rendered_max - actually_rendered_min;
+            // trace!(
+            //     ?buffer_size,
+            //     ?new_buffer_size,
+            //     ?actually_rendered_buffer_size
+            // );
+            // transformation.debug_top_padding();
+            // debug check only
+            // if (new_buffer_size.as_ivec2() - actually_rendered_buffer_size)
+            //     .as_vec2()
+            //     .length()
+            //     > 5.0
+            // {
+            //     warn_once!(
+            //         message = "Calculations of buffer sizes are off by a significant amount",
+            //         note = "This is likely an internal bug with bevy_cosmic_edit"
+            //     );
+            // }
 
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary

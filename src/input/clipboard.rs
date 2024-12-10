@@ -34,7 +34,6 @@ pub(crate) fn kb_clipboard(
     #[allow(unused_variables, unused_mut)] mut font_system: ResMut<CosmicFontSystem>,
     mut cosmic_edit_query: Query<(
         &mut CosmicEditor,
-        EditorBuffer,
         &MaxLines,
         &MaxChars,
         Entity,
@@ -47,7 +46,7 @@ pub(crate) fn kb_clipboard(
     };
 
     #[allow(unused_variables)]
-    if let Ok((mut editor, buffer, max_lines, max_chars, entity, readonly_opt)) =
+    if let Ok((mut editor, max_lines, max_chars, entity, readonly_opt)) =
         cosmic_edit_query.get_mut(active_editor_entity)
     {
         let command = crate::input::keyboard::keypress_command(&keys);
@@ -74,9 +73,11 @@ pub(crate) fn kb_clipboard(
                 if command && keys.just_pressed(KeyCode::KeyV) && !readonly {
                     if let Ok(text) = clipboard.get_text() {
                         for c in text.chars() {
-                            if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
+                            if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
                                 if c == 0xA as char {
-                                    if max_lines.0 == 0 || buffer.lines.len() < max_lines.0 {
+                                    if max_lines.0 == 0
+                                        || editor.with_buffer(|b| b.lines.len()) < max_lines.0
+                                    {
                                         editor.action(&mut font_system.0, Action::Insert(c));
                                     }
                                 } else {
@@ -128,7 +129,7 @@ pub(crate) fn kb_clipboard(
             return;
         }
 
-        evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
+        evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
     }
 }
 
@@ -149,15 +150,7 @@ pub fn read_clipboard_wasm() -> Promise {
 #[cfg(target_arch = "wasm32")]
 pub(crate) fn poll_wasm_paste(
     channel: Res<WasmPasteAsyncChannel>,
-    mut editor_q: Query<
-        (
-            &mut CosmicEditor,
-            &mut CosmicEditBuffer,
-            &MaxChars,
-            &MaxChars,
-        ),
-        Without<ReadOnly>,
-    >,
+    mut editor_q: Query<(&mut CosmicEditor, &MaxChars, &MaxChars), Without<ReadOnly>>,
     mut evw_changed: EventWriter<CosmicTextChanged>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -165,12 +158,14 @@ pub(crate) fn poll_wasm_paste(
     match inlet {
         Ok(inlet) => {
             let entity = inlet.entity;
-            if let Ok((mut editor, buffer, max_chars, max_lines)) = editor_q.get_mut(entity) {
+            if let Ok((mut editor, max_chars, max_lines)) = editor_q.get_mut(entity) {
                 let text = inlet.text;
                 for c in text.chars() {
-                    if max_chars.0 == 0 || buffer.get_text().len() < max_chars.0 {
+                    if max_chars.0 == 0 || editor.get_text().len() < max_chars.0 {
                         if c == 0xA as char {
-                            if max_lines.0 == 0 || buffer.lines.len() < max_lines.0 {
+                            if max_lines.0 == 0
+                                || editor.with_buffer(|b| b.lines.len()) < max_lines.0
+                            {
                                 editor.action(&mut font_system.0, Action::Insert(c));
                             }
                         } else {
@@ -179,7 +174,7 @@ pub(crate) fn poll_wasm_paste(
                     }
                 }
 
-                evw_changed.send(CosmicTextChanged((entity, buffer.get_text())));
+                evw_changed.send(CosmicTextChanged((entity, editor.get_text())));
             }
         }
         Err(_) => {}
