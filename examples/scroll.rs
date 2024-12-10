@@ -48,7 +48,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
         .spawn((
             TextEdit2d,
             // MaxLines(1),
-            // CosmicWrap::InfiniteLine, // panics atm
+            CosmicWrap::InfiniteLine,
             // Sets size of text box
             Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),

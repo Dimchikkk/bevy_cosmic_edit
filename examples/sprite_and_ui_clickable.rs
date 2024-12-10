@@ -19,7 +19,7 @@ fn setup(mut commands: Commands) {
                 Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
             )),
             MaxLines(1),
-            CosmicWrap::InfiniteLine, // panics atm
+            CosmicWrap::InfiniteLine,
             CosmicTextAlign::left_center(),
             Node {
                 // Size and position of text box
@@ -37,7 +37,7 @@ fn setup(mut commands: Commands) {
         .spawn((
             TextEdit2d,
             MaxLines(1),
-            CosmicWrap::InfiniteLine, // panics atm
+            CosmicWrap::InfiniteLine,
             CosmicTextAlign::left_center(),
             // Sets size of text box
             Sprite {

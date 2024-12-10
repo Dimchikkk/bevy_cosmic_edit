@@ -260,7 +260,6 @@ fn render_texture(
             font_system,
             Some(match wrap {
                 CosmicWrap::Wrap => render_target_size.x,
-                // todo: this panics atm
                 // probably high enough
                 CosmicWrap::InfiniteLine => f32::MAX / 10f32.powi(3),
             }),
