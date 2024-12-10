@@ -20,7 +20,7 @@ fn setup(mut commands: Commands) {
             )),
             MaxLines(1),
             // CosmicWrap::InfiniteLine,
-            CosmicTextAlign::left(),
+            CosmicTextAlign::left_center(),
             Node {
                 // Size and position of text box
                 width: Val::Px(300.),

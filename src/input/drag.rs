@@ -68,7 +68,7 @@ pub(super) fn handle_dragstart(
         warn_no_editor_on_picking_event("handling cursor `DragStart` event");
         return;
     };
-    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).logical_size());
+    let buffer_size = editor.with_buffer_mut(|b| b.borrow_with(font_system).expected_size());
     let Ok(buffer_coord) = sprite_relative.compute_buffer_coord(&event.hit, buffer_size) else {
         return;
     };

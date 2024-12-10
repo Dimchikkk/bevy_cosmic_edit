@@ -19,7 +19,7 @@ impl Plugin for BufferPlugin {
             First,
             (
                 add_font_system,
-                set_initial_scale,
+                // set_initial_scale,
                 set_redraw,
                 set_editor_redraw,
                 update_internal_target_handles.pipe(render_implementations::debug_error),
@@ -43,7 +43,7 @@ pub trait BufferMutExtras {
 
     fn width(&mut self) -> f32;
 
-    fn logical_size(&mut self) -> Vec2 {
+    fn expected_size(&mut self) -> Vec2 {
         Vec2::new(self.width(), self.height())
     }
 }
@@ -70,11 +70,13 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
     fn height(&mut self) -> f32 {
         self.compute();
         // TODO: which implementation is correct?
-        self.metrics().line_height * self.layout_runs().count() as f32
-        // self.layout_runs().map(|line| line.line_height).sum()
+        // self.metrics().line_height * self.layout_runs().count() as f32
+        self.layout_runs().map(|line| line.line_height).sum()
     }
 
     fn width(&mut self) -> f32 {
+        self.compute();
+        // get max line width
         self.layout_runs()
             .map(|line| line.line_w)
             .reduce(f32::max)
@@ -96,7 +98,8 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
     }
 
     fn compute(&mut self) {
-        self.with_buffer_mut(|b| b.compute());
+        // self.with_buffer_mut(|b| b.compute());
+        self.shape_as_needed(false)
     }
 }
 

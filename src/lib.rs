@@ -63,6 +63,8 @@ pub mod prelude {
     pub(crate) use bevy::text::SwashCache;
     pub(crate) use cosmic_text::Buffer;
     pub(crate) use cosmic_text::Edit as _;
+    #[allow(unused_imports)]
+    pub(crate) use std::ops::{Deref as _, DerefMut as _};
 
     // non-pub internal re-exports
     pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};

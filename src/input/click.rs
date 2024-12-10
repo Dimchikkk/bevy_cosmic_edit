@@ -84,7 +84,7 @@ pub(super) fn handle_focussed_click(
     let mut editor = editor.borrow_with(font_system);
     input_state.handle_click();
 
-    let buffer_coord = buffer_relative.compute_buffer_coord(&click.hit, editor.logical_size())?;
+    let buffer_coord = buffer_relative.compute_buffer_coord(&click.hit, editor.expected_size())?;
 
     if !input_state.should_click() {
         return Ok(());

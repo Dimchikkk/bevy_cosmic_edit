@@ -66,10 +66,17 @@ impl CosmicTextAlign {
     }
 
     /// Horizontally left, vertically center
-    pub fn left() -> Self {
+    pub fn left_center() -> Self {
         CosmicTextAlign {
             vertical: VerticalAlign::Center,
             horizontal: Some(HorizontalAlign::Left),
+        }
+    }
+
+    pub fn bottom_center() -> Self {
+        CosmicTextAlign {
+            vertical: VerticalAlign::Bottom,
+            horizontal: Some(HorizontalAlign::Center),
         }
     }
 }

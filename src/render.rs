@@ -1,7 +1,11 @@
-use crate::cosmic_edit::*;
+use std::borrow::BorrowMut;
+use std::i32;
+
 use crate::{cosmic_edit::ReadOnly, prelude::*};
+use crate::{cosmic_edit::*, BufferMutExtras};
+use bevy::ecs::query::QueryData;
 use bevy::render::render_resource::Extent3d;
-use cosmic_text::{BorrowedWithFontSystem, Color, Edit};
+use cosmic_text::{BorrowedWithFontSystem, BufferRef, Color, Edit};
 use image::{imageops::FilterType, GenericImageView};
 use render_implementations::CosmicWidgetSize;
 
@@ -16,7 +20,9 @@ impl Plugin for RenderPlugin {
         if !app.world().contains_resource::<SwashCache>() {
             app.insert_resource(SwashCache::default());
         } else {
-            debug!("Skipping inserting `SwashCache` resource");
+            debug!(
+                "Skipping inserting `SwashCache` resource as bevy has already inserted it for us"
+            );
         }
         app.add_systems(Update, blink_cursor)
             .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
@@ -120,6 +126,76 @@ impl WidgetBufferCoordTransformation {
     }
 }
 
+#[derive(QueryData)]
+#[query_data(mutable)]
+struct EditorBuffer {
+    editor: Option<&'static mut CosmicEditor>,
+    buffer: &'static mut CosmicEditBuffer,
+}
+
+impl EditorBufferItem<'_> {
+    fn with_buffer_mut<F: FnOnce(&mut Buffer) -> T, T>(&mut self, f: F) -> T {
+        match self.editor.as_mut() {
+            Some(editor) => editor.with_buffer_mut(f),
+            None => f(&mut self.buffer.0),
+        }
+    }
+
+    fn with_buffer<F: FnOnce(&Buffer) -> T, T>(&self, f: F) -> T {
+        match self.editor.as_ref() {
+            Some(editor) => editor.with_buffer(f),
+            None => f(&self.buffer.0),
+        }
+    }
+
+    fn borrow_with<'a>(
+        &'a mut self,
+        font_system: &'a mut cosmic_text::FontSystem,
+    ) -> ManuallyBorrowedWithFontSystem<'a, Self> {
+        ManuallyBorrowedWithFontSystem {
+            font_system,
+            inner: self,
+        }
+    }
+}
+
+pub struct ManuallyBorrowedWithFontSystem<'a, T> {
+    font_system: &'a mut cosmic_text::FontSystem,
+    inner: &'a mut T,
+}
+
+impl ManuallyBorrowedWithFontSystem<'_, EditorBufferItem<'_>> {
+    pub fn with_buffer_mut<F: FnOnce(&mut cosmic_text::BorrowedWithFontSystem<Buffer>) -> T, T>(
+        &mut self,
+        f: F,
+    ) -> T {
+        match self.inner.editor.as_mut() {
+            Some(editor) => editor.borrow_with(self.font_system).with_buffer_mut(f),
+            None => f(&mut self.inner.buffer.borrow_with(self.font_system)),
+        }
+    }
+}
+
+impl BufferMutExtras for ManuallyBorrowedWithFontSystem<'_, EditorBufferItem<'_>> {
+    fn width(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.width())
+    }
+
+    fn height(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.height())
+    }
+
+    fn compute(&mut self) {
+        self.with_buffer_mut(|b| b.compute())
+    }
+}
+
+// impl BufferMutExtras for BorrowedWithFontSystem<'_, EditorOrBufferItem<'_>> {
+//     fn width(&mut self) -> f32 {
+
+//     }
+// }
+
 /// Renders to the [CosmicRenderOutput]
 fn render_texture(
     mut query: Query<(
@@ -207,21 +283,29 @@ fn render_texture(
             .color_opt
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
 
-        // compute alignment and y-offset
+        // compute y-offset
+        let buffer_size = buffer.borrow_with(font_system).expected_size();
         let transformation = WidgetBufferCoordTransformation::new(
             text_align.vertical,
             render_target_size,
-            buffer.borrow_with(font_system).logical_size(),
+            buffer_size,
         );
 
+        let mut actually_rendered_max = IVec2::ZERO;
+        let mut actually_rendered_min = IVec2::new(i32::MAX, i32::MAX);
         let draw_closure = |x, y, w, h, color| {
             for row in 0..h as i32 {
                 for col in 0..w as i32 {
                     let buffer_coord = IVec2::new(x + col, y + row);
+                    actually_rendered_max = actually_rendered_max.max(buffer_coord);
+                    actually_rendered_min = actually_rendered_min.min(buffer_coord);
+
                     // compute padding_top
                     let widget_coord = transformation
                         .buffer_to_widget(buffer_coord.as_vec2())
                         .as_ivec2();
+
+                    // actually draw pixel
                     draw_pixel(
                         &mut pixels,
                         render_target_size.x as i32,
@@ -278,10 +362,12 @@ fn render_texture(
             editor.with_buffer_mut(|b| update_buffer_size(&mut b.borrow_with(font_system)));
             editor.with_buffer_mut(update_buffer_horizontal_alignment);
 
-            editor.with_buffer_mut(|buffer| buffer.borrow_with(font_system).compute());
+            let mut editor = editor.borrow_with(font_system);
+            editor.compute();
+
+            let new_buffer_size = editor.expected_size();
 
             editor.draw(
-                font_system,
                 &mut swash_cache_state.0,
                 font_color,
                 cursor_color,
@@ -289,6 +375,14 @@ fn render_texture(
                 selected_text_color,
                 draw_closure,
             );
+
+            let actually_rendered_buffer_size = actually_rendered_max - actually_rendered_min;
+            trace!(
+                ?buffer_size,
+                ?new_buffer_size,
+                ?actually_rendered_buffer_size
+            );
+            transformation.debug_top_padding();
 
             // TODO: Performance optimization, read all possible render-input
             // changes and only redraw if necessary
