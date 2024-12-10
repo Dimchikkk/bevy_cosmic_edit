@@ -197,34 +197,3 @@ impl ScrollEnabled {
 /// this should be merged with its builtin resource
 #[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
-
-/// Wrapper component for an [`Editor`] with a few helpful values for cursor blinking
-///
-/// [`cosmic_text::Editor`] is basically a mutable version of [`cosmic_text::Buffer`].
-///
-/// This component should be on a focussed [`CosmicEditBuffer`]
-// Managed by crate::focus::add_editor_to_focussed and similar systems
-#[derive(Component, Deref, DerefMut)]
-pub struct CosmicEditor {
-    #[deref]
-    pub editor: Editor<'static>,
-    pub cursor_visible: bool,
-    pub cursor_timer: Timer,
-}
-
-impl CosmicEditor {
-    pub fn new(editor: Editor<'static>) -> Self {
-        // this makes sure when switching between editors,
-        // the cursor doesn't immediately blink at the start
-        // before its position has been updated
-        let duration = Duration::from_millis(530);
-        let mut cursor_timer = Timer::new(Duration::from_millis(530), TimerMode::Repeating);
-        cursor_timer.tick(duration - Duration::from_millis(80));
-
-        Self {
-            editor,
-            cursor_visible: false,
-            cursor_timer,
-        }
-    }
-}

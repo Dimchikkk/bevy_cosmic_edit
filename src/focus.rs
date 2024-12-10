@@ -1,3 +1,8 @@
+//! Manages the [`FocusedWidget`] resource
+//!
+//! Makes sure that the focused widget has a [`CosmicEditor`] component
+//! if its focused
+
 use crate::prelude::*;
 use cosmic_text::{Edit, Editor};
 
@@ -65,6 +70,21 @@ pub(crate) fn drop_editor_unfocused(
                 b.set_redraw(true);
                 trace!("Removing editor from entity as its not focussed anymore",);
                 commands.entity(e).remove::<CosmicEditor>();
+            }
+        }
+    }
+}
+
+/// Placed as on_remove hook for [`CosmicEditBuffer`] and [`CosmicEditor`]
+pub(crate) fn remove_focus_from_entity(
+    mut world: bevy::ecs::world::DeferredWorld,
+    entity: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
+        if let Some(focused) = focused_widget.0 {
+            if focused == entity {
+                focused_widget.0 = None;
             }
         }
     }
