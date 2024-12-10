@@ -74,11 +74,12 @@ pub mod prelude {
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
+    pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
     pub use crate::cosmic_edit::{DefaultAttrs, ReadOnly};
     pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
-    pub use crate::editor_buffer::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
-    pub use crate::editor_buffer::editor::CosmicEditor;
+    pub use crate::editor::CosmicEditor;
+    pub use crate::editor_buffer::EditorBuffer;
     pub use crate::focus::FocusedWidget;
     pub use crate::input::click::focus_on_click;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig};
@@ -90,12 +91,13 @@ pub mod prelude {
 // non-pub required
 pub use buffer::*;
 pub use cosmic_edit::*;
+pub use editor_buffer::*;
+pub use editor_buffer::{buffer, editor};
 pub use focus::*;
-mod buffer;
 mod cosmic_edit;
 mod double_click;
 mod editor_buffer;
-mod focus;
+pub mod focus;
 mod render;
 
 // pub required

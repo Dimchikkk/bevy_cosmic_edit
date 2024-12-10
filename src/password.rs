@@ -86,7 +86,7 @@ impl Password {
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
-        &mut CosmicEditBuffer,
+        &mut CosmicEditor,
         &DefaultAttrs,
         Option<&mut CosmicEditor>,
         Option<&Placeholder>,
