@@ -23,7 +23,7 @@ pub(super) fn blink_cursor(mut q: Query<&mut CosmicEditor, Without<ReadOnly>>, t
         e.cursor_timer.tick(time.delta());
         if e.cursor_timer.just_finished() {
             e.cursor_visible = !e.cursor_visible;
-            trace!("Toggling cursor");
+            // trace!("Toggling cursor");
             e.set_redraw(true);
         }
     }

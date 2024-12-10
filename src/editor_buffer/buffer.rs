@@ -17,7 +17,7 @@ pub trait BufferRefExtras {
 }
 
 pub trait BufferMutExtras {
-    fn compute(&mut self);
+    fn compute_everything(&mut self);
 
     /// Height that buffer text would take up if rendered
     ///
@@ -51,14 +51,14 @@ impl BufferRefExtras for Buffer {
 
 impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
     fn height(&mut self) -> f32 {
-        self.compute();
+        self.compute_everything();
         // TODO: which implementation is correct?
         // self.metrics().line_height * self.layout_runs().count() as f32
         self.layout_runs().map(|line| line.line_height).sum()
     }
 
     fn width(&mut self) -> f32 {
-        self.compute();
+        self.compute_everything();
         // get max line width
         self.layout_runs()
             .map(|line| line.line_w)
@@ -66,8 +66,11 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
             .unwrap_or(0.0)
     }
 
-    fn compute(&mut self) {
-        self.shape_until_scroll(false);
+    fn compute_everything(&mut self) {
+        let last_line_num = self.lines.len() - 1;
+        let last_line_width = self.lines[last_line_num].text().len();
+        let end_cursor = cosmic_text::Cursor::new(last_line_num, last_line_width);
+        self.shape_until_cursor(end_cursor, false);
     }
 }
 
@@ -80,9 +83,9 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
         self.with_buffer_mut(|b| b.width())
     }
 
-    fn compute(&mut self) {
-        // self.with_buffer_mut(|b| b.compute());
-        self.shape_as_needed(false)
+    fn compute_everything(&mut self) {
+        self.with_buffer_mut(|b| b.compute_everything());
+        // self.shape_as_needed(false)
     }
 }
 
@@ -255,7 +258,7 @@ impl<'s, 'r> CosmicEditBuffer {
 
 /// Sets a default text value of "".
 /// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
-/// 
+///
 /// This fixes the bug where an empty buffer won't show a blinking cursor when focused
 pub(in crate::editor_buffer) fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,

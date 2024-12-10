@@ -166,7 +166,7 @@ impl buffer::BufferMutExtras for ManuallyBorrowedWithFontSystem<'_, EditorBuffer
         self.with_buffer_mut(|b| b.height())
     }
 
-    fn compute(&mut self) {
-        self.with_buffer_mut(|b| b.compute())
+    fn compute_everything(&mut self) {
+        self.with_buffer_mut(|b| b.compute_everything())
     }
 }

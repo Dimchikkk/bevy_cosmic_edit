@@ -16,11 +16,13 @@ pub(crate) fn scroll(
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
+                        // trace!(?ev, "Line");
                         editor.action(Action::Scroll {
                             lines: -ev.y as i32,
                         });
                     }
                     MouseScrollUnit::Pixel => {
+                        // trace!(?ev, "Pixel");
                         let line_height = editor.with_buffer(|b| b.metrics().line_height);
                         editor.action(Action::Scroll {
                             lines: -(ev.y / line_height) as i32,

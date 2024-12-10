@@ -295,7 +295,16 @@ fn render_texture(
                 .unwrap_or(font_color);
 
             let mut editor = editor.borrow_with(font_system);
-            editor.compute();
+            editor.shape_as_needed(false);
+
+            // try to fix annoying scroll behaviour
+            // by only allowing vertical scrolling if the buffer is actually larger than the canvas
+            let mut scroll = editor.with_buffer(|b| b.scroll());
+            if buffer_size.y <= render_target_size.y {
+                trace_once!("Ignoring vertical scroll as buffer is smaller than canvas");
+                scroll.vertical = 0.0;
+            }
+            editor.with_buffer_mut(|b| b.set_scroll(scroll));
 
             // let new_buffer_size = editor.expected_size();
 
@@ -338,7 +347,7 @@ fn render_texture(
                 continue;
             }
 
-            editor.borrow_with(font_system).compute();
+            editor.borrow_with(font_system).compute_everything();
             editor.draw(
                 font_system,
                 &mut swash_cache_state.0,
