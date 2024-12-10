@@ -261,7 +261,8 @@ fn render_texture(
             Some(match wrap {
                 CosmicWrap::Wrap => render_target_size.x,
                 // todo: this panics atm
-                CosmicWrap::InfiniteLine => f32::MAX / 2.,
+                // probably high enough
+                CosmicWrap::InfiniteLine => f32::MAX / 10f32.powi(3),
             }),
             Some(render_target_size.y),
         );
@@ -294,20 +295,23 @@ fn render_texture(
                 .map(|selected_text_color| selected_text_color.0.to_cosmic())
                 .unwrap_or(font_color);
 
-            let mut editor = editor.borrow_with(font_system);
-            editor.shape_as_needed(false);
-
             // try to fix annoying scroll behaviour
             // by only allowing vertical scrolling if the buffer is actually larger than the canvas
-            let mut scroll = editor.with_buffer(|b| b.scroll());
-            if buffer_size.y <= render_target_size.y {
-                trace_once!("Ignoring vertical scroll as buffer is smaller than canvas");
-                scroll.vertical = 0.0;
-            }
-            editor.with_buffer_mut(|b| b.set_scroll(scroll));
+            // let mut scroll = editor.with_buffer(|b| b.scroll());
+            // if buffer_size.y + 10.0 < render_target_size.y {
+            //     trace!(
+            //         message = "Ignoring vertical scroll as buffer is smaller than canvas",
+            //         ?buffer_size.y,
+            //         ?render_target_size.y
+            //     );
+            //     scroll.vertical = 0.0;
+            // }
+            // editor.with_buffer_mut(|b| b.set_scroll(scroll));
 
             // let new_buffer_size = editor.expected_size();
 
+            let mut editor = editor.borrow_with(font_system);
+            editor.shape_as_needed(false);
             editor.draw(
                 &mut swash_cache_state.0,
                 font_color,
@@ -347,7 +351,8 @@ fn render_texture(
                 continue;
             }
 
-            editor.borrow_with(font_system).compute_everything();
+            // editor.borrow_with(font_system).compute_everything();
+            editor.shape_until_scroll(font_system, false);
             editor.draw(
                 font_system,
                 &mut swash_cache_state.0,

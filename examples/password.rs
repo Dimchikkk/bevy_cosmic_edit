@@ -13,7 +13,7 @@ fn setup(mut commands: Commands) {
             TextEdit2d,
             CosmicEditBuffer::default(),
             MaxLines(1),
-            CosmicWrap::InfiniteLine,
+            // CosmicWrap::InfiniteLine,
             // Sets size of text box
             Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),

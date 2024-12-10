@@ -1,30 +1,41 @@
+//! Currently scrolling is bugged
+
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    cosmic_text::{Attrs, AttrsOwned},
-    input::hover::{TextHoverIn, TextHoverOut},
-    input::CosmicTextChanged,
+    cosmic_text::{Attrs, AttrsOwned, Metrics},
     prelude::*,
-    CosmicTextAlign, MaxLines,
+    CosmicTextAlign, MaxLines, ScrollEnabled,
 };
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.spawn(Camera2d);
+
+    let attrs = Attrs::new().color(CosmicColor::rgb(0, 50, 200));
 
     // Ui editor
     commands
         .spawn((
             TextEdit,
-            CosmicEditBuffer::default(),
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 18.)).with_text(
+                &mut font_system,
+                format!(
+                    "Top line\n{}BottomLine",
+                    "UI editor that is long vertical\n".repeat(7)
+                )
+                .as_str(),
+                attrs,
+            ),
+            ScrollEnabled::Enabled,
+            CosmicTextAlign::top_left(),
             DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
             )),
-            MaxLines(1),
-            CosmicWrap::InfiniteLine, // panics atm
-            CosmicTextAlign::left_center(),
+            // MaxLines(1),
+            // CosmicWrap::InfiniteLine,
             Node {
                 // Size and position of text box
                 width: Val::Px(300.),
-                height: Val::Px(50.),
+                height: Val::Px(150.),
                 left: Val::Px(100.),
                 top: Val::Px(100.),
                 ..default()
@@ -36,9 +47,8 @@ fn setup(mut commands: Commands) {
     commands
         .spawn((
             TextEdit2d,
-            MaxLines(1),
-            CosmicWrap::InfiniteLine, // panics atm
-            CosmicTextAlign::left_center(),
+            // MaxLines(1),
+            // CosmicWrap::InfiniteLine, // panics atm
             // Sets size of text box
             Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),
@@ -50,28 +60,11 @@ fn setup(mut commands: Commands) {
         .observe(focus_on_click);
 }
 
-fn ev_test(
-    mut evr_on: EventReader<TextHoverIn>,
-    mut evr_out: EventReader<TextHoverOut>,
-    mut evr_type: EventReader<CosmicTextChanged>,
-) {
-    for _ev in evr_on.read() {
-        println!("IN");
-    }
-    for _ev in evr_out.read() {
-        println!("OUT");
-    }
-    for _ev in evr_type.read() {
-        println!("TYPE");
-    }
-}
-
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(CosmicEditPlugin { ..default() })
+        .add_plugins(CosmicEditPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, deselect_editor_on_esc)
-        .add_systems(Update, ev_test)
         .run();
 }

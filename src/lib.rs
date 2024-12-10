@@ -76,7 +76,7 @@ pub mod prelude {
     // public internal re-exports
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
-    pub use crate::cosmic_edit::{DefaultAttrs, ReadOnly};
+    pub use crate::cosmic_edit::{CosmicWrap, DefaultAttrs, ReadOnly};
     pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
     pub use crate::editor::CosmicEditor;
     pub use crate::editor_buffer::EditorBuffer;

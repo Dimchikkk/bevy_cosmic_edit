@@ -15,10 +15,29 @@ pub(crate) fn plugin(app: &mut App) {
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Component, Reflect, Clone, PartialEq, Default)]
+#[component(on_add = check_align_sanity)]
 pub enum CosmicWrap {
     InfiniteLine,
     #[default]
     Wrap,
+}
+
+fn check_align_sanity(
+    world: bevy::ecs::world::DeferredWorld,
+    target: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    if let Some(CosmicWrap::InfiniteLine) = world.get(target) {
+        let Some(align) = world.get::<CosmicTextAlign>(target) else {
+            return;
+        };
+        if matches!(
+            align.horizontal,
+            Some(HorizontalAlign::End | HorizontalAlign::Right | HorizontalAlign::Center)
+        ) {
+            warn!(message = "Having a widget with `CosmicWrap::InfiniteLine` while using a horizontal alignment like `HorizontalAlign::Center` will likely obscure the text");
+        }
+    }
 }
 
 /// Where to render the [`CosmicEditBuffer`] within the given size.
@@ -44,16 +63,23 @@ pub struct CosmicTextAlign {
 
 impl Default for CosmicTextAlign {
     fn default() -> Self {
-        CosmicTextAlign {
-            vertical: VerticalAlign::Center,
-            horizontal: Some(HorizontalAlign::Center),
-        }
+        Self::center()
     }
 }
 
 impl CosmicTextAlign {
+    pub fn new(horizontal: HorizontalAlign, vertical: VerticalAlign) -> Self {
+        CosmicTextAlign {
+            vertical,
+            horizontal: Some(horizontal),
+        }
+    }
+
     pub fn center() -> Self {
-        CosmicTextAlign::default()
+        CosmicTextAlign {
+            vertical: VerticalAlign::Center,
+            horizontal: Some(HorizontalAlign::Center),
+        }
     }
 
     pub fn top_left() -> Self {

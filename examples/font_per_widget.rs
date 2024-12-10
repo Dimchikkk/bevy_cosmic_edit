@@ -159,12 +159,12 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.entity(root).with_children(|parent| {
         parent
             .spawn((
+                TextEdit,
                 CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
                     &mut font_system,
                     lines,
                     attrs,
                 ),
-                TextEdit,
                 Node {
                     width: Val::Percent(50.),
                     height: Val::Percent(100.),
@@ -181,13 +181,12 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     commands.entity(root).with_children(|parent| {
         parent
             .spawn((
+                TextEdit,
                 CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
                     &mut font_system,
                     "Widget 2.\nClick on me =>",
                     attrs_2,
                 ),
-                ImageNode::default(),
-                Button,
                 Node {
                     width: Val::Percent(50.),
                     height: Val::Percent(100.),
