@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, AttrsOwned, Metrics},
     prelude::*,
-    CosmicTextAlign, MaxLines, ScrollEnabled,
+    CosmicTextAlign, ScrollEnabled,
 };
 
 fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
@@ -30,7 +30,6 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
             DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),
             )),
-            // MaxLines(1),
             // CosmicWrap::InfiniteLine,
             Node {
                 // Size and position of text box
