@@ -1,5 +1,9 @@
-use crate::{prelude::*, widget::WidgetSet};
-use cosmic_text::{Edit, Editor};
+//! Manages the [`FocusedWidget`] resource
+//!
+//! Makes sure that the focused widget has a [`CosmicEditor`] component
+//! if its focused
+
+use crate::prelude::*;
 
 /// System set for focus systems. Runs in `PostUpdate`
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -13,8 +17,7 @@ impl Plugin for FocusPlugin {
             PostUpdate,
             (drop_editor_unfocused, add_editor_to_focused)
                 .chain()
-                .in_set(FocusSet)
-                .after(WidgetSet),
+                .in_set(FocusSet),
         )
         .init_resource::<FocusedWidget>()
         .register_type::<FocusedWidget>();
@@ -36,12 +39,12 @@ pub(crate) fn add_editor_to_focused(
     q: Query<&CosmicEditBuffer, Without<CosmicEditor>>,
 ) {
     if let Some(e) = active_editor.0 {
-        let Ok(b) = q.get(e) else {
+        let Ok(buffer) = q.get(e) else {
             return;
         };
-        let mut editor = Editor::new(b.0.clone());
-        editor.set_redraw(true);
-        commands.entity(e).insert(CosmicEditor::new(editor));
+        let editor = CosmicEditor::clone_from_buffer(buffer);
+        trace!("Adding editor to focused widget");
+        commands.entity(e).insert(editor);
     }
 }
 
@@ -51,18 +54,38 @@ pub(crate) fn drop_editor_unfocused(
     active_editor: Res<FocusedWidget>,
     mut q: Query<(Entity, &mut CosmicEditBuffer, &CosmicEditor)>,
 ) {
-    if active_editor.0.is_none() {
-        for (e, mut b, ed) in q.iter_mut() {
-            b.lines = ed.with_buffer(|buf| buf.lines.clone());
-            b.set_redraw(true);
-            commands.entity(e).remove::<CosmicEditor>();
-        }
-    } else if let Some(focused) = active_editor.0 {
-        for (e, mut b, ed) in q.iter_mut() {
-            if e != focused {
-                b.lines = ed.with_buffer(|buf| buf.lines.clone());
-                b.set_redraw(true);
+    match active_editor.0 {
+        None => {
+            for (e, mut buffer, editor) in q.iter_mut() {
+                // buffer.lines = editor.with_buffer(|buf| buf.lines.clone());
+                // buffer.set_redraw(true);
+                *buffer = CosmicEditBuffer::from_downgrading_editor(editor);
+                trace!("Removing editor from all entities as there is no focussed widget",);
                 commands.entity(e).remove::<CosmicEditor>();
+            }
+        }
+        Some(focused) => {
+            for (e, mut b, editor) in q.iter_mut() {
+                if e != focused {
+                    *b = CosmicEditBuffer::from_downgrading_editor(editor);
+                    trace!("Removing editor from entity as its not focussed anymore",);
+                    commands.entity(e).remove::<CosmicEditor>();
+                }
+            }
+        }
+    }
+}
+
+/// Placed as on_remove hook for [`CosmicEditBuffer`] and [`CosmicEditor`]
+pub(crate) fn remove_focus_from_entity(
+    mut world: bevy::ecs::world::DeferredWorld,
+    entity: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
+        if let Some(focused) = focused_widget.0 {
+            if focused == entity {
+                focused_widget.0 = None;
             }
         }
     }

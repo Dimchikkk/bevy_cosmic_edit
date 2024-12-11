@@ -157,41 +157,44 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     ];
 
     commands.entity(root).with_children(|parent| {
-        parent.spawn((
-            CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
-                &mut font_system,
-                lines,
-                attrs,
-            ),
-            TextEdit,
-            Node {
-                width: Val::Percent(50.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            BackgroundColor(Color::WHITE),
-        ));
+        parent
+            .spawn((
+                TextEdit,
+                CosmicEditBuffer::new(&mut font_system, Metrics::new(18., 22.)).with_rich_text(
+                    &mut font_system,
+                    lines,
+                    attrs,
+                ),
+                Node {
+                    width: Val::Percent(50.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                BackgroundColor(Color::WHITE),
+            ))
+            .observe(focus_on_click);
     });
 
     let mut attrs_2 = Attrs::new();
     attrs_2 = attrs_2.family(Family::Name("Times New Roman"));
     attrs_2.color_opt = Some(bevy::color::palettes::css::PURPLE.to_cosmic());
     commands.entity(root).with_children(|parent| {
-        parent.spawn((
-            CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
-                &mut font_system,
-                "Widget 2.\nClick on me =>",
-                attrs_2,
-            ),
-            ImageNode::default(),
-            Button,
-            Node {
-                width: Val::Percent(50.),
-                height: Val::Percent(100.),
-                ..default()
-            },
-            BackgroundColor(Color::WHITE.with_alpha(0.8)),
-        ));
+        parent
+            .spawn((
+                TextEdit,
+                CosmicEditBuffer::new(&mut font_system, Metrics::new(28., 36.)).with_text(
+                    &mut font_system,
+                    "Widget 2.\nClick on me =>",
+                    attrs_2,
+                ),
+                Node {
+                    width: Val::Percent(50.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                BackgroundColor(Color::WHITE.with_alpha(0.8)),
+            ))
+            .observe(focus_on_click);
     });
 }
 
@@ -200,6 +203,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { ..default() })
         .add_systems(Startup, setup)
-        .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
+        .add_systems(Update, deselect_editor_on_esc)
         .run();
 }

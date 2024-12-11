@@ -43,71 +43,73 @@
 //! ## Feature flags
 #![doc = document_features::document_features!()]
 //!
+//! ## Implementation details
+//!
+//! See [render_implementations](crate::render_implementations)
+//!
 //! ## License
 //!
 //! MIT or Apache-2.0
 #![allow(clippy::type_complexity)]
 
+pub use bevy::text::cosmic_text;
+pub use primary::*;
+/// Contains the library global important types you probably want to explore first
+mod primary;
+
 pub mod prelude {
-    // external re-exports
+    // non-pub external re-exports
     pub(crate) use bevy::prelude::*;
     pub(crate) use bevy::text::SwashCache;
-    #[cfg_attr(not(doc), allow(unused_imports))]
     pub(crate) use cosmic_text::Buffer;
+    pub(crate) use cosmic_text::Edit as _;
+    #[allow(unused_imports)]
+    pub(crate) use std::ops::{Deref as _, DerefMut as _};
 
-    // internal re-exports
-    pub(crate) use crate::buffer::BufferExtras as _;
+    // non-pub internal re-exports
+    pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
     pub(crate) use crate::cosmic_text;
     pub(crate) use crate::primary::CosmicRenderOutput;
+    pub(crate) use crate::render_implementations;
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
     pub use crate::buffer::CosmicEditBuffer; // todo: migrate to builtin bevy CosmicBuffer
     pub use crate::cosmic_edit::CosmicFontSystem; // todo: migrate to using builtin bevy cosmic font system
-    pub use crate::cosmic_edit::{CosmicEditor, DefaultAttrs, ReadOnly};
+    pub use crate::cosmic_edit::{CosmicWrap, DefaultAttrs, ReadOnly};
+    pub use crate::cosmic_text::{Color as CosmicColor, Style as FontStyle, Weight as FontWeight};
+    pub use crate::editor::CosmicEditor;
+    pub use crate::editor_buffer::EditorBuffer;
     pub use crate::focus::FocusedWidget;
-    pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
-    pub use crate::render_targets::{TextEdit, TextEdit2d};
-    pub use crate::utils::{
-        change_active_editor_sprite, change_active_editor_ui, deselect_editor_on_esc,
-        print_editor_text, ColorExtras as _,
-    };
-    #[doc(no_inline)]
-    pub use bevy::text::cosmic_text::{
-        Color as CosmicColor, Style as FontStyle, Weight as FontWeight,
-    };
+    pub use crate::input::click::focus_on_click;
+    pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig};
+    pub use crate::render_implementations::{TextEdit, TextEdit2d};
+    pub use crate::utils::{deselect_editor_on_esc, print_editor_text, ColorExtras as _};
 }
 
-pub use bevy::text::cosmic_text;
-
-pub use primary::{CosmicEditPlugin, CosmicFontConfig, CosmicPrimaryCamera};
-/// Contains the library global important types you probably want to explore first
-mod primary;
-
-pub use buffer::CosmicEditBuffer;
-mod buffer;
-pub use cosmic_edit::{
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicEditor, CosmicFontSystem, CosmicTextAlign,
-    CosmicWrap, CursorColor, DefaultAttrs, MaxChars, MaxLines, ReadOnly, ScrollEnabled,
-    SelectedTextColor, SelectionColor,
-};
+// required modules
+// non-pub required
+pub use buffer::*;
+pub use cosmic_edit::*;
+pub use editor_buffer::*;
+pub use editor_buffer::{buffer, editor};
+pub use focus::*;
 mod cosmic_edit;
-pub use cursor::{CursorPluginDisabled, HoverCursor, TextHoverIn, TextHoverOut};
-mod cursor;
-pub use events::CosmicTextChanged;
-mod events;
-pub use focus::FocusedWidget;
-mod focus;
-pub use input::InputSet;
-mod input;
-pub use password::Password;
-mod password;
-pub use placeholder::Placeholder;
-mod placeholder;
+mod double_click;
+mod editor_buffer;
+pub mod focus;
 mod render;
-pub use user_select::UserSelectNone;
-mod user_select;
+
+// pub required
+pub use input::hover::HoverCursor;
+pub mod input;
+pub mod render_implementations;
 pub mod utils;
-mod widget;
-pub(crate) use render_targets::{ChangedCosmicWidgetSize, CosmicWidgetSize};
-pub mod render_targets;
+
+// extra modules
+pub mod password;
+pub mod placeholder;
+pub mod user_select;
+
+#[cfg(feature = "internal-debugging")]
+mod debug;

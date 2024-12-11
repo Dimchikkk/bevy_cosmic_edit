@@ -1,5 +1,5 @@
 use crate::{
-    cosmic_edit::DefaultAttrs, events::CosmicTextChanged, input::InputSet, prelude::*,
+    cosmic_edit::DefaultAttrs, input::CosmicTextChanged, input::InputSet, prelude::*,
     render::RenderSet,
 };
 use cosmic_text::{Attrs, Edit};
@@ -9,7 +9,8 @@ use cosmic_text::{Attrs, Edit};
 /// ```
 /// # use bevy::prelude::*;
 /// # use bevy_cosmic_edit::prelude::*;
-/// use bevy_cosmic_edit::Placeholder;
+/// # use bevy_cosmic_edit::cosmic_text::Attrs;
+/// use bevy_cosmic_edit::placeholder::Placeholder;
 ///
 /// # fn setup(mut commands: Commands) {
 /// commands.spawn((
@@ -71,7 +72,7 @@ impl Plugin for PlaceholderPlugin {
 }
 
 fn add_placeholder_to_buffer(
-    mut q: Query<(&mut CosmicEditBuffer, &mut Placeholder)>,
+    mut q: Query<(EditorBuffer, &mut Placeholder)>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
     for (mut buffer, mut placeholder) in q.iter_mut() {
