@@ -12,6 +12,7 @@ pub(crate) struct OutputToEntity {
 
     sprite_target: Option<&'static mut Sprite>,
     image_node_target: Option<&'static mut ImageNode>,
+    threed_target: Option<&'static mut MeshMaterial3d<StandardMaterial>>,
 }
 
 impl<'s> std::ops::Deref for OutputToEntityItem<'s> {
@@ -40,6 +41,9 @@ impl OutputToEntityItem<'_> {
                     .ok_or(RenderTargetError::required_component_missing::<ImageNode>())?;
                 image_node.image = image.clone_weak();
                 Ok(())
+            }
+            SourceType::ThreeD => {
+                todo!()
             }
         }
     }

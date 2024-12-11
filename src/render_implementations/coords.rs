@@ -28,15 +28,15 @@ impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
 impl RelativeQueryItem<'_> {
     pub fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Result<Vec2> {
         match self.scan()? {
-            SourceType::Sprite => {
+            SourceType::Sprite | SourceType::ThreeD => {
                 if hit_data.normal != Some(Vec3::Z) {
                     warn!(?hit_data, "Normal is not out of screen, skipping");
-                    return Err(RenderTargetError::SpriteUnexpectedNormal);
+                    return Err(RenderTargetError::UnexpectedNormal);
                 }
 
                 let world_position = hit_data
                     .position
-                    .ok_or(RenderTargetError::SpriteExpectedHitdataPosition)?;
+                    .ok_or(RenderTargetError::ExpectedHitdataPosition)?;
                 let RelativeQueryItem {
                     sprite_global_transform,
                     text_align,

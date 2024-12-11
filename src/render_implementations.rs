@@ -18,6 +18,10 @@ mod prelude {
     pub(super) use super::{RenderTypeScan, RenderTypeScanItem};
 }
 
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(PreUpdate, threed::sync_mesh_and_size);
+}
+
 pub use error::*;
 mod error {
     pub type Error = crate::render_implementations::RenderTargetError;
@@ -45,9 +49,9 @@ mod error {
         /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
         SpriteCustomSizeNotSet,
 
-        SpriteUnexpectedNormal,
+        UnexpectedNormal,
 
-        SpriteExpectedHitdataPosition,
+        ExpectedHitdataPosition,
 
         UiExpectedCursorPosition,
     }
@@ -69,6 +73,7 @@ pub(crate) use widget_size::*;
 mod widget_size;
 pub(crate) use scan::*;
 mod scan;
+mod threed;
 
 use crate::prelude::*;
 
@@ -95,3 +100,16 @@ pub struct TextEdit;
 #[derive(Component)]
 #[require(Sprite, CosmicEditBuffer)]
 pub struct TextEdit2d;
+
+// #[cfg(feature = "3d")]
+#[derive(Component)]
+#[require(Mesh3d, MeshMaterial3d::<StandardMaterial>)]
+pub struct TextEdit3d {
+    pub size: Vec2,
+}
+
+impl TextEdit3d {
+    pub fn new(size: Vec2) -> Self {
+        Self { size }
+    }
+}

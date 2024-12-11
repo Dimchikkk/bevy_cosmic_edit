@@ -11,6 +11,12 @@ keywords = ["bevy"]
 exclude = ["assets/*"]
 
 [features]
+# ## Enables 3d render target implementation
+# 3d-support = ["bevy/bevy_pbr"]
+
+# ## By default, enabled 3d
+# default = ["3d"]
+
 ## For internal use only
 internal-debugging = ["bevy/track_change_detection"]
 
@@ -27,6 +33,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_ui",
     "bevy_winit",
     "bevy_window",
+    "bevy_pbr",
     "png",
     "x11",
     "webgl2",

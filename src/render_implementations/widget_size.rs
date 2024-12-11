@@ -11,6 +11,7 @@ pub struct CosmicWidgetSize {
 
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
+    threed: Option<&'static TextEdit3d>,
 }
 
 /// Allows `.scan()` to be called on a [`CosmicWidgetSize`] through deref
@@ -29,7 +30,7 @@ pub(crate) struct ChangedCosmicWidgetSize {
     ui: Changed<ComputedNode>,
 }
 
-trait NodeSizeExt {
+pub(in crate::render_implementations) trait NodeSizeExt {
     fn logical_size(&self) -> Vec2;
 }
 
@@ -65,6 +66,12 @@ impl CosmicWidgetSizeItem<'_> {
                 Ok(sprite
                     .custom_size
                     .ok_or(RenderTargetError::SpriteCustomSizeNotSet)?)
+            }
+            SourceType::ThreeD => {
+                let threed = self
+                    .threed
+                    .ok_or(RenderTargetError::required_component_missing::<TextEdit3d>())?;
+                Ok(threed.size)
             }
         }
     }

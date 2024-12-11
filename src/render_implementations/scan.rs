@@ -9,12 +9,14 @@ use crate::render_implementations::prelude::*;
 pub(in crate::render_implementations) enum SourceType {
     Ui,
     Sprite,
+    ThreeD,
 }
 
 #[derive(QueryData)]
 pub struct RenderTypeScan {
     is_sprite: Has<TextEdit2d>,
     is_ui: Has<TextEdit>,
+    is_3d: Has<TextEdit3d>,
 }
 
 impl RenderTypeScanItem<'_> {

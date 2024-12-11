@@ -17,7 +17,7 @@ impl Plugin for CosmicEditPlugin {
 
         app.add_plugins((
             crate::cosmic_edit::plugin,
-            // crate::buffer::BufferPlugin,
+            crate::render_implementations::plugin,
             crate::editor_buffer::EditorBufferPlugin,
             crate::render::RenderPlugin,
             crate::input::InputPlugin,
