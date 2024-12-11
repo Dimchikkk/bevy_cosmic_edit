@@ -19,27 +19,8 @@ impl Plugin for RenderPlugin {
                 "Skipping inserting `SwashCache` resource as bevy has already inserted it for us"
             );
         }
-        app.add_systems(
-            First,
-            update_internal_target_handles.pipe(render_implementations::debug_error),
-        )
-        .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
+        app.add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
     }
-}
-
-/// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
-/// on the same entity, e.g. [`Sprite`]
-fn update_internal_target_handles(
-    mut buffers_q: Query<
-        (&CosmicRenderOutput, render_implementations::OutputToEntity),
-        With<CosmicEditBuffer>,
-    >,
-) -> render_implementations::Result<()> {
-    for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
-        output_components.write_image_data(output_data)?;
-    }
-
-    Ok(())
 }
 
 fn draw_pixel(

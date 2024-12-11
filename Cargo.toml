@@ -63,3 +63,4 @@ web-sys = { version = "0.3.70", features = [
 
 [dev-dependencies]
 insta = "1.29.0"
+bevy = "0.15"

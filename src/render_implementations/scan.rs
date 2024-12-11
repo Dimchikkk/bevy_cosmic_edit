@@ -28,11 +28,17 @@ impl RenderTypeScanItem<'_> {
     }
 
     pub(in crate::render_implementations) fn scan(&self) -> Result<SourceType> {
-        match (self.is_sprite, self.is_ui) {
-            (true, false) => Ok(SourceType::Sprite),
-            (false, true) => Ok(SourceType::Ui),
-            (true, true) => Err(RenderTargetError::MoreThanOneTargetAvailable),
-            (false, false) => Err(RenderTargetError::NoTargetsAvailable),
+        let flags = [self.is_ui, self.is_sprite, self.is_3d];
+        let count_true = flags.iter().filter(|x| **x).count();
+        match count_true {
+            0 => Err(RenderTargetError::NoTargetsAvailable),
+            1 => match flags {
+                [true, false, false] => Ok(SourceType::Sprite),
+                [false, true, false] => Ok(SourceType::Ui),
+                [false, false, true] => Ok(SourceType::ThreeD),
+                _ => unreachable!(),
+            },
+            _ => Err(RenderTargetError::MoreThanOneTargetAvailable),
         }
     }
 }

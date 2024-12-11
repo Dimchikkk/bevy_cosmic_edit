@@ -19,7 +19,16 @@ mod prelude {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, threed::sync_mesh_and_size);
+    if !app.is_plugin_added::<MeshPickingPlugin>() {
+        debug!("Adding MeshPickingPlugin manually as its not been added already");
+        app.add_plugins(MeshPickingPlugin);
+    }
+
+    app.add_systems(PreUpdate, threed::sync_mesh_and_size)
+        .add_systems(
+            First,
+            output::update_internal_target_handles.pipe(render_implementations::debug_error),
+        );
 }
 
 pub use error::*;
@@ -54,6 +63,8 @@ mod error {
         ExpectedHitdataPosition,
 
         UiExpectedCursorPosition,
+
+        Material3dDoesNotExist,
     }
 
     impl RenderTargetError {
@@ -67,7 +78,6 @@ mod error {
 
 pub(crate) use coords::*;
 mod coords;
-pub(crate) use output::*;
 mod output;
 pub(crate) use widget_size::*;
 mod widget_size;
@@ -103,7 +113,7 @@ pub struct TextEdit2d;
 
 // #[cfg(feature = "3d")]
 #[derive(Component)]
-#[require(Mesh3d, MeshMaterial3d::<StandardMaterial>)]
+#[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
 pub struct TextEdit3d {
     pub size: Vec2,
 }
