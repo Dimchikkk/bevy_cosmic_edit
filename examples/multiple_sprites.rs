@@ -42,26 +42,29 @@ fn setup(
         Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
     ));
 
-    commands.spawn((
-        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "Widget_2. Click on me",
-            attrs,
-        ),
-        CosmicBackgroundColor(bevy::color::palettes::basic::GRAY.with_alpha(0.5).into()),
-        Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height() / 2.,
-            }),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(
-            primary_window.width() / 4.,
-            -primary_window.height() / 4.,
-            1.,
-        )),
-    ));
+    commands
+        .spawn((
+            TextEdit2d,
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "Widget_2. Click on me",
+                attrs,
+            ),
+            CosmicBackgroundColor(bevy::color::palettes::basic::GRAY.with_alpha(0.5).into()),
+            Sprite {
+                custom_size: Some(Vec2 {
+                    x: primary_window.width() / 2.,
+                    y: primary_window.height() / 2.,
+                }),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(
+                primary_window.width() / 4.,
+                -primary_window.height() / 4.,
+                1.,
+            )),
+        ))
+        .observe(focus_on_click);
 }
 
 fn main() {
@@ -76,6 +79,5 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(Update, change_active_editor_sprite)
         .run();
 }

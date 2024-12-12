@@ -1,10 +1,9 @@
 use crate::prelude::*;
-use cosmic_text::{Attrs, AttrsOwned, Editor, FontSystem};
+use cosmic_text::{Align, Attrs, AttrsOwned, FontSystem};
 
 pub(crate) fn plugin(app: &mut App) {
     app.register_type::<CosmicWrap>()
         .register_type::<CosmicTextAlign>()
-        .register_type::<XOffset>()
         .register_type::<CosmicBackgroundImage>()
         .register_type::<CosmicBackgroundColor>()
         .register_type::<CursorColor>()
@@ -16,24 +15,130 @@ pub(crate) fn plugin(app: &mut App) {
 
 /// Enum representing text wrapping in a cosmic [`Buffer`]
 #[derive(Component, Reflect, Clone, PartialEq, Default)]
+#[component(on_add = check_align_sanity)]
 pub enum CosmicWrap {
     InfiniteLine,
     #[default]
     Wrap,
 }
 
-/// Enum representing the text alignment in a cosmic [`Buffer`].
-/// Defaults to [`CosmicTextAlign::Center`]
-#[derive(Component, Reflect, Clone)]
-pub enum CosmicTextAlign {
-    Center { padding: i32 },
-    TopLeft { padding: i32 },
-    Left { padding: i32 },
+fn check_align_sanity(
+    world: bevy::ecs::world::DeferredWorld,
+    target: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    if let Some(CosmicWrap::InfiniteLine) = world.get(target) {
+        let Some(align) = world.get::<CosmicTextAlign>(target) else {
+            return;
+        };
+        if matches!(
+            align.horizontal,
+            Some(HorizontalAlign::End | HorizontalAlign::Right | HorizontalAlign::Center)
+        ) {
+            warn!(message = "Having a widget with `CosmicWrap::InfiniteLine` while using a horizontal alignment like `HorizontalAlign::Center` will likely obscure the text");
+        }
+    }
+}
+
+/// Where to render the [`CosmicEditBuffer`] within the given size.
+///
+/// [`cosmic_text`] can [`Align`](cosmic_text::Align) items per line already,
+/// e.g. [`Align::Center`], but this only works horizontally.
+/// To place the text in the direct center vertically, [bevy_cosmic_edit]
+/// manually calculates the vertical offset as configured by
+/// [`CosmicTextAlign.vertical`]
+#[derive(Component, Reflect)]
+pub struct CosmicTextAlign {
+    /// Managed by [bevy_cosmic_edit].
+    /// Will place the text in the direct center vertically.
+    pub vertical: VerticalAlign,
+
+    /// Defaults to `Some(HorizontalAlign::Center)`.
+    ///
+    /// If this `.is_some()`, every frame each line will have this alignment
+    /// set for it. Set this to `None` to apply your own manual
+    /// [cosmic_text::Align]ments.
+    pub horizontal: Option<HorizontalAlign>,
 }
 
 impl Default for CosmicTextAlign {
     fn default() -> Self {
-        CosmicTextAlign::Center { padding: 5 }
+        Self::center()
+    }
+}
+
+impl CosmicTextAlign {
+    pub fn new(horizontal: HorizontalAlign, vertical: VerticalAlign) -> Self {
+        CosmicTextAlign {
+            vertical,
+            horizontal: Some(horizontal),
+        }
+    }
+
+    pub fn center() -> Self {
+        CosmicTextAlign {
+            vertical: VerticalAlign::Center,
+            horizontal: Some(HorizontalAlign::Center),
+        }
+    }
+
+    pub fn top_left() -> Self {
+        CosmicTextAlign {
+            vertical: VerticalAlign::Top,
+            horizontal: Some(HorizontalAlign::Left),
+        }
+    }
+
+    /// Horizontally left, vertically center
+    pub fn left_center() -> Self {
+        CosmicTextAlign {
+            vertical: VerticalAlign::Center,
+            horizontal: Some(HorizontalAlign::Left),
+        }
+    }
+
+    pub fn bottom_center() -> Self {
+        CosmicTextAlign {
+            vertical: VerticalAlign::Bottom,
+            horizontal: Some(HorizontalAlign::Center),
+        }
+    }
+}
+
+/// Enum representing the text alignment in a cosmic [`Buffer`].
+/// Defaults to [`CosmicTextAlign::Center`]
+#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
+pub enum VerticalAlign {
+    /// If [bevy_cosmic_edit] made no manual calcualtions, this would
+    /// effecively be the default
+    Top,
+
+    /// Default
+    #[default]
+    Center,
+
+    Bottom,
+}
+
+/// Mirrors [`cosmic_text::Align`]
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HorizontalAlign {
+    Left,
+    Center,
+    Right,
+    End,
+    Justified,
+}
+
+impl From<HorizontalAlign> for Align {
+    fn from(h: HorizontalAlign) -> Self {
+        match h {
+            HorizontalAlign::Left => Align::Left,
+            HorizontalAlign::Center => Align::Center,
+            HorizontalAlign::Right => Align::Right,
+            HorizontalAlign::End => Align::End,
+            HorizontalAlign::Justified => Align::Justified,
+        }
     }
 }
 
@@ -41,20 +146,6 @@ impl Default for CosmicTextAlign {
 // TODO: Code example
 #[derive(Component, Default)]
 pub struct ReadOnly; // tag component
-
-/// Internal value used to decide what section of a [`Buffer`] to render
-#[derive(Component, Reflect, Debug, Default)]
-pub(crate) struct XOffset {
-    /// How much space in logical units from the left of the [`Buffer`]
-    /// to start rendering text.
-    pub left: f32,
-
-    /// Width of buffer that includes text that should be rendered,
-    /// in logical units.
-    ///
-    /// Should only be [None] if in default state
-    pub width: Option<f32>,
-}
 
 /// Default text attributes to be used on a [`CosmicEditBuffer`]
 #[derive(Component, Deref, DerefMut)]
@@ -130,27 +221,3 @@ impl ScrollEnabled {
 /// this should be merged with its builtin resource
 #[derive(Resource, Deref, DerefMut)]
 pub struct CosmicFontSystem(pub FontSystem);
-
-/// Wrapper component for an [`Editor`] with a few helpful values for cursor blinking
-///
-/// [`cosmic_text::Editor`] is basically a mutable version of [`cosmic_text::Buffer`].
-///
-/// This component should be on a focussed [`CosmicEditBuffer`]
-// Managed by crate::focus::add_editor_to_focussed and similar systems
-#[derive(Component, Deref, DerefMut)]
-pub struct CosmicEditor {
-    #[deref]
-    pub editor: Editor<'static>,
-    pub cursor_visible: bool,
-    pub cursor_timer: Timer,
-}
-
-impl CosmicEditor {
-    pub fn new(editor: Editor<'static>) -> Self {
-        Self {
-            editor,
-            cursor_visible: true,
-            cursor_timer: Timer::new(std::time::Duration::from_millis(530), TimerMode::Repeating),
-        }
-    }
-}

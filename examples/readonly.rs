@@ -12,21 +12,23 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
     // spawn editor
-    commands.spawn((
-        TextEdit,
-        ReadOnly,
-        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "😀😀😀 x => y\nRead only widget",
-            attrs,
-        ),
-        Node {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            ..default()
-        },
-        BackgroundColor(Color::WHITE),
-    ));
+    commands
+        .spawn((
+            TextEdit,
+            ReadOnly,
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "😀😀😀 x => y\nRead only widget",
+                attrs,
+            ),
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                ..default()
+            },
+            BackgroundColor(Color::WHITE),
+        ))
+        .observe(focus_on_click);
 }
 
 fn main() {
@@ -41,6 +43,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(CosmicEditPlugin { font_config })
         .add_systems(Startup, setup)
-        .add_systems(Update, (change_active_editor_ui, deselect_editor_on_esc))
+        .add_systems(Update, deselect_editor_on_esc)
         .run();
 }

@@ -15,13 +15,13 @@ impl Plugin for PasswordPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (hide_password_text.before(crate::input::input_mouse),),
+            (hide_password_text.before(crate::input::InputSet),),
         )
         .add_systems(
             Update,
             (restore_password_text
-                .before(crate::input::kb_input_text)
-                .after(crate::input::kb_move_cursor),),
+                .before(crate::input::keyboard::kb_input_text)
+                .after(crate::input::keyboard::kb_move_cursor),),
         )
         .add_systems(
             PostUpdate,
@@ -38,11 +38,14 @@ impl Plugin for PasswordPlugin {
 ///
 /// ```
 /// # use bevy::prelude::*;
-/// # use bevy_cosmic_edit::*;
+/// # use bevy_cosmic_edit::prelude::*;
+/// use bevy_cosmic_edit::password::Password;
+///
 /// #
 /// # fn setup(mut commands: Commands) {
 /// // Create a new cosmic bundle
 /// commands.spawn((
+///     TextEdit2d,
 ///     CosmicEditBuffer::default(),
 ///     Sprite {
 ///         custom_size: Some(Vec2::new(300.0, 40.0)),
@@ -84,79 +87,79 @@ impl Password {
 fn hide_password_text(
     mut q: Query<(
         &mut Password,
-        &mut CosmicEditBuffer,
+        EditorBuffer,
         &DefaultAttrs,
-        Option<&mut CosmicEditor>,
         Option<&Placeholder>,
     )>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
-    for (mut password, mut buffer, attrs, editor_opt, placeholder_opt) in q.iter_mut() {
+    for (mut password, mut editor, attrs, placeholder_opt) in q.iter_mut() {
         if let Some(placeholder) = placeholder_opt {
             if placeholder.is_active() {
                 // doesn't override placeholder
                 continue;
             }
         }
-        if let Some(mut editor) = editor_opt {
-            let mut cursor = editor.cursor();
-            let mut selection = editor.selection();
+        match editor.editor() {
+            Some(editor) => {
+                let mut cursor = editor.cursor();
+                let mut selection = editor.selection();
 
-            editor.with_buffer_mut(|buffer| {
-                let text = buffer.get_text();
+                editor.with_buffer_mut(|buffer| {
+                    let text = buffer.get_text();
 
-                // Translate cursor to correct position for blocker glyphs
-                let translate_cursor = |c: &mut Cursor| {
-                    let (pre, _post) = text.split_at(c.index);
-                    let graphemes = pre.graphemes(true).count();
-                    c.index = graphemes * password.glyph.len_utf8();
-                };
+                    // Translate cursor to correct position for blocker glyphs
+                    let translate_cursor = |c: &mut Cursor| {
+                        let (pre, _post) = text.split_at(c.index);
+                        let graphemes = pre.graphemes(true).count();
+                        c.index = graphemes * password.glyph.len_utf8();
+                    };
 
-                translate_cursor(&mut cursor);
+                    translate_cursor(&mut cursor);
 
-                // Translate selection cursor
-                match selection {
-                    Selection::None => {}
-                    Selection::Line(ref mut c) => {
-                        translate_cursor(c);
+                    // Translate selection cursor
+                    match selection {
+                        Selection::None => {}
+                        Selection::Line(ref mut c) => {
+                            translate_cursor(c);
+                        }
+                        Selection::Word(ref mut c) => {
+                            translate_cursor(c);
+                        }
+                        Selection::Normal(ref mut c) => {
+                            translate_cursor(c);
+                        }
                     }
-                    Selection::Word(ref mut c) => {
-                        translate_cursor(c);
-                    }
-                    Selection::Normal(ref mut c) => {
-                        translate_cursor(c);
-                    }
-                }
 
-                // Update text to blockers
-                buffer.set_text(
+                    // Update text to blockers
+                    buffer.set_text(
+                        &mut font_system,
+                        password
+                            .glyph
+                            .to_string()
+                            .repeat(text.graphemes(true).count())
+                            .as_str(),
+                        attrs.as_attrs(),
+                        Shaping::Advanced,
+                    );
+
+                    password.real_text = text;
+                });
+
+                editor.set_cursor(cursor);
+                editor.set_selection(selection);
+            }
+            None => {
+                let text = editor.get_text();
+
+                editor.set_text(
                     &mut font_system,
-                    password
-                        .glyph
-                        .to_string()
-                        .repeat(text.graphemes(true).count())
-                        .as_str(),
+                    password.glyph.to_string().repeat(text.len()).as_str(),
                     attrs.as_attrs(),
-                    Shaping::Advanced,
                 );
-
                 password.real_text = text;
-            });
-
-            editor.set_cursor(cursor);
-            editor.set_selection(selection);
-
-            continue;
+            }
         }
-
-        let text = buffer.get_text();
-
-        buffer.set_text(
-            &mut font_system,
-            password.glyph.to_string().repeat(text.len()).as_str(),
-            attrs.as_attrs(),
-        );
-        password.real_text = text;
     }
 }
 

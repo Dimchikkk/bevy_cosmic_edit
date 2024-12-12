@@ -1,48 +1,38 @@
-use crate::{
-    cosmic_edit::{ScrollEnabled, XOffset},
-    prelude::*,
-    widget::CosmicPadding,
-    CosmicBackgroundColor, CosmicBackgroundImage, CosmicTextAlign, CosmicWrap, CursorColor,
-    HoverCursor, MaxChars, MaxLines, SelectionColor,
-};
-use bevy::{
-    ecs::{component::ComponentId, query::QueryData, world::DeferredWorld},
-    window::PrimaryWindow,
-};
-use cosmic_text::{Attrs, AttrsOwned, Buffer, Edit, FontSystem, Metrics, Shaping};
+//! API for [`cosmic_text::Buffer`].
+//!
+//! Primarily stored in [`CosmicEditBuffer`]
 
-pub(crate) struct BufferPlugin;
+use cosmic_text::Attrs;
+use cosmic_text::AttrsOwned;
+use cosmic_text::BorrowedWithFontSystem;
+use cosmic_text::FontSystem;
+use cosmic_text::Metrics;
+use cosmic_text::Shaping;
 
-impl Plugin for BufferPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            First,
-            (
-                add_font_system,
-                set_initial_scale,
-                set_redraw,
-                set_editor_redraw,
-                update_internal_target_handles,
-            )
-                .chain(),
-        );
-    }
-}
+use crate::cosmic_edit::*;
+use crate::prelude::*;
 
-pub trait BufferExtras {
+pub trait BufferRefExtras {
     fn get_text(&self) -> String;
 }
 
-impl BufferExtras for Buffer {
+pub trait BufferMutExtras {
+    fn compute_everything(&mut self);
+
+    /// Height that buffer text would take up if rendered
+    ///
+    /// Used for [`VerticalAlign`](crate::VerticalAlign)
+    fn height(&mut self) -> f32;
+
+    fn width(&mut self) -> f32;
+
+    fn expected_size(&mut self) -> Vec2 {
+        Vec2::new(self.width(), self.height())
+    }
+}
+
+impl BufferRefExtras for Buffer {
     /// Retrieves the text content from a buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * none, takes the rust magic ref to self
-    ///
-    /// # Returns
-    ///input
-    /// A [`String`] containing the cosmic text content.
     fn get_text(&self) -> String {
         let mut text = String::new();
         let line_count = self.lines.len();
@@ -59,9 +49,52 @@ impl BufferExtras for Buffer {
     }
 }
 
-/// Component wrapper for [`Buffer`]
-#[derive(Component, Deref, DerefMut)]
-#[component(on_remove = remove_focus_from_entity)]
+impl BufferMutExtras for BorrowedWithFontSystem<'_, Buffer> {
+    fn height(&mut self) -> f32 {
+        self.compute_everything();
+        // TODO: which implementation is correct?
+        // self.metrics().line_height * self.layout_runs().count() as f32
+        self.layout_runs().map(|line| line.line_height).sum()
+    }
+
+    fn width(&mut self) -> f32 {
+        self.compute_everything();
+        // get max line width
+        self.layout_runs()
+            .map(|line| line.line_w)
+            .reduce(f32::max)
+            .unwrap_or(0.0)
+    }
+
+    fn compute_everything(&mut self) {
+        let last_line_num = self.lines.len() - 1;
+        let last_line_width = self.lines[last_line_num].text().len();
+        let end_cursor = cosmic_text::Cursor::new(last_line_num, last_line_width);
+        self.shape_until_cursor(end_cursor, false);
+    }
+}
+
+impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
+    fn height(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.height())
+    }
+
+    fn width(&mut self) -> f32 {
+        self.with_buffer_mut(|b| b.width())
+    }
+
+    fn compute_everything(&mut self) {
+        self.with_buffer_mut(|b| b.compute_everything());
+        // self.shape_as_needed(false)
+    }
+}
+
+/// Component wrapper for [`cosmic_text::Buffer`]
+///
+/// To access the underlying [`Buffer`], use [`EditorBuffer`](crate::editor_buffer:EditorBuffer).
+///
+#[derive(Component, Debug)]
+#[component(on_add = on_buffer_add, on_remove = crate::focus::remove_focus_from_entity)]
 #[require(
     CosmicBackgroundColor,
     CursorColor,
@@ -71,24 +104,12 @@ impl BufferExtras for Buffer {
     CosmicRenderOutput,
     MaxLines,
     MaxChars,
-    XOffset,
     CosmicWrap,
     CosmicTextAlign,
-    CosmicPadding,
-    HoverCursor,
-    ScrollEnabled
+    crate::input::hover::HoverCursor,
+    crate::input::InputState
 )]
-pub struct CosmicEditBuffer(pub Buffer);
-
-fn remove_focus_from_entity(mut world: DeferredWorld, entity: Entity, _: ComponentId) {
-    if let Some(mut focused_widget) = world.get_resource_mut::<FocusedWidget>() {
-        if let Some(focused) = focused_widget.0 {
-            if focused == entity {
-                focused_widget.0 = None;
-            }
-        }
-    }
-}
+pub struct CosmicEditBuffer(pub(super) Buffer);
 
 impl Default for CosmicEditBuffer {
     fn default() -> Self {
@@ -96,10 +117,31 @@ impl Default for CosmicEditBuffer {
     }
 }
 
+fn on_buffer_add(
+    mut world: bevy::ecs::world::DeferredWorld,
+    target: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    // set redraw
+    world
+        .get_mut::<CosmicEditBuffer>(target)
+        .unwrap()
+        .0
+        .set_redraw(true);
+}
+
+/// Should be partly mirrored on [`EditorBuffer`]
 impl<'s, 'r> CosmicEditBuffer {
     /// Create a new buffer with a font system
     pub fn new(font_system: &mut FontSystem, metrics: Metrics) -> Self {
-        Self(Buffer::new(font_system, metrics))
+        let mut buffer = Buffer::new(font_system, metrics);
+        buffer.set_redraw(true);
+        Self(buffer)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn inner(&self) -> &Buffer {
+        &self.0
     }
 
     // Das a lotta boilerplate just to hide the shaping argument
@@ -111,6 +153,7 @@ impl<'s, 'r> CosmicEditBuffer {
         attrs: Attrs<'r>,
     ) -> Self {
         self.0.set_text(font_system, text, attrs, Shaping::Advanced);
+        self.0.set_redraw(true);
         self
     }
 
@@ -139,7 +182,7 @@ impl<'s, 'r> CosmicEditBuffer {
         attrs: Attrs<'r>,
     ) -> &mut Self {
         self.0.set_text(font_system, text, attrs, Shaping::Advanced);
-        self.set_redraw(true);
+        self.0.set_redraw(true);
         self
     }
 
@@ -157,8 +200,13 @@ impl<'s, 'r> CosmicEditBuffer {
     {
         self.0
             .set_rich_text(font_system, spans, attrs, Shaping::Advanced);
-        self.set_redraw(true);
+        self.0.set_redraw(true);
         self
+    }
+
+    pub fn from_raw_buffer(mut buffer: Buffer) -> CosmicEditBuffer {
+        buffer.set_redraw(true);
+        Self(buffer)
     }
 
     /// Returns texts from a MultiStyle buffer
@@ -168,7 +216,7 @@ impl<'s, 'r> CosmicEditBuffer {
         let buffer = self;
 
         let mut spans = Vec::new();
-        for line in buffer.lines.iter() {
+        for line in buffer.0.lines.iter() {
             let mut line_spans = Vec::new();
             let line_text = line.text();
             let line_attrs = line.attrs_list();
@@ -200,25 +248,33 @@ impl<'s, 'r> CosmicEditBuffer {
         }
         spans
     }
+
+    pub(crate) fn from_downgrading_editor(removed_editor: &CosmicEditor) -> CosmicEditBuffer {
+        // maybe clone only lines?
+        let buffer = removed_editor.with_buffer(|buf| buf.clone());
+        CosmicEditBuffer::from_raw_buffer(buffer)
+    }
 }
 
+/// Sets a default text value of "".
 /// Adds a [`FontSystem`] to a newly created [`CosmicEditBuffer`] if one was not provided
-pub(crate) fn add_font_system(
+///
+/// This fixes the bug where an empty buffer won't show a blinking cursor when focused
+pub(in crate::editor_buffer) fn add_font_system(
     mut font_system: ResMut<CosmicFontSystem>,
     mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
 ) {
     for mut b in q.iter_mut() {
-        if !b.lines.is_empty() {
-            continue;
+        if b.0.lines.is_empty() {
+            b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
+            b.0.set_redraw(true);
         }
-        b.0.set_text(&mut font_system, "", Attrs::new(), Shaping::Advanced);
-        b.set_redraw(true);
     }
 }
 
 /// Initialises [`CosmicEditBuffer`] scale factor
-pub(crate) fn set_initial_scale(
-    window_q: Query<&Window, With<PrimaryWindow>>,
+pub(in crate::editor_buffer) fn set_initial_scale(
+    window_q: Query<&Window, With<bevy::window::PrimaryWindow>>,
     mut cosmic_query: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
 ) {
@@ -226,82 +282,8 @@ pub(crate) fn set_initial_scale(
         let w_scale = window.scale_factor();
 
         for mut b in &mut cosmic_query.iter_mut() {
-            let m = b.metrics().scale(w_scale);
-            b.set_metrics(&mut font_system, m);
+            let m = b.0.metrics().scale(w_scale);
+            b.0.set_metrics(&mut font_system, m);
         }
     }
-}
-
-/// Initialises new [`CosmicEditBuffer`] redraw flag to true
-pub(crate) fn set_redraw(mut q: Query<&mut CosmicEditBuffer, Added<CosmicEditBuffer>>) {
-    for mut b in q.iter_mut() {
-        b.set_redraw(true);
-    }
-}
-
-/// Initialises new [`CosmicEditor`] redraw flag to true
-pub(crate) fn set_editor_redraw(mut q: Query<&mut CosmicEditor, Added<CosmicEditor>>) {
-    for mut ed in q.iter_mut() {
-        ed.set_redraw(true);
-    }
-}
-
-/// Will attempt to find a place on the receiving entity to place
-/// a [`Handle<Image>`]
-#[derive(QueryData)]
-#[query_data(mutable)]
-pub(crate) struct OutputToEntity {
-    sprite_target: Option<&'static mut Sprite>,
-    image_node_target: Option<&'static mut ImageNode>,
-}
-
-impl OutputToEntityItem<'_> {
-    pub fn write_image_data(&mut self, image: &Handle<Image>) {
-        if let Some(sprite) = self.sprite_target.as_mut() {
-            sprite.image = image.clone_weak();
-        }
-        if let Some(image_node) = self.image_node_target.as_mut() {
-            image_node.image = image.clone_weak();
-        }
-    }
-}
-
-/// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
-/// on the same entity, e.g. [`Sprite`]
-pub(crate) fn update_internal_target_handles(
-    mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
-) {
-    for (output_data, mut output_components) in buffers_q.iter_mut() {
-        output_components.write_image_data(&output_data.0);
-    }
-}
-
-// TODO put this on impl CosmicBuffer
-
-/// Returns in physical pixels
-pub(crate) fn get_text_size(buffer: &Buffer) -> Vec2 {
-    if buffer.layout_runs().count() == 0 {
-        return Vec2::new(0., buffer.metrics().line_height);
-    }
-    // get max width
-    let width = buffer
-        .layout_runs()
-        .map(|run| run.line_w)
-        .reduce(f32::max)
-        .unwrap();
-    // get total height
-    let height = buffer.layout_runs().count() as f32 * buffer.metrics().line_height;
-    Vec2::new(width, height)
-}
-
-/// Returns in physical pixels
-pub(crate) fn get_y_offset_center(widget_height: f32, buffer: &Buffer) -> i32 {
-    let text_height = get_text_size(buffer).y;
-    ((widget_height - text_height) / 2.0) as i32
-}
-
-/// Returns in physical pixels
-pub(crate) fn get_x_offset_center(widget_width: f32, buffer: &Buffer) -> i32 {
-    let text_width = get_text_size(buffer).x;
-    ((widget_width - text_width) / 2.0) as i32
 }

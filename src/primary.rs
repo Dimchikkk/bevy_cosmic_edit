@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use bevy::ecs::world::DeferredWorld;
+
 use crate::prelude::*;
 
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
@@ -15,61 +17,25 @@ impl Plugin for CosmicEditPlugin {
 
         app.add_plugins((
             crate::cosmic_edit::plugin,
-            crate::buffer::BufferPlugin,
+            // crate::buffer::BufferPlugin,
+            crate::editor_buffer::EditorBufferPlugin,
             crate::render::RenderPlugin,
-            crate::widget::WidgetPlugin,
             crate::input::InputPlugin,
             crate::focus::FocusPlugin,
-            crate::cursor::CursorPlugin,
             crate::placeholder::PlaceholderPlugin,
             crate::password::PasswordPlugin,
-            crate::events::EventsPlugin,
             crate::user_select::UserSelectPlugin,
+            crate::double_click::plugin,
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));
 
         app.register_type::<CosmicRenderOutput>();
+
+        #[cfg(feature = "internal-debugging")]
+        app.add_plugins(crate::debug::plugin);
     }
 }
-
-/// Attach to primary camera, and enable the `multicam` feature to use multiple cameras.
-/// Will panic if no Camera's without this component exist and the `multicam` feature is enabled.
-///
-/// A very basic example which doesn't panic:
-/// ```rust,no_run
-/// use bevy::prelude::*;
-/// use bevy_cosmic_edit::prelude::*;
-///
-/// fn main() {
-///     App::new()
-///         .add_plugins((
-///             DefaultPlugins,
-///             CosmicEditPlugin::default(),
-///         ))
-///     .add_systems(Startup, setup)
-///     .run();
-/// }
-///
-/// fn setup(mut commands: Commands) {
-///     commands.spawn((Camera3d::default(), CosmicPrimaryCamera));
-///     commands.spawn((
-///         Camera3d::default(),
-///         Camera {
-///             order: 2,
-///             ..default()
-///         },
-///     ));
-/// }
-/// ```
-#[derive(Component, Debug, Default)]
-pub struct CosmicPrimaryCamera;
-
-#[cfg(feature = "multicam")]
-pub(crate) type CameraFilter = With<CosmicPrimaryCamera>;
-
-#[cfg(not(feature = "multicam"))]
-pub(crate) type CameraFilter = ();
 
 /// Resource struct that holds configuration options for cosmic fonts.
 #[derive(Resource, Clone)]
@@ -93,8 +59,24 @@ impl Default for CosmicFontConfig {
 }
 
 /// Used to ferry data from a [`CosmicEditBuffer`]
-#[derive(Component, Reflect, Default, Debug, Deref)]
+#[derive(Component, Default, Reflect, Debug, Deref)]
+#[component(on_add = new_image_from_default)]
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
+
+/// Without this, multiple buffers will show the same image
+/// as the focussed editor. IDK why
+fn new_image_from_default(
+    mut world: DeferredWorld,
+    entity: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    let mut images = world.resource_mut::<Assets<Image>>();
+    let default_image = images.add(Image::default());
+    *world
+        .entity_mut(entity)
+        .get_mut::<CosmicRenderOutput>()
+        .unwrap() = CosmicRenderOutput(default_image);
+}
 
 fn create_cosmic_font_system(cosmic_font_config: CosmicFontConfig) -> cosmic_text::FontSystem {
     let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));
@@ -131,6 +113,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // would need to support MinimalPlugins as well as DefaultPlugins
     fn test_spawn_cosmic_edit() {
         let mut app = App::new();
         app.add_plugins(TaskPoolPlugin::default());
@@ -154,6 +137,7 @@ mod tests {
         let mut text_nodes_query = app.world_mut().query::<&CosmicEditBuffer>();
         for cosmic_editor in text_nodes_query.iter(app.world()) {
             insta::assert_debug_snapshot!(cosmic_editor
+                .inner()
                 .lines
                 .iter()
                 .map(|line| line.text())
