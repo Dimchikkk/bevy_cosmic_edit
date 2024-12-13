@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use bevy::ecs::world::DeferredWorld;
+
 use crate::prelude::*;
 
 /// Plugin struct that adds systems and initializes resources related to cosmic edit functionality.
