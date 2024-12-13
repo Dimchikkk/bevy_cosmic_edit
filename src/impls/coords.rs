@@ -1,10 +1,10 @@
 use bevy::ecs::query::QueryData;
 use bevy::picking::backend::HitData;
 use bevy::ui::RelativeCursorPosition;
-use render_implementations::prelude::*;
+use impls::prelude::*;
 
 use crate::render::WidgetBufferCoordTransformation;
-use crate::render_implementations::size::CosmicWidgetSize;
+use crate::impls::size::CosmicWidgetSize;
 use crate::{prelude::*, CosmicTextAlign};
 
 /// Responsible for translating a world coordinate to a buffer coordinate
@@ -18,7 +18,7 @@ pub(crate) struct RelativeQuery {
 }
 
 impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
-    type Target = render_implementations::scan::RenderTypeScanItem<'s>;
+    type Target = impls::scan::RenderTypeScanItem<'s>;
 
     fn deref(&self) -> &Self::Target {
         self.widget_size.deref()

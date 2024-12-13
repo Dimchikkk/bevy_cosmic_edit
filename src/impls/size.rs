@@ -1,8 +1,8 @@
 use bevy::ecs::query::{QueryData, QueryFilter};
-use render_implementations::scan::{RenderTypeScan, RenderTypeScanItem};
+use impls::scan::{RenderTypeScan, RenderTypeScanItem};
 
 use crate::prelude::*;
-use render_implementations::prelude::*;
+use impls::prelude::*;
 
 /// Pixel / World ratio
 /// E.g. 20 => 20 text pixels are rendered = 1 world pixel
@@ -51,7 +51,7 @@ pub(crate) struct ChangedCosmicWidgetSize {
     threed: Changed<TextEdit3d>,
 }
 
-pub(in crate::render_implementations) trait NodeSizeExt {
+pub(in crate::impls) trait NodeSizeExt {
     fn world_size(&self) -> Vec2;
 }
 

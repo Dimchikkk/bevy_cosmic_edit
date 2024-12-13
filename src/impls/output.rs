@@ -1,5 +1,5 @@
 use bevy::ecs::query::QueryData;
-use render_implementations::prelude::*;
+use impls::prelude::*;
 
 use crate::prelude::*;
 
@@ -28,7 +28,7 @@ fn new_image_from_default(
 /// a [`Handle<Image>`]
 #[derive(QueryData)]
 #[query_data(mutable)]
-pub(in crate::render_implementations) struct OutputToEntity {
+pub(in crate::impls) struct OutputToEntity {
     scan: RenderTypeScan,
 
     sprite_target: Option<&'static mut Sprite>,
@@ -97,11 +97,11 @@ impl OutputToEntityItem<'_> {
 
 /// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
 /// on the same entity, e.g. [`Sprite`]
-pub(in crate::render_implementations) fn update_internal_target_handles(
+pub(in crate::impls) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
     // mut imgs: ResMut<Assets<Image>>,
-) -> render_implementations::Result<()> {
+) -> impls::Result<()> {
     for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
         output_components.write_image_data(
             output_data.clone(),

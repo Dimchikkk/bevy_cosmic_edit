@@ -1,12 +1,12 @@
 use bevy::ecs::query::QueryData;
 
 use crate::prelude::*;
-use crate::render_implementations::prelude::*;
+use crate::impls::prelude::*;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
 #[non_exhaustive]
-pub(in crate::render_implementations) enum SourceType {
+pub(in crate::impls) enum SourceType {
     Ui,
     Sprite,
     ThreeD,
@@ -27,7 +27,7 @@ impl RenderTypeScanItem<'_> {
         }
     }
 
-    pub(in crate::render_implementations) fn scan(&self) -> Result<SourceType> {
+    pub(in crate::impls) fn scan(&self) -> Result<SourceType> {
         let flags = [self.is_ui, self.is_sprite, self.is_3d];
         let count_true = flags.iter().filter(|x| **x).count();
         match count_true {

@@ -34,6 +34,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_winit",
     "bevy_window",
     "bevy_pbr",
+    "bevy_mesh_picking_backend",
     "png",
     "x11",
     "webgl2",

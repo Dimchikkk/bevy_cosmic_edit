@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use super::{warn_no_editor_on_picking_event, InputState};
 use cosmic_text::Action;
-use render_implementations::coords::RelativeQuery;
+use impls::coords::RelativeQuery;
 
 impl InputState {
     pub fn is_dragging(&self) -> bool {
@@ -61,7 +61,7 @@ pub(super) fn handle_dragstart(
     trigger: Trigger<Pointer<DragStart>>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery), With<CosmicEditBuffer>>,
     mut font_system: ResMut<CosmicFontSystem>,
-) -> render_implementations::Result<()> {
+) -> impls::Result<()> {
     let font_system = &mut font_system.0;
     let event = trigger.event();
     let Ok((mut input_state, mut editor, sprite_relative)) = editor.get_mut(trigger.target) else {

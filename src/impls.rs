@@ -12,6 +12,14 @@
 //! Requires [`ImageNode`] for rendering
 // TODO: Remove `CosmicWidgetSize`?
 
+pub use size::WorldPixelRatio;
+
+pub(crate) mod coords;
+pub(crate) mod output;
+pub(crate) mod scan;
+pub(crate) mod size;
+pub(crate) mod threed;
+
 mod prelude {
     pub(super) use super::error::Result;
     pub(super) use super::scan::{RenderTypeScan, RenderTypeScanItem, SourceType};
@@ -19,16 +27,16 @@ mod prelude {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    if !app.is_plugin_added::<MeshPickingPlugin>() {
+    if !app.is_plugin_added::<bevy::picking::mesh_picking::MeshPickingPlugin>() {
         debug!("Adding MeshPickingPlugin manually as its not been added already");
-        app.add_plugins(MeshPickingPlugin);
+        app.add_plugins(bevy::picking::mesh_picking::MeshPickingPlugin);
     }
 
     app.add_systems(PreUpdate, threed::sync_mesh_and_size)
         .add_systems(
             First,
             output::update_internal_target_handles
-                .pipe(render_implementations::debug_error("update target handles")),
+                .pipe(impls::debug_error("update target handles")),
         )
         .register_type::<TextEdit3d>()
         .register_type::<output::CosmicRenderOutput>();
@@ -36,7 +44,7 @@ pub(crate) fn plugin(app: &mut App) {
 
 pub use error::*;
 mod error {
-    pub type Error = crate::render_implementations::RenderTargetError;
+    pub type Error = crate::impls::RenderTargetError;
     pub type Result<T> = core::result::Result<T, RenderTargetError>;
 
     #[derive(Debug)]
@@ -86,14 +94,6 @@ mod error {
         }
     }
 }
-
-pub use size::WorldPixelRatio;
-
-pub(crate) mod coords;
-pub(crate) mod output;
-pub(crate) mod scan;
-pub(crate) mod size;
-pub(crate) mod threed;
 
 use crate::prelude::*;
 

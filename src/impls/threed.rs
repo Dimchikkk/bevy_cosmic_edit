@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub(in crate::render_implementations) fn sync_mesh_and_size(
+pub(in crate::impls) fn sync_mesh_and_size(
     mut meshs: Query<(&TextEdit3d, &mut Mesh3d), (With<CosmicEditBuffer>, Changed<TextEdit3d>)>,
     // mut asset_server: ResMut<Assets<Image>>,
     mut mesh_server: ResMut<Assets<Mesh>>,

@@ -1,7 +1,7 @@
 // Common functions for examples
 use crate::{
+    impls::size::{ChangedCosmicWidgetSize, CosmicWidgetSize},
     prelude::*,
-    render_implementations::size::{ChangedCosmicWidgetSize, CosmicWidgetSize},
 };
 use bevy::ecs::query::QueryData;
 use cosmic_text::Edit;
