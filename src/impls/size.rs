@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use bevy::ecs::query::{QueryData, QueryFilter};
 use impls::scan::{RenderTypeScan, RenderTypeScanItem};
 
@@ -7,7 +9,7 @@ use impls::prelude::*;
 /// Pixel / World ratio
 /// E.g. 20 => 20 text pixels are rendered = 1 world pixel
 #[derive(Component, Deref, DerefMut, Debug, Clone, Copy)]
-pub struct WorldPixelRatio(pub f32);
+pub struct WorldPixelRatio(f32);
 
 impl Default for WorldPixelRatio {
     fn default() -> Self {
@@ -16,8 +18,25 @@ impl Default for WorldPixelRatio {
 }
 
 impl WorldPixelRatio {
+    pub fn ratio(&self) -> f32 {
+        self.0
+    }
+
+    pub fn inverse_ratio(&self) -> f32 {
+        1.0 / self.ratio()
+    }
+
     pub fn from_one_world_pixel_equals(text_pixels: f32) -> Self {
+        assert_ne!(text_pixels, 0.0);
         WorldPixelRatio(text_pixels)
+    }
+
+    pub fn world_to_pixels<T: Mul<f32>>(&self, thing: T) -> <T as Mul<f32>>::Output {
+        thing * self.ratio()
+    }
+
+    pub fn pixels_to_world<T: Mul<f32>>(&self, thing: T) -> <T as Mul<f32>>::Output {
+        thing * self.inverse_ratio()
     }
 }
 
@@ -90,8 +109,10 @@ impl CosmicWidgetSizeItem<'_> {
 
     pub fn pixel_render_size(&self) -> Result<Vec2> {
         let world_size = self.world_size()?;
-        let ratio = self.ratio.deref();
+        Ok(self.ratio.world_to_pixels(world_size))
+    }
 
-        Ok(world_size * ratio)
+    pub fn world_pixel_ratio(&self) -> WorldPixelRatio {
+        WorldPixelRatio(**self.ratio)
     }
 }

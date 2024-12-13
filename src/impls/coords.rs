@@ -3,14 +3,14 @@ use bevy::picking::backend::HitData;
 use bevy::ui::RelativeCursorPosition;
 use impls::prelude::*;
 
-use crate::render::WidgetBufferCoordTransformation;
 use crate::impls::size::CosmicWidgetSize;
+use crate::render::WidgetBufferCoordTransformation;
 use crate::{prelude::*, CosmicTextAlign};
 
 /// Responsible for translating a world coordinate to a buffer coordinate
 #[derive(QueryData)]
 pub(crate) struct RelativeQuery {
-    widget_size: CosmicWidgetSize,
+    size: CosmicWidgetSize,
     text_align: &'static CosmicTextAlign,
 
     sprite_global_transform: &'static GlobalTransform,
@@ -21,7 +21,7 @@ impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
     type Target = impls::scan::RenderTypeScanItem<'s>;
 
     fn deref(&self) -> &Self::Target {
-        self.widget_size.deref()
+        self.size.deref()
     }
 }
 
@@ -40,7 +40,7 @@ impl RelativeQueryItem<'_> {
                 let RelativeQueryItem {
                     sprite_global_transform,
                     text_align,
-                    widget_size,
+                    size,
                     ..
                 } = self;
 
@@ -49,7 +49,7 @@ impl RelativeQueryItem<'_> {
                 let relative_transform = position_transform.reparented_to(sprite_global_transform);
                 let relative_position = relative_transform.translation.xy();
 
-                let render_target_size = widget_size.world_size()?;
+                let render_target_size = size.world_size()?;
                 let transformation = WidgetBufferCoordTransformation::new(
                     text_align.vertical,
                     render_target_size,
@@ -59,11 +59,11 @@ impl RelativeQueryItem<'_> {
                 let buffer_coord =
                     transformation.widget_origined_to_buffer_topleft(relative_position);
 
-                Ok(buffer_coord)
+                Ok(self.size.world_pixel_ratio().world_to_pixels(buffer_coord))
             }
             SourceType::Ui => {
                 let RelativeQueryItem {
-                    widget_size,
+                    size,
                     text_align,
                     ui_cursor_position,
                     ..
@@ -75,7 +75,7 @@ impl RelativeQueryItem<'_> {
                     .normalized
                     .ok_or(RenderTargetError::UiExpectedCursorPosition)?;
 
-                let widget_size = widget_size.world_size()?;
+                let widget_size = size.world_size()?;
                 let relative_position = cursor_position_normalized * widget_size;
 
                 let transformation = WidgetBufferCoordTransformation::new(
@@ -87,7 +87,7 @@ impl RelativeQueryItem<'_> {
                 let buffer_coord =
                     transformation.widget_topleft_to_buffer_topleft(relative_position);
 
-                Ok(buffer_coord)
+                Ok(self.size.world_pixel_ratio().world_to_pixels(buffer_coord))
             }
         }
     }
