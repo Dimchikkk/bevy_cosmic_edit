@@ -26,6 +26,7 @@ pub(crate) mod coords;
 pub(crate) mod output;
 pub(crate) mod scan;
 pub(crate) mod size;
+#[cfg(feature = "3d")]
 pub(crate) mod threed;
 
 mod prelude {
@@ -37,19 +38,21 @@ mod prelude {
 use prelude::*;
 
 pub(crate) fn plugin(app: &mut App) {
+    #[cfg(feature = "3d")]
     if !app.is_plugin_added::<bevy::picking::mesh_picking::MeshPickingPlugin>() {
         debug!("Adding MeshPickingPlugin manually as its not been added already");
         app.add_plugins(bevy::picking::mesh_picking::MeshPickingPlugin);
     }
 
+    #[cfg(feature = "3d")]
     app.add_systems(PreUpdate, threed::sync_mesh_and_size)
-        .add_systems(
-            First,
-            output::update_internal_target_handles
-                .pipe(impls::debug_error("update target handles")),
-        )
-        .register_type::<TextEdit3d>()
-        .register_type::<output::CosmicRenderOutput>();
+        .register_type::<TextEdit3d>();
+
+    app.add_systems(
+        First,
+        output::update_internal_target_handles.pipe(impls::debug_error("update target handles")),
+    )
+    .register_type::<output::CosmicRenderOutput>();
 }
 
 pub use error::*;
@@ -135,10 +138,10 @@ pub struct TextEdit;
 pub struct TextEdit2d;
 
 /// The top-level driving component for 3D text editing
-// #[cfg(feature = "3d")]
+#[cfg(feature = "3d")]
 #[derive(Component, Reflect, Debug)]
 #[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
-#[component(on_add = default_3d_material)]
+#[component(on_add = threed::default_3d_material)]
 pub struct TextEdit3d {
     /// The size in world pixels of the text editor.
     ///
@@ -148,40 +151,4 @@ pub struct TextEdit3d {
     /// Recommended, defaults to `true`.
     /// See [crate::impls] for more information.
     pub auto_manage_mesh: bool,
-}
-
-impl TextEdit3d {
-    pub fn new(rendering_size: Vec2) -> Self {
-        Self {
-            world_size: rendering_size,
-            auto_manage_mesh: true,
-        }
-    }
-}
-
-fn default_3d_material(
-    mut world: bevy::ecs::world::DeferredWorld,
-    target: Entity,
-    _: bevy::ecs::component::ComponentId,
-) {
-    let current_handle = world
-        .get::<MeshMaterial3d<StandardMaterial>>(target)
-        .unwrap()
-        .0
-        .clone();
-    if current_handle == Handle::default() {
-        debug!("It appears no customization of a `TextEdit3d` material has been done, overwriting with a default");
-        let default_material = StandardMaterial {
-            base_color: Color::WHITE,
-            unlit: true,
-            ..default()
-        };
-        let default_handle = world
-            .resource_mut::<Assets<StandardMaterial>>()
-            .add(default_material);
-        world
-            .get_mut::<MeshMaterial3d<StandardMaterial>>(target)
-            .unwrap()
-            .0 = default_handle;
-    }
 }

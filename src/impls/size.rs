@@ -48,6 +48,7 @@ pub struct CosmicWidgetSize {
 
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
+    #[cfg(feature = "3d")]
     threed: Option<&'static TextEdit3d>,
 }
 
@@ -60,13 +61,19 @@ impl<'s> std::ops::Deref for CosmicWidgetSizeItem<'s> {
     }
 }
 
+#[cfg(feature = "3d")]
+type ScanChanged = Or<(Changed<TextEdit>, Changed<TextEdit2d>, Changed<TextEdit3d>)>;
+#[cfg(not(feature = "3d"))]
+type ScanChanged = Or<(Changed<TextEdit>, Changed<TextEdit2d>)>;
+
 /// An optimization [`QueryFilter`](bevy::ecs::query::QueryFilter)
 #[derive(QueryFilter)]
 pub(crate) struct ChangedCosmicWidgetSize {
-    scan: Or<(Changed<TextEdit>, Changed<TextEdit2d>, Changed<TextEdit3d>)>,
+    scan: ScanChanged,
     ratio: Changed<WorldPixelRatio>,
     sprite: Changed<Sprite>,
     ui: Changed<ComputedNode>,
+    #[cfg(feature = "3d")]
     threed: Changed<TextEdit3d>,
 }
 
@@ -98,6 +105,7 @@ impl CosmicWidgetSizeItem<'_> {
                     .custom_size
                     .ok_or(RenderTargetError::SpriteCustomSizeNotSet)?)
             }
+            #[cfg(feature = "3d")]
             SourceType::ThreeD => {
                 let threed = self
                     .threed

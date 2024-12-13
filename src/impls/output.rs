@@ -33,6 +33,7 @@ pub(in crate::impls) struct OutputToEntity {
 
     sprite_target: Option<&'static mut Sprite>,
     image_node_target: Option<&'static mut ImageNode>,
+    #[cfg(feature = "3d")]
     threed_target: Option<&'static mut MeshMaterial3d<StandardMaterial>>,
 }
 
@@ -48,7 +49,7 @@ impl OutputToEntityItem<'_> {
     pub fn write_image_data(
         &mut self,
         image: Handle<Image>,
-        mats: &mut Assets<StandardMaterial>,
+        #[cfg(feature = "3d")] mats: &mut Assets<StandardMaterial>,
         // imgs: &mut Assets<Image>,
     ) -> Result<()> {
         match self.scan()? {
@@ -68,6 +69,7 @@ impl OutputToEntityItem<'_> {
                 image_node.image = image;
                 Ok(())
             }
+            #[cfg(feature = "3d")]
             SourceType::ThreeD => {
                 let material_handle = self
                     .threed_target
@@ -99,12 +101,13 @@ impl OutputToEntityItem<'_> {
 /// on the same entity, e.g. [`Sprite`]
 pub(in crate::impls) fn update_internal_target_handles(
     mut buffers_q: Query<(&CosmicRenderOutput, OutputToEntity), With<CosmicEditBuffer>>,
-    mut mats: ResMut<Assets<StandardMaterial>>,
+    #[cfg(feature = "3d")] mut mats: ResMut<Assets<StandardMaterial>>,
     // mut imgs: ResMut<Assets<Image>>,
 ) -> impls::Result<()> {
     for (CosmicRenderOutput(output_data), mut output_components) in buffers_q.iter_mut() {
         output_components.write_image_data(
             output_data.clone(),
+            #[cfg(feature = "3d")]
             mats.deref_mut(),
             // imgs.deref_mut(),
         )?;

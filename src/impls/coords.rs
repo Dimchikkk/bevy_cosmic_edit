@@ -13,7 +13,7 @@ pub(crate) struct RelativeQuery {
     size: CosmicWidgetSize,
     text_align: &'static CosmicTextAlign,
 
-    sprite_global_transform: &'static GlobalTransform,
+    global_transform: &'static GlobalTransform,
     ui_cursor_position: Option<&'static RelativeCursorPosition>,
 }
 
@@ -28,39 +28,6 @@ impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
 impl RelativeQueryItem<'_> {
     pub fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Result<Vec2> {
         match self.scan()? {
-            SourceType::Sprite | SourceType::ThreeD => {
-                if hit_data.normal.map(|p| p.normalize()) != Some(Vec3::Z) {
-                    warn!(?hit_data, "Normal is not out of screen, skipping");
-                    return Err(RenderTargetError::UnexpectedNormal);
-                }
-
-                let world_position = hit_data
-                    .position
-                    .ok_or(RenderTargetError::ExpectedHitdataPosition)?;
-                let RelativeQueryItem {
-                    sprite_global_transform,
-                    text_align,
-                    size,
-                    ..
-                } = self;
-
-                let position_transform =
-                    GlobalTransform::from(Transform::from_translation(world_position));
-                let relative_transform = position_transform.reparented_to(sprite_global_transform);
-                let relative_position = relative_transform.translation.xy();
-
-                let render_target_size = size.world_size()?;
-                let transformation = WidgetBufferCoordTransformation::new(
-                    text_align.vertical,
-                    render_target_size,
-                    buffer_size,
-                );
-                // .xy swizzle depends on normal vector being perfectly out of screen
-                let buffer_coord =
-                    transformation.widget_origined_to_buffer_topleft(relative_position);
-
-                Ok(self.size.world_pixel_ratio().world_to_pixels(buffer_coord))
-            }
             SourceType::Ui => {
                 let RelativeQueryItem {
                     size,
@@ -86,6 +53,40 @@ impl RelativeQueryItem<'_> {
 
                 let buffer_coord =
                     transformation.widget_topleft_to_buffer_topleft(relative_position);
+
+                Ok(self.size.world_pixel_ratio().world_to_pixels(buffer_coord))
+            }
+            // SourceType::Sprite | SourceType::ThreeD => {
+            _ => {
+                if hit_data.normal.map(|p| p.normalize()) != Some(Vec3::Z) {
+                    warn!(?hit_data, "Normal is not out of screen, skipping");
+                    return Err(RenderTargetError::UnexpectedNormal);
+                }
+
+                let world_position = hit_data
+                    .position
+                    .ok_or(RenderTargetError::ExpectedHitdataPosition)?;
+                let RelativeQueryItem {
+                    global_transform,
+                    text_align,
+                    size,
+                    ..
+                } = self;
+
+                let position_transform =
+                    GlobalTransform::from(Transform::from_translation(world_position));
+                let relative_transform = position_transform.reparented_to(global_transform);
+                let relative_position = relative_transform.translation.xy();
+
+                let render_target_size = size.world_size()?;
+                let transformation = WidgetBufferCoordTransformation::new(
+                    text_align.vertical,
+                    render_target_size,
+                    buffer_size,
+                );
+                // .xy swizzle depends on normal vector being perfectly out of screen
+                let buffer_coord =
+                    transformation.widget_origined_to_buffer_topleft(relative_position);
 
                 Ok(self.size.world_pixel_ratio().world_to_pixels(buffer_coord))
             }

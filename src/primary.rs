@@ -27,9 +27,6 @@ impl Plugin for CosmicEditPlugin {
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
         .insert_resource(crate::cosmic_edit::CosmicFontSystem(font_system));
-
-        #[cfg(feature = "internal-debugging")]
-        app.add_plugins(crate::debug::plugin);
     }
 }
 

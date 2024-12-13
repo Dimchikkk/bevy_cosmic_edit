@@ -80,7 +80,9 @@ pub mod prelude {
     pub use crate::editor::CosmicEditor;
     pub use crate::editor_buffer::EditorBuffer;
     pub use crate::focus::FocusedWidget;
-    pub use crate::impls::{TextEdit, TextEdit2d, TextEdit3d};
+    #[cfg(feature = "3d")]
+    pub use crate::impls::TextEdit3d;
+    pub use crate::impls::{TextEdit, TextEdit2d};
     pub use crate::input::click::focus_on_click;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig};
     pub use crate::utils::{deselect_editor_on_esc, print_editor_text, ColorExtras as _};
@@ -110,6 +112,3 @@ pub mod utils;
 pub mod password;
 pub mod placeholder;
 pub mod user_select;
-
-#[cfg(feature = "internal-debugging")]
-mod debug;
