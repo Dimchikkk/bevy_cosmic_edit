@@ -27,7 +27,7 @@ impl Plugin for FocusPlugin {
 /// Resource struct that keeps track of the currently active editor entity.
 ///
 /// The focussed entity must have a [`CosmicEditBuffer`], and should have a
-/// [`CosmicEditor`] component as well if it can be mutated (i.e. isn't [`Readonly`]).
+/// [`CosmicEditor`] component as well if it can be mutated (i.e. isn't [`ReadOnly`]).
 #[derive(Resource, Reflect, Default, Deref, DerefMut)]
 #[reflect(Resource)]
 pub struct FocusedWidget(pub Option<Entity>);

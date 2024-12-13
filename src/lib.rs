@@ -45,7 +45,7 @@
 //!
 //! ## Implementation details
 //!
-//! See [render_implementations](crate::render_implementations)
+//! See [impls](crate::impls)
 //!
 //! ## License
 //!
@@ -69,8 +69,7 @@ pub mod prelude {
     // non-pub internal re-exports
     pub(crate) use crate::buffer::{BufferMutExtras as _, BufferRefExtras as _};
     pub(crate) use crate::cosmic_text;
-    pub(crate) use crate::primary::CosmicRenderOutput;
-    pub(crate) use crate::render_implementations;
+    pub(crate) use crate::impls;
     pub(crate) use crate::utils::*;
 
     // public internal re-exports
@@ -81,9 +80,11 @@ pub mod prelude {
     pub use crate::editor::CosmicEditor;
     pub use crate::editor_buffer::EditorBuffer;
     pub use crate::focus::FocusedWidget;
+    #[cfg(feature = "3d")]
+    pub use crate::impls::TextEdit3d;
+    pub use crate::impls::{TextEdit, TextEdit2d};
     pub use crate::input::click::focus_on_click;
     pub use crate::primary::{CosmicEditPlugin, CosmicFontConfig};
-    pub use crate::render_implementations::{TextEdit, TextEdit2d};
     pub use crate::utils::{deselect_editor_on_esc, print_editor_text, ColorExtras as _};
 }
 
@@ -94,6 +95,7 @@ pub use cosmic_edit::*;
 pub use editor_buffer::*;
 pub use editor_buffer::{buffer, editor};
 pub use focus::*;
+pub use impls::WorldPixelRatio;
 mod cosmic_edit;
 mod double_click;
 mod editor_buffer;
@@ -102,14 +104,11 @@ mod render;
 
 // pub required
 pub use input::hover::HoverCursor;
+pub mod impls;
 pub mod input;
-pub mod render_implementations;
 pub mod utils;
 
 // extra modules
 pub mod password;
 pub mod placeholder;
 pub mod user_select;
-
-#[cfg(feature = "internal-debugging")]
-mod debug;

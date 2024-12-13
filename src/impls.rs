@@ -10,17 +10,58 @@
 //!
 //! ## UI: [`TextEdit`]
 //! Requires [`ImageNode`] for rendering
-// TODO: Remove `CosmicWidgetSize`?
+//!
+//! ## 3D: [`TextEdit3d`]
+//! Automatically initializes the [`Mesh3d`] to a plane centered at the origin (default [`Transform`])
+//! with its face normal being [`Vec3::Z`] and size being [`world_size`](crate::TextEdit3d.world_size)
+//!
+//! Continuously updates the `MeshMaterial3d<StandardMaterial>` to the latest [`CosmicEditBuffer`]
+//! [`Handle<Image>`]. It clones the previous material and only touches the `base_color_texture` field.
+//!
+
+pub use scan::{RenderTypeScan, SourceType};
+pub use size::WorldPixelRatio;
+
+pub(crate) mod coords;
+pub(crate) mod output;
+pub(crate) mod scan;
+pub(crate) mod size;
+#[cfg(feature = "3d")]
+pub(crate) mod threed;
 
 mod prelude {
     pub(super) use super::error::Result;
-    pub(super) use super::{RenderTargetError, SourceType};
-    pub(super) use super::{RenderTypeScan, RenderTypeScanItem};
+    pub(super) use super::scan::{RenderTypeScan, RenderTypeScanItem, SourceType};
+    pub(super) use super::RenderTargetError;
+}
+#[cfg(doc)]
+use prelude::*;
+
+pub(crate) fn plugin(app: &mut App) {
+    #[cfg(feature = "3d")]
+    if !app.is_plugin_added::<bevy::picking::mesh_picking::MeshPickingPlugin>() {
+        debug!("Adding MeshPickingPlugin manually as its not been added already");
+        app.add_plugins(bevy::picking::mesh_picking::MeshPickingPlugin);
+    }
+
+    #[cfg(feature = "3d")]
+    app.add_systems(PreUpdate, threed::sync_mesh_and_size)
+        .register_type::<TextEdit3d>();
+
+    app.add_systems(
+        First,
+        output::update_internal_target_handles.pipe(impls::debug_error("update target handles")),
+    )
+    .register_type::<output::CosmicRenderOutput>()
+    .register_type::<size::WorldPixelRatio>();
 }
 
 pub use error::*;
 mod error {
-    pub type Error = crate::render_implementations::RenderTargetError;
+    #[cfg(doc)]
+    use impls::prelude::*;
+
+    pub type Error = crate::impls::RenderTargetError;
     pub type Result<T> = core::result::Result<T, RenderTargetError>;
 
     #[derive(Debug)]
@@ -45,11 +86,13 @@ mod error {
         /// When using [`SourceType::Sprite`], you must set [`Sprite.custom_size`]
         SpriteCustomSizeNotSet,
 
-        SpriteUnexpectedNormal,
+        UnexpectedNormal,
 
-        SpriteExpectedHitdataPosition,
+        ExpectedHitdataPosition,
 
         UiExpectedCursorPosition,
+
+        Material3dDoesNotExist,
     }
 
     impl RenderTargetError {
@@ -59,16 +102,15 @@ mod error {
             }
         }
     }
-}
 
-pub(crate) use coords::*;
-mod coords;
-pub(crate) use output::*;
-mod output;
-pub(crate) use widget_size::*;
-mod widget_size;
-pub(crate) use scan::*;
-mod scan;
+    use crate::prelude::*;
+    pub(crate) fn debug_error<T>(debug_name: &'static str) -> impl Fn(In<Result<T>>) {
+        move |In(result): In<Result<T>>| match result {
+            Ok(_) => {}
+            Err(err) => debug!(?err, "Error in system {}", debug_name),
+        }
+    }
+}
 
 use crate::prelude::*;
 
@@ -95,3 +137,19 @@ pub struct TextEdit;
 #[derive(Component)]
 #[require(Sprite, CosmicEditBuffer)]
 pub struct TextEdit2d;
+
+/// The top-level driving component for 3D text editing
+#[cfg(feature = "3d")]
+#[derive(Component, Reflect, Debug)]
+#[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
+#[component(on_add = threed::default_3d_material)]
+pub struct TextEdit3d {
+    /// The size in world pixels of the text editor.
+    ///
+    /// See [`WorldPixelRatio`] for more information.
+    pub world_size: Vec2,
+
+    /// Recommended, defaults to `true`.
+    /// See [crate::impls] for more information.
+    pub auto_manage_mesh: bool,
+}

@@ -5,7 +5,7 @@ use crate::{
 
 use super::InputState;
 use cosmic_text::{Action, Motion, Selection};
-use render_implementations::{RelativeQuery, RenderTargetError, RenderTypeScan};
+use impls::{coords::RelativeQuery, scan::RenderTypeScan, RenderTargetError};
 
 impl InputState {
     /// Handler for [`Click`] event
@@ -46,11 +46,11 @@ pub fn focus_on_click(
             focused.0 = Some(trigger.target);
         }
         Err(RenderTargetError::NoTargetsAvailable) => {
-            warn!("Please use a high-level driver component from `bevy_cosmic_edit::render_implementations` to add the `CosmicEditBuffer` component, e.g. `TextEdit` or `TextEdit2d`");
+            warn!("Please use a high-level driver component from `bevy_cosmic_edit::impls` to add the `CosmicEditBuffer` component, e.g. `TextEdit` or `TextEdit2d`");
         }
         Err(err) => {
             warn!(message = "For some reason, the entity that `focus_on_click` was triggered for isn't a valid `CosmicEditor`", ?err);
-            // render_implementations::debug_error::<()>(In(Err(err)));
+            // impls::debug_error::<()>(In(Err(err)));
         }
     }
 }
@@ -63,7 +63,7 @@ pub(super) fn handle_focussed_click(
     mut font_system: ResMut<CosmicFontSystem>,
     buttons: Res<ButtonInput<KeyCode>>,
     mut click_state: ClickState,
-) -> render_implementations::Result<()> {
+) -> impls::Result<()> {
     let font_system = &mut font_system.0;
     let target = trigger.target;
     let click = trigger.event();

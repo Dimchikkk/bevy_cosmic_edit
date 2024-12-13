@@ -91,7 +91,7 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
 
 /// Component wrapper for [`cosmic_text::Buffer`]
 ///
-/// To access the underlying [`Buffer`], use [`EditorBuffer`](crate::editor_buffer:EditorBuffer).
+/// To access the underlying [`Buffer`], use [`EditorBuffer`](crate::editor_buffer::EditorBuffer).
 ///
 #[derive(Component, Debug)]
 #[component(on_add = on_buffer_add, on_remove = crate::focus::remove_focus_from_entity)]
@@ -101,7 +101,8 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
     SelectionColor,
     DefaultAttrs,
     CosmicBackgroundImage,
-    CosmicRenderOutput,
+    impls::output::CosmicRenderOutput,
+    impls::size::WorldPixelRatio,
     MaxLines,
     MaxChars,
     CosmicWrap,

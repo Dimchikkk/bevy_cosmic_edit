@@ -1,7 +1,7 @@
 // Common functions for examples
 use crate::{
+    impls::size::{ChangedCosmicWidgetSize, CosmicWidgetSize},
     prelude::*,
-    render_implementations::{ChangedCosmicWidgetSize, CosmicWidgetSize},
 };
 use bevy::ecs::query::QueryData;
 use cosmic_text::Edit;
@@ -79,7 +79,12 @@ pub fn print_editor_sizes(
     editors: Query<(CosmicWidgetSize, DebugName), (With<CosmicEditor>, ChangedCosmicWidgetSize)>,
 ) {
     for (size, name) in editors.iter() {
-        println!("Size of editor {:?} is: {:?}", name, size.logical_size());
+        println!(
+            "World size of editor {:?} is: {:?}, text-pixel size is {:?}",
+            name,
+            size.world_size(),
+            size.pixel_render_size(),
+        );
     }
 }
 
