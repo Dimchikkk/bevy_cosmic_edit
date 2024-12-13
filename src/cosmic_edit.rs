@@ -161,7 +161,8 @@ impl Default for DefaultAttrs {
 #[derive(Component, Reflect, Default)]
 pub struct CosmicBackgroundImage(pub Option<Handle<Image>>);
 
-/// Color to be used as a buffer's background
+/// Color to be used as a buffer's background.
+/// Defaults to [`Color::WHITE`] non transparent.
 #[derive(Component, Reflect, Default, Deref)]
 pub struct CosmicBackgroundColor(pub Color);
 

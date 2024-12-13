@@ -14,6 +14,10 @@
 //! ## 3D: [`TextEdit3d`]
 //! Automatically initializes the [`Mesh3d`] to a plane centered at the origin (default [`Transform`])
 //! with its face normal being [`Vec3::Z`] and size being [`world_size`](crate::TextEdit3d.world_size)
+//!
+//! Continuously updates the `MeshMaterial3d<StandardMaterial>` to the latest [`CosmicEditBuffer`]
+//! [`Handle<Image>`]. It clones the previous material and only touches the `base_color_texture` field.
+//!
 
 pub use scan::{RenderTypeScan, SourceType};
 pub use size::WorldPixelRatio;
@@ -134,6 +138,7 @@ pub struct TextEdit2d;
 // #[cfg(feature = "3d")]
 #[derive(Component, Reflect, Debug)]
 #[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
+#[component(on_add = default_3d_material)]
 pub struct TextEdit3d {
     /// The size in world pixels of the text editor.
     ///
@@ -151,5 +156,32 @@ impl TextEdit3d {
             world_size: rendering_size,
             auto_manage_mesh: true,
         }
+    }
+}
+
+fn default_3d_material(
+    mut world: bevy::ecs::world::DeferredWorld,
+    target: Entity,
+    _: bevy::ecs::component::ComponentId,
+) {
+    let current_handle = world
+        .get::<MeshMaterial3d<StandardMaterial>>(target)
+        .unwrap()
+        .0
+        .clone();
+    if current_handle == Handle::default() {
+        debug!("It appears no customization of a `TextEdit3d` material has been done, overwriting with a default");
+        let default_material = StandardMaterial {
+            base_color: Color::WHITE,
+            unlit: true,
+            ..default()
+        };
+        let default_handle = world
+            .resource_mut::<Assets<StandardMaterial>>()
+            .add(default_material);
+        world
+            .get_mut::<MeshMaterial3d<StandardMaterial>>(target)
+            .unwrap()
+            .0 = default_handle;
     }
 }

@@ -2,18 +2,13 @@ use bevy::prelude::*;
 use bevy_cosmic_edit::{
     cosmic_text::{Attrs, Family, Metrics},
     prelude::*,
-    CosmicBackgroundColor, CosmicTextAlign,
+    CosmicBackgroundColor,
 };
 
-fn setup(
-    mut commands: Commands,
-    mut font_system: ResMut<CosmicFontSystem>,
-    mut mats: ResMut<Assets<StandardMaterial>>,
-    ass: Res<AssetServer>,
-) {
+fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
     let camera_bundle = (
         Camera3d::default(),
-        Transform::from_translation(Vec3::new(0., 0., 300.)).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_translation(Vec3::new(0., 0., 1000.)).looking_at(Vec3::ZERO, Vec3::Y),
         Camera {
             clear_color: ClearColorConfig::Custom(bevy::color::palettes::css::PINK.into()),
             ..default()
@@ -27,14 +22,13 @@ fn setup(
 
     let cosmic_edit = commands
         .spawn((
-            TextEdit3d::new(Vec2::new(100., 100.)),
-            CosmicBackgroundColor(bevy::color::palettes::css::LIGHT_GREEN.into()),
-            CosmicEditBuffer::new(&mut font_system, Metrics::new(20., 20.)).with_rich_text(
+            TextEdit3d::new(Vec2::new(500., 500.)),
+            CosmicBackgroundColor(bevy::color::palettes::css::YELLOW_GREEN.into()),
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(30., 30.)).with_rich_text(
                 &mut font_system,
                 vec![("Banana", attrs)],
                 attrs,
             ),
-            CosmicTextAlign::bottom_center(),
         ))
         .observe(focus_on_click)
         .id();
