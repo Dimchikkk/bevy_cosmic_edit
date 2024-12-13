@@ -52,7 +52,8 @@ pub(crate) fn plugin(app: &mut App) {
         First,
         output::update_internal_target_handles.pipe(impls::debug_error("update target handles")),
     )
-    .register_type::<output::CosmicRenderOutput>();
+    .register_type::<output::CosmicRenderOutput>()
+    .register_type::<size::WorldPixelRatio>();
 }
 
 pub use error::*;

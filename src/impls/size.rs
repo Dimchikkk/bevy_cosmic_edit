@@ -8,7 +8,7 @@ use impls::prelude::*;
 
 /// Pixel / World ratio
 /// E.g. 20 => 20 text pixels are rendered = 1 world pixel
-#[derive(Component, Deref, DerefMut, Debug, Clone, Copy)]
+#[derive(Component, Reflect, Deref, DerefMut, Debug, Clone, Copy)]
 pub struct WorldPixelRatio(f32);
 
 impl Default for WorldPixelRatio {
