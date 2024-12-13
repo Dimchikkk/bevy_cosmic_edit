@@ -102,6 +102,7 @@ impl BufferMutExtras for BorrowedWithFontSystem<'_, cosmic_text::Editor<'_>> {
     DefaultAttrs,
     CosmicBackgroundImage,
     render_implementations::output::CosmicRenderOutput,
+    render_implementations::size::WorldPixelRatio,
     MaxLines,
     MaxChars,
     CosmicWrap,

@@ -14,8 +14,8 @@
 
 mod prelude {
     pub(super) use super::error::Result;
-    pub(super) use super::{RenderTargetError, SourceType};
-    pub(super) use super::{RenderTypeScan, RenderTypeScanItem};
+    pub(super) use super::scan::{RenderTypeScan, RenderTypeScanItem, SourceType};
+    pub(super) use super::RenderTargetError;
 }
 
 pub(crate) fn plugin(app: &mut App) {
@@ -87,14 +87,13 @@ mod error {
     }
 }
 
-pub(crate) use coords::*;
-mod coords;
+pub use size::WorldPixelRatio;
+
+pub(crate) mod coords;
 pub(crate) mod output;
-pub(crate) use widget_size::*;
-mod widget_size;
-pub(crate) use scan::*;
-mod scan;
-mod threed;
+pub(crate) mod scan;
+pub(crate) mod size;
+pub(crate) mod threed;
 
 use crate::prelude::*;
 

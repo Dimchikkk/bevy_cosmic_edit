@@ -2,7 +2,7 @@ use crate::{cosmic_edit::ReadOnly, prelude::*};
 use crate::{cosmic_edit::*, BufferMutExtras};
 use bevy::render::render_resource::Extent3d;
 use image::{imageops::FilterType, GenericImageView};
-use render_implementations::CosmicWidgetSize;
+use render_implementations::size::CosmicWidgetSize;
 
 /// System set for cosmic text rendering systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -153,7 +153,8 @@ fn render_texture(
     ) in query.iter_mut()
     {
         let font_system = &mut font_system.0;
-        let Ok(render_target_size) = size.logical_size() else {
+        // this often renders a larger image than the actual `size.world_size()` for better quality
+        let Ok(render_target_size) = size.pixel_render_size() else {
             continue;
         };
 

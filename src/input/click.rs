@@ -5,7 +5,7 @@ use crate::{
 
 use super::InputState;
 use cosmic_text::{Action, Motion, Selection};
-use render_implementations::{RelativeQuery, RenderTargetError, RenderTypeScan};
+use render_implementations::{coords::RelativeQuery, scan::RenderTypeScan, RenderTargetError};
 
 impl InputState {
     /// Handler for [`Click`] event

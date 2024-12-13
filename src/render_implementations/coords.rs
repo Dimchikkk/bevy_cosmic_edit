@@ -4,7 +4,7 @@ use bevy::ui::RelativeCursorPosition;
 use render_implementations::prelude::*;
 
 use crate::render::WidgetBufferCoordTransformation;
-use crate::render_implementations::CosmicWidgetSize;
+use crate::render_implementations::size::CosmicWidgetSize;
 use crate::{prelude::*, CosmicTextAlign};
 
 /// Responsible for translating a world coordinate to a buffer coordinate
@@ -18,7 +18,7 @@ pub(crate) struct RelativeQuery {
 }
 
 impl<'s> std::ops::Deref for RelativeQueryItem<'s> {
-    type Target = render_implementations::RenderTypeScanItem<'s>;
+    type Target = render_implementations::scan::RenderTypeScanItem<'s>;
 
     fn deref(&self) -> &Self::Target {
         self.widget_size.deref()
@@ -49,7 +49,7 @@ impl RelativeQueryItem<'_> {
                 let relative_transform = position_transform.reparented_to(sprite_global_transform);
                 let relative_position = relative_transform.translation.xy();
 
-                let render_target_size = widget_size.logical_size()?;
+                let render_target_size = widget_size.world_size()?;
                 let transformation = WidgetBufferCoordTransformation::new(
                     text_align.vertical,
                     render_target_size,
@@ -75,7 +75,7 @@ impl RelativeQueryItem<'_> {
                     .normalized
                     .ok_or(RenderTargetError::UiExpectedCursorPosition)?;
 
-                let widget_size = widget_size.logical_size()?;
+                let widget_size = widget_size.world_size()?;
                 let relative_position = cursor_position_normalized * widget_size;
 
                 let transformation = WidgetBufferCoordTransformation::new(

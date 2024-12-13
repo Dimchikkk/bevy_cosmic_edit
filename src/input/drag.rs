@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use super::{warn_no_editor_on_picking_event, InputState};
 use cosmic_text::Action;
-use render_implementations::RelativeQuery;
+use render_implementations::coords::RelativeQuery;
 
 impl InputState {
     pub fn is_dragging(&self) -> bool {

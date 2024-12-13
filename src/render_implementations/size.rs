@@ -1,13 +1,31 @@
 use bevy::ecs::query::{QueryData, QueryFilter};
-use render_implementations::{RenderTypeScan, RenderTypeScanItem};
+use render_implementations::scan::{RenderTypeScan, RenderTypeScanItem};
 
 use crate::prelude::*;
 use render_implementations::prelude::*;
+
+/// Pixel / World ratio
+/// E.g. 20 => 20 text pixels are rendered = 1 world pixel
+#[derive(Component, Deref, DerefMut, Debug, Clone, Copy)]
+pub struct WorldPixelRatio(pub f32);
+
+impl Default for WorldPixelRatio {
+    fn default() -> Self {
+        WorldPixelRatio(1.0)
+    }
+}
+
+impl WorldPixelRatio {
+    pub fn from_one_world_pixel_equals(text_pixels: f32) -> Self {
+        WorldPixelRatio(text_pixels)
+    }
+}
 
 /// Query the (logical) size of a widget
 #[derive(QueryData)]
 pub struct CosmicWidgetSize {
     scan: RenderTypeScan,
+    ratio: &'static WorldPixelRatio,
 
     sprite: Option<&'static Sprite>,
     ui: Option<&'static ComputedNode>,
@@ -26,38 +44,32 @@ impl<'s> std::ops::Deref for CosmicWidgetSizeItem<'s> {
 /// An optimization [`QueryFilter`](bevy::ecs::query::QueryFilter)
 #[derive(QueryFilter)]
 pub(crate) struct ChangedCosmicWidgetSize {
+    scan: Or<(Changed<TextEdit>, Changed<TextEdit2d>, Changed<TextEdit3d>)>,
+    ratio: Changed<WorldPixelRatio>,
     sprite: Changed<Sprite>,
     ui: Changed<ComputedNode>,
+    threed: Changed<TextEdit3d>,
 }
 
 pub(in crate::render_implementations) trait NodeSizeExt {
-    fn logical_size(&self) -> Vec2;
+    fn world_size(&self) -> Vec2;
 }
 
 impl NodeSizeExt for ComputedNode {
-    fn logical_size(&self) -> Vec2 {
+    fn world_size(&self) -> Vec2 {
         self.size() * self.inverse_scale_factor()
     }
 }
 
 impl CosmicWidgetSizeItem<'_> {
-    /// Automatically logs any errors
-    pub fn logical_size(&self) -> Result<Vec2> {
-        let ret = self._logical_size();
-        if let Err(err) = &ret {
-            debug!(message = "Finding the size of a widget failed", ?err);
-        }
-        ret
-    }
-
-    fn _logical_size(&self) -> Result<Vec2> {
+    pub fn world_size(&self) -> Result<Vec2> {
         let source_type = self.scan.scan()?;
         match source_type {
             SourceType::Ui => {
                 let ui = self
                     .ui
                     .ok_or(RenderTargetError::required_component_missing::<ComputedNode>())?;
-                Ok(ui.logical_size())
+                Ok(ui.world_size())
             }
             SourceType::Sprite => {
                 let sprite = self
@@ -74,5 +86,12 @@ impl CosmicWidgetSizeItem<'_> {
                 Ok(threed.size)
             }
         }
+    }
+
+    pub fn pixel_render_size(&self) -> Result<Vec2> {
+        let world_size = self.world_size()?;
+        let ratio = self.ratio.deref();
+
+        Ok(world_size * ratio)
     }
 }
