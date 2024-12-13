@@ -29,7 +29,7 @@ impl RelativeQueryItem<'_> {
     pub fn compute_buffer_coord(&self, hit_data: &HitData, buffer_size: Vec2) -> Result<Vec2> {
         match self.scan()? {
             SourceType::Sprite | SourceType::ThreeD => {
-                if hit_data.normal != Some(Vec3::Z) {
+                if hit_data.normal.map(|p| p.normalize()) != Some(Vec3::Z) {
                     warn!(?hit_data, "Normal is not out of screen, skipping");
                     return Err(RenderTargetError::UnexpectedNormal);
                 }

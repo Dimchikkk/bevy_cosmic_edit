@@ -27,8 +27,11 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_systems(PreUpdate, threed::sync_mesh_and_size)
         .add_systems(
             First,
-            output::update_internal_target_handles.pipe(render_implementations::debug_error),
-        );
+            output::update_internal_target_handles
+                .pipe(render_implementations::debug_error("update target handles")),
+        )
+        .register_type::<TextEdit3d>()
+        .register_type::<output::CosmicRenderOutput>();
 }
 
 pub use error::*;
@@ -74,11 +77,19 @@ mod error {
             }
         }
     }
+
+    use crate::prelude::*;
+    pub(crate) fn debug_error<T>(debug_name: &'static str) -> impl Fn(In<Result<T>>) {
+        move |In(result): In<Result<T>>| match result {
+            Ok(_) => {}
+            Err(err) => debug!(?err, "Error in system {}", debug_name),
+        }
+    }
 }
 
 pub(crate) use coords::*;
 mod coords;
-mod output;
+pub(crate) mod output;
 pub(crate) use widget_size::*;
 mod widget_size;
 pub(crate) use scan::*;
@@ -112,7 +123,7 @@ pub struct TextEdit;
 pub struct TextEdit2d;
 
 // #[cfg(feature = "3d")]
-#[derive(Component)]
+#[derive(Component, Reflect, Debug)]
 #[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
 pub struct TextEdit3d {
     pub size: Vec2,

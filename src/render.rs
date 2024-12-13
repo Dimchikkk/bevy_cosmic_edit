@@ -127,7 +127,7 @@ fn render_texture(
         &CursorColor,
         &SelectionColor,
         Option<&SelectedTextColor>,
-        &CosmicRenderOutput,
+        &render_implementations::output::CosmicRenderOutput,
         CosmicWidgetSize,
         Option<&ReadOnly>,
         &CosmicTextAlign,

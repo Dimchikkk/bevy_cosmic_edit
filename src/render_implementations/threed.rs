@@ -7,7 +7,8 @@ pub(in crate::render_implementations) fn sync_mesh_and_size(
 ) {
     for (size, mut mesh_component) in meshs.iter_mut() {
         let size = size.size;
-        let mesh = Plane3d::new(Vec3::Z, size / 2.0);
+        // let mesh = Plane3d::new(Vec3::Z, size / 2.0);
+        let mesh = Rectangle::new(size.x, size.y);
         mesh_component.0 = mesh_server.add(mesh);
     }
 }

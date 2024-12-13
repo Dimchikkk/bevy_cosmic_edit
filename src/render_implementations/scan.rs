@@ -33,19 +33,12 @@ impl RenderTypeScanItem<'_> {
         match count_true {
             0 => Err(RenderTargetError::NoTargetsAvailable),
             1 => match flags {
-                [true, false, false] => Ok(SourceType::Sprite),
-                [false, true, false] => Ok(SourceType::Ui),
+                [true, false, false] => Ok(SourceType::Ui),
+                [false, true, false] => Ok(SourceType::Sprite),
                 [false, false, true] => Ok(SourceType::ThreeD),
                 _ => unreachable!(),
             },
             _ => Err(RenderTargetError::MoreThanOneTargetAvailable),
         }
-    }
-}
-
-pub(crate) fn debug_error<T>(In(result): In<Result<T>>) {
-    match result {
-        Ok(_) => {}
-        Err(err) => debug!(message = "Error in render target", ?err),
     }
 }
