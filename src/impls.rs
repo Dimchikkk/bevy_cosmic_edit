@@ -10,8 +10,12 @@
 //!
 //! ## UI: [`TextEdit`]
 //! Requires [`ImageNode`] for rendering
-// TODO: Remove `CosmicWidgetSize`?
+//!
+//! ## 3D: [`TextEdit3d`]
+//! Automatically initializes the [`Mesh3d`] to a plane centered at the origin (default [`Transform`])
+//! with its face normal being [`Vec3::Z`] and size being [`world_size`](crate::TextEdit3d.world_size)
 
+pub use scan::{RenderTypeScan, SourceType};
 pub use size::WorldPixelRatio;
 
 pub(crate) mod coords;
@@ -25,6 +29,8 @@ mod prelude {
     pub(super) use super::scan::{RenderTypeScan, RenderTypeScanItem, SourceType};
     pub(super) use super::RenderTargetError;
 }
+#[cfg(doc)]
+use prelude::*;
 
 pub(crate) fn plugin(app: &mut App) {
     if !app.is_plugin_added::<bevy::picking::mesh_picking::MeshPickingPlugin>() {
@@ -44,6 +50,9 @@ pub(crate) fn plugin(app: &mut App) {
 
 pub use error::*;
 mod error {
+    #[cfg(doc)]
+    use impls::prelude::*;
+
     pub type Error = crate::impls::RenderTargetError;
     pub type Result<T> = core::result::Result<T, RenderTargetError>;
 
@@ -121,15 +130,26 @@ pub struct TextEdit;
 #[require(Sprite, CosmicEditBuffer)]
 pub struct TextEdit2d;
 
+/// The top-level driving component for 3D text editing
 // #[cfg(feature = "3d")]
 #[derive(Component, Reflect, Debug)]
 #[require(Mesh3d, MeshMaterial3d::<StandardMaterial>, CosmicEditBuffer)]
 pub struct TextEdit3d {
-    pub size: Vec2,
+    /// The size in world pixels of the text editor.
+    ///
+    /// See [`WorldPixelRatio`] for more information.
+    pub world_size: Vec2,
+
+    /// Recommended, defaults to `true`.
+    /// See [crate::impls] for more information.
+    pub auto_manage_mesh: bool,
 }
 
 impl TextEdit3d {
-    pub fn new(size: Vec2) -> Self {
-        Self { size }
+    pub fn new(rendering_size: Vec2) -> Self {
+        Self {
+            world_size: rendering_size,
+            auto_manage_mesh: true,
+        }
     }
 }

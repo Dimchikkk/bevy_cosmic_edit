@@ -44,12 +44,12 @@ fn check_align_sanity(
 ///
 /// [`cosmic_text`] can [`Align`](cosmic_text::Align) items per line already,
 /// e.g. [`Align::Center`], but this only works horizontally.
-/// To place the text in the direct center vertically, [bevy_cosmic_edit]
+/// To place the text in the direct center vertically, [bevy_cosmic_edit](crate)
 /// manually calculates the vertical offset as configured by
 /// [`CosmicTextAlign.vertical`]
 #[derive(Component, Reflect)]
 pub struct CosmicTextAlign {
-    /// Managed by [bevy_cosmic_edit].
+    /// Managed by [bevy_cosmic_edit](crate).
     /// Will place the text in the direct center vertically.
     pub vertical: VerticalAlign,
 
@@ -106,10 +106,10 @@ impl CosmicTextAlign {
 }
 
 /// Enum representing the text alignment in a cosmic [`Buffer`].
-/// Defaults to [`CosmicTextAlign::Center`]
+/// Defaults to [`VerticalAlign::Center`]
 #[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
 pub enum VerticalAlign {
-    /// If [bevy_cosmic_edit] made no manual calcualtions, this would
+    /// If [bevy_cosmic_edit](crate) made no manual calcualtions, this would
     /// effecively be the default
     Top,
 
@@ -177,13 +177,13 @@ impl Default for CursorColor {
 }
 
 /// Color to be used as the selected text background.
-/// Defaults to [`Color::GRAY`]
+/// Defaults to gray
 #[derive(Component, Reflect, Deref)]
 pub struct SelectionColor(pub Color);
 
 impl Default for SelectionColor {
     fn default() -> Self {
-        SelectionColor(bevy::color::palettes::basic::GRAY.into())
+        SelectionColor(bevy::color::palettes::css::GRAY.into())
     }
 }
 

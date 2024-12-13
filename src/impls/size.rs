@@ -102,7 +102,7 @@ impl CosmicWidgetSizeItem<'_> {
                 let threed = self
                     .threed
                     .ok_or(RenderTargetError::required_component_missing::<TextEdit3d>())?;
-                Ok(threed.size)
+                Ok(threed.world_size)
             }
         }
     }

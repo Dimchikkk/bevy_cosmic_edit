@@ -1,17 +1,18 @@
 use bevy::ecs::query::QueryData;
 
-use crate::prelude::*;
 use crate::impls::prelude::*;
+use crate::prelude::*;
 
 /// TODO: Generalize implementations depending on this
 /// and add 3D
 #[non_exhaustive]
-pub(in crate::impls) enum SourceType {
+pub enum SourceType {
     Ui,
     Sprite,
     ThreeD,
 }
 
+/// An internal type to work out what [`SourceType`] a widget is
 #[derive(QueryData)]
 pub struct RenderTypeScan {
     is_sprite: Has<TextEdit2d>,
