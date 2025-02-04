@@ -12,13 +12,6 @@ pub(crate) struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        if !app.world().contains_resource::<SwashCache>() {
-            app.insert_resource(SwashCache::default());
-        } else {
-            debug!(
-                "Skipping inserting `SwashCache` resource as bevy has already inserted it for us"
-            );
-        }
         app.add_systems(
             First,
             update_internal_target_handles.pipe(render_implementations::debug_error),
