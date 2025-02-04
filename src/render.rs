@@ -8,16 +8,12 @@ use render_implementations::CosmicWidgetSize;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RenderSet;
 
-pub(crate) struct RenderPlugin;
-
-impl Plugin for RenderPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            First,
-            update_internal_target_handles.pipe(render_implementations::debug_error),
-        )
-        .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(
+        First,
+        update_internal_target_handles.pipe(render_implementations::debug_error),
+    )
+    .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
 }
 
 /// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver

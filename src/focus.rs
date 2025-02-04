@@ -9,19 +9,15 @@ use crate::prelude::*;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct FocusSet;
 
-pub(crate) struct FocusPlugin;
-
-impl Plugin for FocusPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            PostUpdate,
-            (drop_editor_unfocused, add_editor_to_focused)
-                .chain()
-                .in_set(FocusSet),
-        )
-        .init_resource::<FocusedWidget>()
-        .register_type::<FocusedWidget>();
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(
+        PostUpdate,
+        (drop_editor_unfocused, add_editor_to_focused)
+            .chain()
+            .in_set(FocusSet),
+    )
+    .init_resource::<FocusedWidget>()
+    .register_type::<FocusedWidget>();
 }
 
 /// Resource struct that keeps track of the currently active editor entity.

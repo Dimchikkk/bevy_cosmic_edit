@@ -5,32 +5,28 @@ use crate::{
 use cosmic_text::{Cursor, Edit, Selection, Shaping};
 use unicode_segmentation::UnicodeSegmentation;
 
-pub(crate) struct PasswordPlugin;
-
 /// System set for password blocking systems. Runs in [`PostUpdate`]
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct PasswordSet;
 
-impl Plugin for PasswordPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreUpdate,
-            (hide_password_text.before(crate::input::InputSet),),
-        )
-        .add_systems(
-            Update,
-            (restore_password_text
-                .before(crate::input::keyboard::kb_input_text)
-                .after(crate::input::keyboard::kb_move_cursor),),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                hide_password_text.before(RenderSet).in_set(PasswordSet),
-                restore_password_text.before(FocusSet).after(RenderSet),
-            ),
-        );
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(
+        PreUpdate,
+        (hide_password_text.before(crate::input::InputSet),),
+    )
+    .add_systems(
+        Update,
+        (restore_password_text
+            .before(crate::input::keyboard::kb_input_text)
+            .after(crate::input::keyboard::kb_move_cursor),),
+    )
+    .add_systems(
+        PostUpdate,
+        (
+            hide_password_text.before(RenderSet).in_set(PasswordSet),
+            restore_password_text.before(FocusSet).after(RenderSet),
+        ),
+    );
 }
 
 /// Component to be added to an entity with a [`CosmicEditBuffer`] to block contents with a

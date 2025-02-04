@@ -17,14 +17,13 @@ impl Plugin for CosmicEditPlugin {
 
         app.add_plugins((
             crate::cosmic_edit::plugin,
-            // crate::buffer::BufferPlugin,
-            crate::editor_buffer::EditorBufferPlugin,
-            crate::render::RenderPlugin,
-            crate::input::InputPlugin,
-            crate::focus::FocusPlugin,
-            crate::placeholder::PlaceholderPlugin,
-            crate::password::PasswordPlugin,
-            crate::user_select::UserSelectPlugin,
+            crate::editor_buffer::plugin,
+            crate::render::plugin,
+            crate::input::plugin,
+            crate::focus::plugin,
+            crate::placeholder::plugin,
+            crate::password::plugin,
+            crate::user_select::plugin,
             crate::double_click::plugin,
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
