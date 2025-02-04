@@ -245,6 +245,7 @@ fn render_texture(
             }
         };
 
+        // BUG: overflow when using center/right/end aligned infinite wrap
         editor.set_size(
             font_system,
             Some(match wrap {

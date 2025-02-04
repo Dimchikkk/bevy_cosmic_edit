@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_cosmic_edit::{
-    cosmic_text::Attrs, password::Password, placeholder::Placeholder, prelude::*, CosmicWrap,
-    MaxLines,
+    cosmic_text::Attrs, password::Password, placeholder::Placeholder, prelude::*, CosmicTextAlign,
+    CosmicWrap, MaxLines,
 };
 
 fn setup(mut commands: Commands) {
@@ -14,6 +14,7 @@ fn setup(mut commands: Commands) {
             CosmicEditBuffer::default(),
             MaxLines(1),
             CosmicWrap::InfiniteLine,
+            CosmicTextAlign::left_center(),
             // Sets size of text box
             Sprite {
                 custom_size: Some(Vec2::new(300., 100.)),
