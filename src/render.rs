@@ -329,8 +329,7 @@ fn render_texture(
             //     );
             // }
 
-            // TODO: Performance optimization, read all possible render-input
-            // changes and only redraw if necessary
+            // PERF: Read all possible render-input changes and only redraw if necessary
             // editor.set_redraw(false);
         } else {
             // todo: performance optimizations (see comments above/below)
@@ -348,8 +347,7 @@ fn render_texture(
                 draw_closure,
             );
 
-            // TODO: Performance optimization, read all possible render-input
-            // changes and only redraw if necessary
+            // PERF: Read all possible render-input changes and only redraw if necessary
             // buffer.set_redraw(false);
         }
 

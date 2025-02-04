@@ -12,7 +12,7 @@ pub(crate) fn scroll(
     for (mut editor, scroll_enabled) in editor.iter_mut() {
         let mut editor = editor.borrow_with(font_system);
 
-        if scroll_enabled.should_scroll() {
+        if **scroll_enabled {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {

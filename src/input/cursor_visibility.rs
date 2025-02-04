@@ -7,17 +7,6 @@ use crate::prelude::*;
 
 use crate::input::CosmicTextChanged;
 
-// if text changedd
-// if !evr_text_changed.is_empty() {
-//     window.cursor_options.visible = false;
-// }
-
-// if pressing or moving mouse
-// if mouse_buttons.get_just_pressed().len() != 0 || !evr_mouse_motion.is_empty() {
-//     window.cursor_options.visible = true;
-// }
-//
-
 #[derive(SystemParam)]
 pub(crate) struct CursorVisibility<'w> {
     window: Single<'w, &'static mut Window, With<PrimaryWindow>>,

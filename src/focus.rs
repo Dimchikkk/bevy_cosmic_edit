@@ -53,8 +53,6 @@ pub(crate) fn drop_editor_unfocused(
     match active_editor.0 {
         None => {
             for (e, mut buffer, editor) in q.iter_mut() {
-                // buffer.lines = editor.with_buffer(|buf| buf.lines.clone());
-                // buffer.set_redraw(true);
                 *buffer = CosmicEditBuffer::from_downgrading_editor(editor);
                 trace!("Removing editor from all entities as there is no focussed widget",);
                 commands.entity(e).remove::<CosmicEditor>();

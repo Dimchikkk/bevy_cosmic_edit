@@ -112,11 +112,9 @@ pub enum VerticalAlign {
     /// If [bevy_cosmic_edit] made no manual calcualtions, this would
     /// effecively be the default
     Top,
-
     /// Default
     #[default]
     Center,
-
     Bottom,
 }
 
@@ -202,16 +200,12 @@ pub struct MaxLines(pub usize);
 pub struct MaxChars(pub usize);
 
 /// Should [`CosmicEditBuffer`] respond to scroll events?
-#[derive(Component, Reflect, Default)]
-pub enum ScrollEnabled {
-    #[default]
-    Enabled,
-    Disabled,
-}
+#[derive(Component, Reflect, Deref)]
+pub struct ScrollEnabled(pub bool);
 
-impl ScrollEnabled {
-    pub fn should_scroll(&self) -> bool {
-        matches!(self, ScrollEnabled::Enabled)
+impl Default for ScrollEnabled {
+    fn default() -> Self {
+        Self(true)
     }
 }
 

@@ -73,7 +73,7 @@ fn add_event_handlers(
     _component_id: ComponentId,
 ) {
     let mut observers = [
-        Observer::new(click::handle_focussed_click.pipe(render_implementations::debug_error)),
+        Observer::new(click::handle_focused_click.pipe(render_implementations::debug_error)),
         Observer::new(drag::handle_dragstart.pipe(render_implementations::debug_error)),
         Observer::new(drag::handle_drag_continue),
         Observer::new(drag::handle_dragend),

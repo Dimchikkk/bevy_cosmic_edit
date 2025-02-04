@@ -41,7 +41,7 @@ impl Plugin for CosmicEditPlugin {
 pub struct CosmicFontConfig {
     pub fonts_dir_path: Option<PathBuf>,
     pub font_bytes: Option<Vec<&'static [u8]>>,
-    /// If [false], some characters (esspecially Unicode emojies) might not load properly
+    /// If [false], some characters (esspecially Unicode emoji) might not load properly
     /// Caution: this can be relatively slow
     pub load_system_fonts: bool,
 }
@@ -63,7 +63,7 @@ impl Default for CosmicFontConfig {
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
 
 /// Without this, multiple buffers will show the same image
-/// as the focussed editor. IDK why
+/// as the focused editor.
 fn new_image_from_default(
     mut world: DeferredWorld,
     entity: Entity,
