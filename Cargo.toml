@@ -18,18 +18,18 @@ internal-debugging = ["bevy/track_change_detection"]
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = [
-    "bevy_asset",
-    "bevy_core_pipeline",
-    "bevy_render",
-    "bevy_scene",
-    "bevy_sprite",
-    "bevy_text",
-    "bevy_ui",
-    "bevy_winit",
-    "bevy_window",
-    "png",
-    "x11",
-    "webgl2",
+  "bevy_asset",
+  "bevy_core_pipeline",
+  "bevy_render",
+  "bevy_scene",
+  "bevy_sprite",
+  "bevy_text",
+  "bevy_ui",
+  "bevy_winit",
+  "bevy_window",
+  "png",
+  "x11",
+  "webgl2",
 ] }
 unicode-segmentation = { version = "1.11.0" }
 # TODO: move crossbeam to wasm32, once input.rs has separate wasm copy/paste fn
@@ -37,9 +37,6 @@ crossbeam-channel = "0.5.8"
 image = "0.25.1"
 sys-locale = "0.3.0"
 document-features = "0.2.8"
-num = "0.4.3"
-num-derive = "0.4.2"
-num-traits = "0.2.19"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard = "3.2.0"
@@ -49,9 +46,9 @@ js-sys = "0.3.70"
 wasm-bindgen = "0.2.93"
 wasm-bindgen-futures = "0.4.42"
 web-sys = { version = "0.3.70", features = [
-    "Clipboard",
-    "Navigator",
-    "Window",
+  "Clipboard",
+  "Navigator",
+  "Window",
 ] }
 
 [dev-dependencies]
