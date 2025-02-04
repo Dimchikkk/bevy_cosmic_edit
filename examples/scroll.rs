@@ -25,7 +25,7 @@ fn setup(mut commands: Commands, mut font_system: ResMut<CosmicFontSystem>) {
                 .as_str(),
                 attrs,
             ),
-            ScrollEnabled::Enabled,
+            ScrollEnabled(true),
             CosmicTextAlign::top_left(),
             DefaultAttrs(AttrsOwned::new(
                 Attrs::new().color(bevy::color::palettes::css::LIMEGREEN.to_cosmic()),

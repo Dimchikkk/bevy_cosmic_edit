@@ -56,7 +56,7 @@ pub fn focus_on_click(
 }
 
 /// Handles [`CosmicEditor`] widgets that are already focussed
-pub(super) fn handle_focussed_click(
+pub(super) fn handle_focused_click(
     trigger: Trigger<Pointer<Click>>,
     focused: Res<FocusedWidget>,
     mut editor: Query<(&mut InputState, &mut CosmicEditor, RelativeQuery)>,
@@ -113,11 +113,6 @@ pub(super) fn handle_focussed_click(
                 x: buffer_coord.x as i32,
                 y: buffer_coord.y as i32,
             });
-            // // select word
-            // editor.action(Action::Motion(Motion::LeftWord));
-            // let cursor = editor.cursor();
-            // editor.set_selection(Selection::Normal(cursor));
-            // editor.action(Action::Motion(Motion::RightWord));
         }
         ClickCount::Triple => {
             // selects line
@@ -125,11 +120,6 @@ pub(super) fn handle_focussed_click(
                 x: buffer_coord.x as i32,
                 y: buffer_coord.y as i32,
             });
-            // // select paragraph
-            // editor.action(Action::Motion(Motion::ParagraphStart));
-            // let cursor = editor.cursor();
-            // editor.set_selection(Selection::Normal(cursor));
-            // editor.action(Action::Motion(Motion::ParagraphEnd));
         }
         ClickCount::MoreThanTriple => {
             // select all

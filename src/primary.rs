@@ -17,14 +17,13 @@ impl Plugin for CosmicEditPlugin {
 
         app.add_plugins((
             crate::cosmic_edit::plugin,
-            // crate::buffer::BufferPlugin,
-            crate::editor_buffer::EditorBufferPlugin,
-            crate::render::RenderPlugin,
-            crate::input::InputPlugin,
-            crate::focus::FocusPlugin,
-            crate::placeholder::PlaceholderPlugin,
-            crate::password::PasswordPlugin,
-            crate::user_select::UserSelectPlugin,
+            crate::editor_buffer::plugin,
+            crate::render::plugin,
+            crate::input::plugin,
+            crate::focus::plugin,
+            crate::placeholder::plugin,
+            crate::password::plugin,
+            crate::user_select::plugin,
             crate::double_click::plugin,
         ))
         // TODO: Use the builtin bevy CosmicFontSystem
@@ -42,7 +41,7 @@ impl Plugin for CosmicEditPlugin {
 pub struct CosmicFontConfig {
     pub fonts_dir_path: Option<PathBuf>,
     pub font_bytes: Option<Vec<&'static [u8]>>,
-    /// If [false], some characters (esspecially Unicode emojies) might not load properly
+    /// If [false], some characters (esspecially Unicode emoji) might not load properly
     /// Caution: this can be relatively slow
     pub load_system_fonts: bool,
 }
@@ -64,7 +63,7 @@ impl Default for CosmicFontConfig {
 pub(crate) struct CosmicRenderOutput(pub(crate) Handle<Image>);
 
 /// Without this, multiple buffers will show the same image
-/// as the focussed editor. IDK why
+/// as the focused editor.
 fn new_image_from_default(
     mut world: DeferredWorld,
     entity: Entity,

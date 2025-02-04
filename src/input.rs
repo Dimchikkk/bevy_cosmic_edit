@@ -16,38 +16,34 @@ pub mod scroll;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputSet;
 
-pub(crate) struct InputPlugin;
-
-impl Plugin for InputPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, scroll::scroll.in_set(InputSet))
-            .add_systems(
-                Update,
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(PreUpdate, scroll::scroll.in_set(InputSet))
+        .add_systems(
+            Update,
+            (
+                keyboard::kb_move_cursor,
+                keyboard::kb_input_text,
+                clipboard::kb_clipboard,
                 (
-                    keyboard::kb_move_cursor,
-                    keyboard::kb_input_text,
-                    clipboard::kb_clipboard,
-                    (
-                        cursor_icon::update_cursor_icon,
-                        cursor_visibility::update_cursor_visibility,
-                    ),
-                )
-                    .chain()
-                    .in_set(InputSet),
+                    cursor_icon::update_cursor_icon,
+                    cursor_visibility::update_cursor_visibility,
+                ),
             )
-            .add_event::<hover::TextHoverIn>()
-            .add_event::<hover::TextHoverOut>()
-            .add_event::<CosmicTextChanged>()
-            .register_type::<hover::TextHoverIn>()
-            .register_type::<hover::TextHoverOut>()
-            .register_type::<CosmicTextChanged>();
+                .chain()
+                .in_set(InputSet),
+        )
+        .add_event::<hover::TextHoverIn>()
+        .add_event::<hover::TextHoverOut>()
+        .add_event::<CosmicTextChanged>()
+        .register_type::<hover::TextHoverIn>()
+        .register_type::<hover::TextHoverOut>()
+        .register_type::<CosmicTextChanged>();
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            let (tx, rx) = crossbeam_channel::bounded::<clipboard::WasmPaste>(1);
-            app.insert_resource(clipboard::WasmPasteAsyncChannel { tx, rx })
-                .add_systems(Update, clipboard::poll_wasm_paste);
-        }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let (tx, rx) = crossbeam_channel::bounded::<clipboard::WasmPaste>(1);
+        app.insert_resource(clipboard::WasmPasteAsyncChannel { tx, rx })
+            .add_systems(Update, clipboard::poll_wasm_paste);
     }
 }
 
@@ -77,7 +73,7 @@ fn add_event_handlers(
     _component_id: ComponentId,
 ) {
     let mut observers = [
-        Observer::new(click::handle_focussed_click.pipe(render_implementations::debug_error)),
+        Observer::new(click::handle_focused_click.pipe(render_implementations::debug_error)),
         Observer::new(drag::handle_dragstart.pipe(render_implementations::debug_error)),
         Observer::new(drag::handle_drag_continue),
         Observer::new(drag::handle_dragend),

@@ -8,13 +8,9 @@ use cosmic_text::{Attrs, BufferRef, FontSystem, Shaping};
 
 use crate::prelude::*;
 
-pub(crate) struct EditorBufferPlugin;
-
-impl Plugin for EditorBufferPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(First, (buffer::set_initial_scale, buffer::add_font_system))
-            .add_systems(Update, editor::blink_cursor);
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(First, (buffer::set_initial_scale, buffer::add_font_system))
+        .add_systems(Update, editor::blink_cursor);
 }
 
 pub mod buffer;

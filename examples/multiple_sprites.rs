@@ -24,23 +24,25 @@ fn setup(
     attrs = attrs.family(Family::Name("Victor Mono"));
     attrs = attrs.color(bevy::color::palettes::basic::PURPLE.to_cosmic());
 
-    commands.spawn((
-        TextEdit2d,
-        CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
-            &mut font_system,
-            "😀😀😀 x => y",
-            attrs,
-        ),
-        CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
-        Sprite {
-            custom_size: Some(Vec2 {
-                x: primary_window.width() / 2.,
-                y: primary_window.height(),
-            }),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
-    ));
+    commands
+        .spawn((
+            TextEdit2d,
+            CosmicEditBuffer::new(&mut font_system, Metrics::new(14., 18.)).with_text(
+                &mut font_system,
+                "😀😀😀 x => y",
+                attrs,
+            ),
+            CosmicBackgroundColor(bevy::color::palettes::css::ALICE_BLUE.into()),
+            Sprite {
+                custom_size: Some(Vec2 {
+                    x: primary_window.width() / 2.,
+                    y: primary_window.height(),
+                }),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(-primary_window.width() / 4., 0., 1.)),
+        ))
+        .observe(focus_on_click);
 
     commands
         .spawn((

@@ -52,23 +52,19 @@ impl Placeholder {
     }
 }
 
-pub(crate) struct PlaceholderPlugin;
-
-impl Plugin for PlaceholderPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                add_placeholder_to_buffer,
-                add_placeholder_to_editor,
-                move_cursor_to_start_of_placeholder,
-                remove_placeholder_on_input,
-            )
-                .chain()
-                .after(InputSet)
-                .before(RenderSet),
-        );
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(
+        Update,
+        (
+            add_placeholder_to_buffer,
+            add_placeholder_to_editor,
+            move_cursor_to_start_of_placeholder,
+            remove_placeholder_on_input,
+        )
+            .chain()
+            .after(InputSet)
+            .before(RenderSet),
+    );
 }
 
 fn add_placeholder_to_buffer(

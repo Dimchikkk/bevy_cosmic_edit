@@ -8,23 +8,12 @@ use render_implementations::CosmicWidgetSize;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RenderSet;
 
-pub(crate) struct RenderPlugin;
-
-impl Plugin for RenderPlugin {
-    fn build(&self, app: &mut App) {
-        if !app.world().contains_resource::<SwashCache>() {
-            app.insert_resource(SwashCache::default());
-        } else {
-            debug!(
-                "Skipping inserting `SwashCache` resource as bevy has already inserted it for us"
-            );
-        }
-        app.add_systems(
-            First,
-            update_internal_target_handles.pipe(render_implementations::debug_error),
-        )
-        .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
-    }
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(
+        First,
+        update_internal_target_handles.pipe(render_implementations::debug_error),
+    )
+    .add_systems(PostUpdate, (render_texture,).in_set(RenderSet));
 }
 
 /// Every frame updates the output (in [`CosmicRenderOutput`]) to its receiver
@@ -256,6 +245,7 @@ fn render_texture(
             }
         };
 
+        // BUG: overflow when using center/right/end aligned infinite wrap
         editor.set_size(
             font_system,
             Some(match wrap {
@@ -340,8 +330,7 @@ fn render_texture(
             //     );
             // }
 
-            // TODO: Performance optimization, read all possible render-input
-            // changes and only redraw if necessary
+            // PERF: Read all possible render-input changes and only redraw if necessary
             // editor.set_redraw(false);
         } else {
             // todo: performance optimizations (see comments above/below)
@@ -359,8 +348,7 @@ fn render_texture(
                 draw_closure,
             );
 
-            // TODO: Performance optimization, read all possible render-input
-            // changes and only redraw if necessary
+            // PERF: Read all possible render-input changes and only redraw if necessary
             // buffer.set_redraw(false);
         }
 

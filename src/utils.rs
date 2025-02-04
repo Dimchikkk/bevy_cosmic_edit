@@ -51,7 +51,7 @@ pub fn print_editor_text(
             return;
         }
         previous_value.clone_from(&current_text);
-        info!("Widget text: {:?}", current_text);
+        debug!("Widget text: {:?}", current_text);
     }
 }
 
